@@ -1,0 +1,43 @@
+{
+    "command": "/usr/sbin/httpd -DFOREGROUND",
+    "config_files": [
+        {
+            "source": "/var/lib/kolla/config_files/src/etc/httpd/conf.d",
+            "dest": "/etc/httpd/conf.d",
+            "merge": false,
+            "preserve_properties": true 
+        },
+        {
+            "source": "/var/lib/kolla/config_files/src/etc/httpd/conf.modules.d",
+            "dest": "/etc/httpd/conf.modules.d",
+            "merge": false,
+            "preserve_properties": true 
+        },
+        {
+            "source": "/var/lib/kolla/config_files/src/*",
+            "dest": "/",
+            "merge": true,
+            "preserve_properties": true 
+        },
+        {
+            "path": "/var/log/horizon",
+            "owner": "apache:apache",
+            "recurse": true
+        },
+        {
+            "path": "/etc/openstack-dashboard",
+            "owner": "apache:apache",
+            "recurse": true
+        },
+        {
+            "path": "/usr/share/openstack-dashboard/openstack_dashboard/local/",
+            "owner": "apache:apache",
+            "recurse": false
+        },
+        {
+            "path": "/usr/share/openstack-dashboard/openstack_dashboard/local/local_settings.d/",
+            "owner": "apache:apache",
+            "recurse": false
+        }
+    ]
+}
