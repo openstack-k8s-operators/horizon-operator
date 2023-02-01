@@ -24,7 +24,7 @@ const (
 	DatabaseName = "horizon"
 
 	// horizonPublicPort
-	horizonPublicPort int32 = 443
+	HorizonPublicPort int32 = 443
 
 	// KollaConfig -
 	KollaConfig = "/var/lib/config-data/merged/horizon.json"

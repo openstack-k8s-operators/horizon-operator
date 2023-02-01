@@ -30,7 +30,7 @@ const (
 	ServiceCommand = "/usr/sbin/httpd"
 )
 
-func Deployment (instance *horizonv1.Horizon, configHash string, labels map[string]string) *appsv1.Deployment {
+func Deployment(instance *horizonv1.Horizon, configHash string, labels map[string]string) *appsv1.Deployment {
 	runAsUser := int64(0)
 
 	livenessProbe := &corev1.Probe{
@@ -50,7 +50,7 @@ func Deployment (instance *horizonv1.Horizon, configHash string, labels map[stri
 
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:  ServiceName,
+			Name:      ServiceName,
 			Namespace: instance.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -62,48 +62,40 @@ func Deployment (instance *horizonv1.Horizon, configHash string, labels map[stri
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
 				},
-                Spec: corev1.PodSpec{
+				Spec: corev1.PodSpec{
 					ServiceAccountName: ServiceAccount,
 					Containers: []corev1.Container{
 						{
 							Name: ServiceName,
 							Command: []string{
 								ServiceCommand},
-							Args:    []string{
+							Args: []string{
 								"-DFOREGROUND"},
 							Image: instance.Spec.ContainerImage,
 							SecurityContext: &corev1.SecurityContext{
 								RunAsUser: &runAsUser,
 							},
-							Env:  env.MergeEnvs([]corev1.EnvVar{}, envVars),
-							VolumeMounts: getVolumeMounts(),
-							Resources: instance.Spec.Resources,
+							Env:           env.MergeEnvs([]corev1.EnvVar{}, envVars),
+							VolumeMounts:  getVolumeMounts(),
+							Resources:     instance.Spec.Resources,
 							LivenessProbe: livenessProbe,
-							},
 						},
 					},
 				},
 			},
-		}
-		deployment.Spec.Template.Spec.Volumes = getVolumes(instance.Name)
-		deployment.Spec.Template.Spec.Affinity = affinity.DistributePods(
-			common.AppSelector,
-			[]string{
-				ServiceName,
-			},
-			corev1.LabelHostname,
-		)
-		if instance.Spec.NodeSelector != nil && len(instance.Spec.NodeSelector) > 0 {
-			deployment.Spec.Template.Spec.NodeSelector = instance.Spec.NodeSelector
-		}
-
-		initContainerDetails := HorizonDetails{
-			ContainerImage: instance.Spec.ContainerImage,
-			OSPSecret:      instance.Spec.Secret,
-			UserPasswordSelector: instance.Spec.HorizonSecretKey,
-			VolumeMounts:         getInitVolumeMounts(),
-		}
-		deployment.Spec.Template.Spec.InitContainers = initContainer(initContainerDetails)
-
-		return deployment
+		},
 	}
+	deployment.Spec.Template.Spec.Volumes = getVolumes(instance.Name)
+	deployment.Spec.Template.Spec.Affinity = affinity.DistributePods(
+		common.AppSelector,
+		[]string{
+			ServiceName,
+		},
+		corev1.LabelHostname,
+	)
+	if instance.Spec.NodeSelector != nil && len(instance.Spec.NodeSelector) > 0 {
+		deployment.Spec.Template.Spec.NodeSelector = instance.Spec.NodeSelector
+	}
+
+	return deployment
+}
