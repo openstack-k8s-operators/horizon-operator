@@ -37,11 +37,7 @@ import (
 	oko_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
-	database "github.com/openstack-k8s-operators/lib-common/modules/database"
-	mariadbv1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
-
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -83,6 +79,11 @@ type HorizonReconciler struct {
 //+kubebuilder:rbac:groups=horizon.openstack.org,resources=horizons,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=horizon.openstack.org,resources=horizons/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=horizon.openstack.org,resources=horizons/finalizers,verbs=update
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=core,resources=deployments,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete;
+//+kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;watch;create;update;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -176,8 +177,6 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&horizonv1alpha1.Horizon{}).
-		Owns(&mariadbv1.MariaDBDatabase{}).
-		Owns(&batchv1.Job{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.ConfigMap{}).
@@ -188,18 +187,6 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *HorizonReconciler) reconcileDelete(ctx context.Context, instance *horizonv1alpha1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service delete")
-
-	// remove db finalizer before the horizon one
-	db, err := database.GetDatabaseByName(ctx, helper, instance.Name)
-	if err != nil && !k8s_errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-
-	if !k8s_errors.IsNotFound(err) {
-		if err := db.DeleteFinalizer(ctx, helper); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
 
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())

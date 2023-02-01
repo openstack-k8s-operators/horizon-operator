@@ -1,0 +1,33 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - horizon.openstack.org
+  resources:
+  - horizons
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - horizon.openstack.org
+  resources:
+  - horizons/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - horizon.openstack.org
+  resources:
+  - horizons/status
+  verbs:
+  - get
+  - patch
+  - update
