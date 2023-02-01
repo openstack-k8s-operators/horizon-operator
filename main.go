@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	horizonv1alpha1 "github.com/opernstack-k8s-operators/horizon-operator/api/v1alpha1"
-	"github.com/opernstack-k8s-operators/horizon-operator/controllers"
+	horizonv1alpha1 "github.com/openstack-k8s-operators/horizon-operator/api/v1alpha1"
+	"github.com/openstack-k8s-operators/horizon-operator/controllers"
 	//+kubebuilder:scaffold:imports
 )
 

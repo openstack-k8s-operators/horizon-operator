@@ -91,7 +91,6 @@ type HorizonSpec struct {
 	Route HorizonRoute `json:"route,omitempty"`
 }
 
-
 type HorizonDebug struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
@@ -107,7 +106,7 @@ type HorizonRoute struct {
 	//TODO(bshephar) We need to implement TLS handling here to secure the route
 	// +kubebuilder:validation:Optional
 	RouteTLSEnabled string `json:"routeTLSEnabled,omitempty"`
-	
+
 	//TODO(bshephar) We need to implement TLS handling here to secure the route
 	// +kubebuilder:validation:Optional
 	RouteTLSCA string `json:"routeTLSCA,omitempty"`

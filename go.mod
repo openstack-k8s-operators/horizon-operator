@@ -1,4 +1,4 @@
-module github.com/opernstack-k8s-operators/horizon-operator
+module github.com/openstack-k8s-operators/horizon-operator
 
 go 1.19
 

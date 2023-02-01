@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
+	horizonv1alpha1 "github.com/openstack-k8s-operators/horizon-operator/api/v1alpha1"
 	horizon "github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
@@ -35,7 +36,6 @@ import (
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
 	oko_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
-	horizonv1alpha1 "github.com/opernstack-k8s-operators/horizon-operator/api/v1alpha1"
 
 	database "github.com/openstack-k8s-operators/lib-common/modules/database"
 	mariadbv1 "github.com/openstack-k8s-operators/mariadb-operator/api/v1beta1"
@@ -76,8 +76,8 @@ func (r *HorizonReconciler) GetScheme() *runtime.Scheme {
 type HorizonReconciler struct {
 	client.Client
 	Kclient kubernetes.Interface
-	Log logr.Logger
-	Scheme *runtime.Scheme
+	Log     logr.Logger
+	Scheme  *runtime.Scheme
 }
 
 //+kubebuilder:rbac:groups=horizon.openstack.org,resources=horizons,verbs=get;list;watch;create;update;patch;delete
@@ -113,7 +113,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		r.Log,
 	)
 
-if err != nil {
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -221,7 +221,7 @@ func (r *HorizonReconciler) reconcileInit(
 	//
 	var horizonPorts = map[endpoint.Endpoint]endpoint.Data{
 		endpoint.EndpointPublic: endpoint.Data{
-			Port: horizon.horizonPublicPort,
+			Port: horizon.HorizonPublicPort,
 		},
 	}
 
@@ -393,10 +393,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	//
 
 	// Define a new Deployment object
-	deplDef, err := horizon.Deployment(instance, inputHash, serviceLabels)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+	deplDef := horizon.Deployment(instance, inputHash, serviceLabels)
 
 	depl := deployment.NewDeployment(
 		deplDef,
@@ -430,10 +427,8 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	return ctrl.Result{}, nil
 }
 
-//
 // generateServiceConfigMaps - create configmaps which hold scripts and service configuration
 // TODO add DefaultConfigOverwrite
-//
 func (r *HorizonReconciler) generateServiceConfigMaps(
 	ctx context.Context,
 	instance *horizonv1alpha1.Horizon,
@@ -468,9 +463,9 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	}
 
 	templateParameters := map[string]interface{}{
-		"keystoneInternalAuthURL": 	authURL,
-		"horizonDebug":         	instance.Spec.Debug,
-		"horizonSecretKey":      	instance.Spec.HorizonSecret,
+		"keystoneInternalAuthURL": authURL,
+		"horizonDebug":            instance.Spec.Debug,
+		"horizonSecretKey":        instance.Spec.HorizonSecret,
 	}
 
 	cms := []util.Template{
@@ -502,12 +497,10 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	return nil
 }
 
-//
 // createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
 // if any of the input resources change, like configs, passwords, ...
 //
 // returns the hash, whether the hash changed (as a bool) and any error
-//
 func (r *HorizonReconciler) createHashOfInputHashes(
 	ctx context.Context,
 	instance *horizonv1alpha1.Horizon,
