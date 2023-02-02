@@ -170,6 +170,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	}
 
 	// Handle non-deleted clusters
+	r.Log.Info("Starting Reconcile")
 	return r.reconcileNormal(ctx, instance, helper)
 }
 
@@ -476,6 +477,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 			Labels:        cmLabels,
 		},
 	}
+	r.Log.Info("Creating ConfigMaps")
 	err = configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
 	if err != nil {
 		return nil

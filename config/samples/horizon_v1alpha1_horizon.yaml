@@ -9,4 +9,5 @@ metadata:
     app.kubernetes.io/created-by: horizon-operator
   name: horizon-sample
 spec:
-  # TODO(user): Add fields here
+  secret: "osp-secret"
+
