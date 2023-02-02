@@ -36,7 +36,7 @@ spec:
             description: HorizonSpec defines the desired state of Horizon
             properties:
               containerImage:
-                default: quay.io/tripleozedcentos9/openstack-horizon-api:current-tripleo
+                default: quay.io/tripleozedcentos9/openstack-horizon:current-tripleo
                 description: horizon Container Image URL
                 type: string
               customServiceConfig:

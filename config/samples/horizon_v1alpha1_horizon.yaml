@@ -10,4 +10,5 @@ metadata:
   name: horizon-sample
 spec:
   secret: "osp-secret"
+  horizonSecret: "blahSecret"
 

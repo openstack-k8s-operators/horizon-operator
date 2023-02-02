@@ -20,20 +20,20 @@ import (
 )
 
 func getVolumes(name string) []corev1.Volume {
-	var scriptsVolumeDefaultMode int32 = 0755
+	//	var scriptsVolumeDefaultMode int32 = 0755
 	var config0640AccessMode int32 = 0640
 	return []corev1.Volume{
-		{
-			Name: "scripts",
-			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					DefaultMode: &scriptsVolumeDefaultMode,
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: name + "-scripts",
-					},
-				},
-			},
-		},
+		//		{
+		//			Name: "scripts",
+		//			VolumeSource: corev1.VolumeSource{
+		//				ConfigMap: &corev1.ConfigMapVolumeSource{
+		//					DefaultMode: &scriptsVolumeDefaultMode,
+		//					LocalObjectReference: corev1.LocalObjectReference{
+		//						Name: name + "-scripts",
+		//					},
+		//				},
+		//			},
+		//		},
 		{
 			Name: "config-data",
 			VolumeSource: corev1.VolumeSource{
@@ -57,13 +57,13 @@ func getVolumes(name string) []corev1.Volume {
 // getVolumeMounts - general VolumeMounts
 func getVolumeMounts() []corev1.VolumeMount {
 	return []corev1.VolumeMount{
+		//		{
+		//			Name:      "scripts",
+		//			MountPath: "/usr/local/bin/container-scripts",
+		//			ReadOnly:  true,
+		//		},
 		{
-			Name:      "scripts",
-			MountPath: "/usr/local/bin/container-scripts",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "config-data-merged",
+			Name:      "config-data",
 			MountPath: "/var/lib/config-data/merged",
 			ReadOnly:  false,
 		},
