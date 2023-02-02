@@ -24,6 +24,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -37,6 +38,12 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 		TimeoutSeconds:      5,
 		PeriodSeconds:       3,
 		InitialDelaySeconds: 3,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: "/",
+				Port: intstr.IntOrString{IntVal: 80},
+			},
+		},
 	}
 
 	envVars := map[string]env.Setter{}
