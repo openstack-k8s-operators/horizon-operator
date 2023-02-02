@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	routev1 "github.com/openshift/api/route/v1"
 	horizonv1alpha1 "github.com/openstack-k8s-operators/horizon-operator/api/v1alpha1"
 	"github.com/openstack-k8s-operators/horizon-operator/controllers"
 	//+kubebuilder:scaffold:imports
@@ -46,6 +47,10 @@ func init() {
 
 	utilruntime.Must(horizonv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
+
+	// As we are creating routes, it's necessary to register the routev1.Route
+	// type with the scheme
+	utilruntime.Must(routev1.AddToScheme(scheme))
 }
 
 func main() {
