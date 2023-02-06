@@ -144,10 +144,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		instance.Status.Conditions = condition.Conditions{}
 
 		cl := condition.CreateList(
-			condition.UnknownCondition(condition.DBReadyCondition, condition.InitReason, condition.DBReadyInitMessage),
-			condition.UnknownCondition(condition.DBSyncReadyCondition, condition.InitReason, condition.DBSyncReadyInitMessage),
 			condition.UnknownCondition(condition.ExposeServiceReadyCondition, condition.InitReason, condition.ExposeServiceReadyInitMessage),
-			condition.UnknownCondition(condition.BootstrapReadyCondition, condition.InitReason, condition.BootstrapReadyInitMessage),
 			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
 			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage))
@@ -468,16 +465,16 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		},
 		// ConfigMap
 		{
-			Name:          fmt.Sprintf("%s-config-data", instance.Name),
-			Namespace:     instance.Namespace,
-			Type:          util.TemplateTypeConfig,
-			InstanceType:  instance.Kind,
+			Name:         fmt.Sprintf("%s-config-data", instance.Name),
+			Namespace:    instance.Namespace,
+			Type:         util.TemplateTypeConfig,
+			InstanceType: instance.Kind,
 			CustomData:    customData,
 			ConfigOptions: templateParameters,
 			Labels:        cmLabels,
 		},
 	}
-	r.Log.Info("Creating ConfigMaps")
+	r.Log.Info(fmt.Sprintf("Creating ConfigMaps with details: %v", cms))
 	err = configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
 	if err != nil {
 		return nil

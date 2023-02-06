@@ -33,7 +33,7 @@ const (
 // HorizonSpec defines the desired state of Horizon
 type HorizonSpec struct {
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="quay.io/tripleozedcentos9/openstack-horizon-api:current-tripleo"
+	// +kubebuilder:default="quay.io/tripleozedcentos9/openstack-horizon:current-tripleo"
 	// horizon Container Image URL
 	ContainerImage string `json:"containerImage"`
 
