@@ -20,7 +20,7 @@ from horizon.utils import secret_key
 
 from openstack_dashboard.settings import HORIZON_CONFIG
 
-DEBUG = {{ .horizonDebug }}
+DEBUG = "{{ .horizonDebug }}"
 
 # This setting controls whether or not compression is enabled. Disabling
 # compression makes Horizon considerably slower, but makes it much easier
@@ -88,7 +88,7 @@ LOCAL_PATH = os.path.dirname(os.path.abspath(__file__))
 #SECRET_KEY = secret_key.generate_or_read_from_file(
 #    os.path.join(LOCAL_PATH, '.secret_key_store'))
 
-SECRET_KEY = {{ .horizonSecretKey }}
+SECRET_KEY = "{{ .horizonSecretKey }}"
 
 # We recommend you use memcached for development; otherwise after every reload
 # of the django development server, you will have to login again. To use
@@ -122,7 +122,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 OPENSTACK_HOST = "127.0.0.1"
 #OPENSTACK_KEYSTONE_URL = "http://%s/identity/v3" % OPENSTACK_HOST
 
-OPENSTACK_KEYSTONE_URL = {{ .keystoneInternalAuthURL }}
+OPENSTACK_KEYSTONE_URL = "{{ .keystoneInternalAuthURL }}/v3"
 
 # The timezone of the server. This should correspond with the timezone
 # of your entire OpenStack installation, and hopefully be in UTC.

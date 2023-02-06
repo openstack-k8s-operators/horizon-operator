@@ -28,12 +28,13 @@ import (
 )
 
 const (
-	ServiceCommand = "/usr/sbin/httpd"
+	ServiceCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
 )
 
 func Deployment(instance *horizonv1.Horizon, configHash string, labels map[string]string) *appsv1.Deployment {
 	runAsUser := int64(0)
 
+	args := []string{"-c", ServiceCommand}
 	livenessProbe := &corev1.Probe{
 		TimeoutSeconds:      5,
 		PeriodSeconds:       3,
@@ -75,9 +76,8 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 						{
 							Name: ServiceName,
 							Command: []string{
-								ServiceCommand},
-							Args: []string{
-								"-DFOREGROUND"},
+								"/bin/bash"},
+							Args:  args,
 							Image: instance.Spec.ContainerImage,
 							SecurityContext: &corev1.SecurityContext{
 								RunAsUser: &runAsUser,
