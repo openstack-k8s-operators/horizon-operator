@@ -11,4 +11,7 @@ metadata:
 spec:
   secret: "osp-secret"
   horizonSecret: "blahSecret"
+  customServiceConfig: |
+    [DEFAULT]
+    debug = true
 
