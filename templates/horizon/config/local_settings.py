@@ -122,7 +122,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 OPENSTACK_HOST = "127.0.0.1"
 #OPENSTACK_KEYSTONE_URL = "http://%s/identity/v3" % OPENSTACK_HOST
 
-OPENSTACK_KEYSTONE_URL = "{{ .keystoneInternalAuthURL }}/v3"
+OPENSTACK_KEYSTONE_URL = "{{ .keystoneURL }}/v3"
 
 # The timezone of the server. This should correspond with the timezone
 # of your entire OpenStack installation, and hopefully be in UTC.
