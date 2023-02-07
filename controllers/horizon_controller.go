@@ -442,15 +442,15 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	if err != nil {
 		return err
 	}
-	authURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointInternal)
+	keystonePublicURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointPublic)
 	if err != nil {
 		return err
 	}
 
 	templateParameters := map[string]interface{}{
-		"keystoneInternalAuthURL": authURL,
-		"horizonDebug":            instance.Spec.Debug,
-		"horizonSecretKey":        instance.Spec.HorizonSecret,
+		"keystoneURL":      keystonePublicURL,
+		"horizonDebug":     instance.Spec.Debug,
+		"horizonSecretKey": instance.Spec.HorizonSecret,
 	}
 
 	cms := []util.Template{
