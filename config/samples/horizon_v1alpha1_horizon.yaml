@@ -1,13 +1,7 @@
 apiVersion: horizon.openstack.org/v1alpha1
 kind: Horizon
 metadata:
-  labels:
-    app.kubernetes.io/name: horizon
-    app.kubernetes.io/instance: horizon-sample
-    app.kubernetes.io/part-of: horizon-operator
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/created-by: horizon-operator
-  name: horizon-sample
+  name: horizon
 spec:
   secret: "osp-secret"
   horizonSecret: "blahSecret"

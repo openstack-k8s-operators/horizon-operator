@@ -30,4 +30,7 @@ WORKDIR /
 COPY --from=builder /workspace/manager .
 USER 65532:65532
 
+ENV OPERATOR_TEMPLATES=/usr/share/horizon-operator/templates/
+COPY --from=builder ${DEST_ROOT}/templates ${OPERATOR_TEMPLATES}
+
 ENTRYPOINT ["/manager"]
