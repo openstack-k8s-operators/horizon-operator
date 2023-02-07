@@ -324,6 +324,17 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 		return ctrl.Result{}, err
 	}
 
+	err = r.ensureHorizonSecret(ctx, instance, helper, &configMapVars)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.ServiceConfigReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.ServiceConfigReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
 	//
 	// create hash over all the different input resources to identify if any those changed
 	// and a restart/recreate is required.
@@ -471,22 +482,6 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return nil
 	}
 
-	tmpl := []util.Template{
-		{
-			Name:       horizon.ServiceName,
-			Namespace:  instance.Namespace,
-			Type:       util.TemplateTypeNone,
-			CustomData: map[string]string{"horizon-secret": instance.Spec.HorizonSecret},
-			Labels:     cmLabels,
-		},
-	}
-
-	err = oko_secret.EnsureSecrets(ctx, h, instance, tmpl, envVars)
-
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -511,4 +506,43 @@ func (r *HorizonReconciler) createHashOfInputHashes(
 		r.Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
 	}
 	return hash, changed, nil
+}
+
+
+// ensureHorizonSecret - Creates a k8s secret to hold the Horizon SECRET_KEY.
+func (r *HorizonReconciler) ensureHorizonSecret(
+	ctx context.Context,
+	instance *horizonv1alpha1.Horizon,
+	h *helper.Helper,
+	envVars *map[string]env.Setter,
+) error {
+
+	Labels := labels.GetLabels(instance, labels.GetGroupLabel(horizon.ServiceName), map[string]string{})
+	//
+	// check if secret already exist
+	//
+	_, _, err := oko_secret.GetSecret(ctx, h, horizon.ServiceName, instance.Namespace)
+	if err != nil && !k8s_errors.IsNotFound(err) {
+		return err
+	} else if k8s_errors.IsNotFound(err) {
+		r.Log.Info("Creating Horizon Secret")
+		// Create k8s secret to store Horizon Secret
+		tmpl := []util.Template{
+			{
+				Name:       horizon.ServiceName,
+				Namespace:  instance.Namespace,
+				Type:       util.TemplateTypeNone,
+				CustomData: map[string]string{"horizon-secret": instance.Spec.HorizonSecret},
+				Labels:     Labels,
+			},
+		}
+
+		err := oko_secret.EnsureSecrets(ctx, h, instance, tmpl, envVars)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
