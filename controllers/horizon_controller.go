@@ -471,6 +471,22 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return nil
 	}
 
+	tmpl := []util.Template{
+		{
+			Name:       horizon.ServiceName,
+			Namespace:  instance.Namespace,
+			Type:       util.TemplateTypeNone,
+			CustomData: map[string]string{"horizon-secret": instance.Spec.HorizonSecret},
+			Labels:     cmLabels,
+		},
+	}
+
+	err = oko_secret.EnsureSecrets(ctx, h, instance, tmpl, envVars)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

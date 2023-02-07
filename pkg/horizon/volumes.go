@@ -51,6 +51,14 @@ func getVolumes(name string) []corev1.Volume {
 				EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""},
 			},
 		},
+		{
+			Name: "horizon-secret",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: ServiceName,
+				},
+			},
+		},
 	}
 }
 
@@ -66,6 +74,11 @@ func getVolumeMounts() []corev1.VolumeMount {
 			Name:      "config-data",
 			MountPath: "/var/lib/config-data/merged",
 			ReadOnly:  false,
+		},
+		{
+			MountPath: "/etc/openstack-dashboard/.secret_key_store",
+			ReadOnly:  true,
+			Name:      "horizon-secret",
 		},
 	}
 }
