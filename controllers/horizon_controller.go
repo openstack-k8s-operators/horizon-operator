@@ -42,6 +42,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -465,7 +466,6 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	templateParameters := map[string]interface{}{
 		"keystoneURL":        keystonePublicURL,
 		"horizonDebug":       instance.Spec.Debug,
-		"horizonSecretKey":   instance.Spec.HorizonSecret,
 		"horizonEndpointUrl": url,
 	}
 
@@ -531,7 +531,7 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 				Name:       horizon.ServiceName,
 				Namespace:  instance.Namespace,
 				Type:       util.TemplateTypeNone,
-				CustomData: map[string]string{"horizon-secret": instance.Spec.HorizonSecret},
+				CustomData: map[string]string{"horizon-secret": rand.String(10)},
 				Labels:     Labels,
 			},
 		}
