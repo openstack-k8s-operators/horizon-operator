@@ -454,18 +454,6 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	}
 
 	cms := []util.Template{
-<<<<<<< HEAD
-=======
-		// ScriptsConfigMap
-		//	{
-		//		Name:               fmt.Sprintf("%s-scripts", instance.Name),
-		//		Namespace:          instance.Namespace,
-		//		Type:               util.TemplateTypeScripts,
-		//		InstanceType:       instance.Kind,
-		//		AdditionalTemplate: map[string]string{"common.sh": "/common/common.sh"},
-		//		Labels:             cmLabels,
-		//	},
->>>>>>> 0267fdb (Update configs to render correctly and start pod)
 		// ConfigMap
 		{
 			Name:          fmt.Sprintf("%s-config-data", instance.Name),
