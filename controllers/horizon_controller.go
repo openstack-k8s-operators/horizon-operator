@@ -508,7 +508,6 @@ func (r *HorizonReconciler) createHashOfInputHashes(
 	return hash, changed, nil
 }
 
-
 // ensureHorizonSecret - Creates a k8s secret to hold the Horizon SECRET_KEY.
 func (r *HorizonReconciler) ensureHorizonSecret(
 	ctx context.Context,
