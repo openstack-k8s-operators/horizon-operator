@@ -477,12 +477,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		},
 	}
 	r.Log.Info(fmt.Sprintf("Creating ConfigMaps with details: %v", cms))
-	err = configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
-	if err != nil {
-		return nil
-	}
-
-	return nil
+	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
 }
 
 // createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
@@ -507,7 +502,6 @@ func (r *HorizonReconciler) createHashOfInputHashes(
 	}
 	return hash, changed, nil
 }
-
 
 // ensureHorizonSecret - Creates a k8s secret to hold the Horizon SECRET_KEY.
 func (r *HorizonReconciler) ensureHorizonSecret(
