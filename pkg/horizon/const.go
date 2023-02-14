@@ -23,7 +23,7 @@ const (
 	// DatabaseName -
 	DatabaseName = "horizon"
 
-	// horizonPublicPort
+	// HorizonPublicPort -
 	HorizonPublicPort int32 = 80
 
 	// KollaConfig -

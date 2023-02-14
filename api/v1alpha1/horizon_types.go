@@ -26,10 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	DeploymentHash = "deployment"
-)
-
 // HorizonSpec defines the desired state of Horizon
 type HorizonSpec struct {
 	// +kubebuilder:validation:Optional
@@ -91,6 +87,7 @@ type HorizonSpec struct {
 	Route HorizonRoute `json:"route,omitempty"`
 }
 
+// HorizonDebug can be used to enable debug in the Horizon service
 type HorizonDebug struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
@@ -98,6 +95,8 @@ type HorizonDebug struct {
 	Service bool `json:"service,omitempty"`
 }
 
+// HorizonRoute is used to define all of the information for the OpenShift route
+// todo(bshephar) implement
 type HorizonRoute struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=horizon
@@ -168,6 +167,7 @@ func (instance Horizon) GetEndpoint(endpointType endpoint.Endpoint) (string, err
 	return "", fmt.Errorf("%s endpoint not found", string(endpointType))
 }
 
+// IsReady - Checks for a ReadyCount greater than 1 and returns true or false
 func (instance Horizon) IsReady() bool {
 	// Ready there is at least one Horizon pod running
 	return instance.Status.ReadyCount >= 1

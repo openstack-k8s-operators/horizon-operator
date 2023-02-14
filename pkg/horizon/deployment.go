@@ -28,9 +28,11 @@ import (
 )
 
 const (
+	// ServiceCommand is the command used to run Kolla and launch the initial Apache process
 	ServiceCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
 )
 
+// Deployment creates the k8s deployment structure required to run Horizon
 func Deployment(instance *horizonv1.Horizon, configHash string, labels map[string]string) *appsv1.Deployment {
 	runAsUser := int64(0)
 
