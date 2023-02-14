@@ -462,6 +462,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		"keystoneURL":      keystonePublicURL,
 		"horizonDebug":     instance.Spec.Debug,
 		"horizonSecretKey": instance.Spec.HorizonSecret,
+		"horizonEndpoint":  instance.Status.HorizonEndpoints["public"],
 	}
 
 	cms := []util.Template{

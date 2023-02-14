@@ -5,7 +5,22 @@
             "source": "/var/lib/config-data/merged/openstack-dashboard.conf",
             "dest": "/etc/httpd/conf.d/openstack-dashboard.conf",
             "merge": false,
-            "preserve_properties": true 
+            "preserve_properties": true,
+            "perm": "0644"
+        },
+        {
+            "source": "/var/lib/config-data/merged/httpd.conf",
+            "dest": "/etc/httpd/conf/httpd.conf",
+            "merge": false,
+            "preserve_properties": true,
+            "perm": "0644"
+        },
+        {
+            "source": "/run/openstack-dashboard/.secrets/horizon-secret",
+            "dest": "/etc/openstack-dashboard/.horizon-secret",
+            "merge": false,
+            "preserve_properties": true,
+            "perm": "0600"
         },
         {
             "source": "/var/lib/config-data/merged/local_settings.py",

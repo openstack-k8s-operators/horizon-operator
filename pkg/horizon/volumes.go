@@ -44,7 +44,7 @@ func getVolumes(name string) []corev1.Volume {
 		// Pander to kolla's complaints for now. We might be missing an env var or something?
 		// https://github.com/openstack-k8s-operators/horizon-operator/issues/16
 		{
-			Name: "kolla-dir",
+			Name: "kolla-data",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""},
 			},
