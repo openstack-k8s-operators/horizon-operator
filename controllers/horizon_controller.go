@@ -462,6 +462,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		"keystoneURL":      keystonePublicURL,
 		"horizonDebug":     instance.Spec.Debug,
 		"horizonSecretKey": instance.Spec.HorizonSecret,
+		"horizonEndpoint":  instance.Status.HorizonEndpoints["public"],
 	}
 
 	cms := []util.Template{
@@ -477,12 +478,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		},
 	}
 	r.Log.Info(fmt.Sprintf("Creating ConfigMaps with details: %v", cms))
-	err = configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
-	if err != nil {
-		return nil
-	}
-
-	return nil
+	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
 }
 
 // createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
