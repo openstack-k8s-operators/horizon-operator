@@ -41,6 +41,14 @@ func getVolumes(name string) []corev1.Volume {
 				EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""},
 			},
 		},
+		// Pander to kolla's complaints for now. We might be missing an env var or something?
+		// https://github.com/openstack-k8s-operators/horizon-operator/issues/16
+		{
+			Name: "kolla-data",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""},
+			},
+		},
 		{
 			Name: "horizon-secret-key",
 			VolumeSource: corev1.VolumeSource{
@@ -59,6 +67,13 @@ func getVolumeMounts() []corev1.VolumeMount {
 		{
 			Name:      "config-data",
 			MountPath: "/var/lib/config-data/merged",
+			ReadOnly:  false,
+		},
+		// Adding kolla-data to workaround the kolla_start issue for now
+		// https://github.com/openstack-k8s-operators/horizon-operator/issues/16
+		{
+			Name:      "kolla-data",
+			MountPath: "/var/lib/kolla",
 			ReadOnly:  false,
 		},
 		{
