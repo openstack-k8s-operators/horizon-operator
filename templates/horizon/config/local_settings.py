@@ -37,7 +37,7 @@ DEBUG = "{{ .horizonDebug }}"
 # with the list of host/domain names that the application can serve.
 # For more information see:
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-#ALLOWED_HOSTS = ['horizon.example.com', ]
+ALLOWED_HOSTS = ["{{ .horizonEndpoint }}", ]
 
 # Set SSL proxy settings:
 # Pass this header from the proxy after terminating the SSL,
@@ -89,7 +89,7 @@ LOCAL_PATH = os.path.dirname(os.path.abspath(__file__))
 #    os.path.join(LOCAL_PATH, '.secret_key_store'))
 
 SECRET_KEY = secret_key.read_from_file(
-    key_file='/run/openstack-dashboard/.secrets/horizon-secret'
+    key_file='/etc/openstack-dashboard/.horizon-secret'
 )
 
 # We recommend you use memcached for development; otherwise after every reload
