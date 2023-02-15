@@ -3,7 +3,7 @@
     "config_files": [
         {
             "source": "/var/lib/config-data/merged/openstack-dashboard.conf",
-            "dest": "/etc/httpd/conf.d/openstack-dashboard.conf",
+            "dest": "/etc/httpd/conf.d/10-horizon_vhost.conf",
             "merge": false,
             "preserve_properties": true,
             "perm": "0644"

@@ -14,14 +14,47 @@
 
 import os
 
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ugettext_lazy as _
 
 from horizon.utils import secret_key
 
+from openstack_dashboard import exceptions
 from openstack_dashboard.settings import HORIZON_CONFIG
 
-DEBUG = "{{ .horizonDebug }}"
+WEBROOT = '/dashboard/'
+LOGIN_URL = '/dashboard/auth/login/'
+LOGOUT_URL = '/dashboard/auth/logout/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+OPENSTACK_API_VERSIONS = {
+  'identity': 3,
+}
+HORIZON_CONFIG = {
+    'default_dashboard': 'project',
+    'user_home': 'openstack_dashboard.views.get_user_home',
+    'ajax_queue_limit': 10,
+    'auto_fade_alerts': {
+        'delay': 3000,
+        'fade_duration': 1500,
+        'types': ['alert-success', 'alert-info']
+    },
+    'help_url': "https://access.redhat.com/documentation/en-us/red_hat_openstack_platform",
+    'exceptions': {'recoverable': exceptions.RECOVERABLE,
+                   'not_found': exceptions.NOT_FOUND,
+                   'unauthorized': exceptions.UNAUTHORIZED},
+}
+HORIZON_CONFIG["password_validator"] = {
+    "regex": '',
+    "help_text": _(""),
+}
+HORIZON_CONFIG["password_autocomplete"] = "off"
+HORIZON_CONFIG["disable_password_reveal"] = True
+HORIZON_CONFIG["enforce_password_check"] = True
+HORIZON_CONFIG["images_panel"] = "legacy"
 
+
+DEBUG = "{{ .horizonDebug }}"
+TEMPLATE_DEBUG = DEBUG
 # This setting controls whether or not compression is enabled. Disabling
 # compression makes Horizon considerably slower, but makes it much easier
 # to debug JS and CSS changes
@@ -37,7 +70,7 @@ DEBUG = "{{ .horizonDebug }}"
 # with the list of host/domain names that the application can serve.
 # For more information see:
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = ["{{ .horizonEndpoint }}", ]
+ALLOWED_HOSTS = ["{{ .horizonEndpointUrl }}", ]
 
 # Set SSL proxy settings:
 # Pass this header from the proxy after terminating the SSL,
