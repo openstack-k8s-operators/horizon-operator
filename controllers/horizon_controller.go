@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -458,11 +459,13 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return err
 	}
 
+	url := strings.TrimPrefix(instance.Status.HorizonEndpoints["public"], "http://")
+
 	templateParameters := map[string]interface{}{
-		"keystoneURL":      keystonePublicURL,
-		"horizonDebug":     instance.Spec.Debug,
-		"horizonSecretKey": instance.Spec.HorizonSecret,
-		"horizonEndpoint":  instance.Status.HorizonEndpoints["public"],
+		"keystoneURL":        keystonePublicURL,
+		"horizonDebug":       instance.Spec.Debug,
+		"horizonSecretKey":   instance.Spec.HorizonSecret,
+		"horizonEndpointUrl": url,
 	}
 
 	cms := []util.Template{
