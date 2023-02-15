@@ -24,7 +24,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	// "k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -37,17 +37,17 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 	runAsUser := int64(0)
 
 	args := []string{"-c", ServiceCommand}
-	//	livenessProbe := &corev1.Probe{
-	//		TimeoutSeconds:      5,
-	//		PeriodSeconds:       3,
-	//		InitialDelaySeconds: 3,
-	//		ProbeHandler: corev1.ProbeHandler{
-	//			HTTPGet: &corev1.HTTPGetAction{
-	//				Path: "/dashboard",
-	//				Port: intstr.IntOrString{IntVal: 80},
-	//			},
-	//		},
-	//	}
+	livenessProbe := &corev1.Probe{
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		InitialDelaySeconds: 10,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: "/dashboard/auth/login/?next=/dashboard/",
+				Port: intstr.IntOrString{IntVal: 80},
+			},
+		},
+	}
 
 	envVars := map[string]env.Setter{}
 	envVars["KOLLA_CONFIG_FILE"] = env.SetValue(KollaConfig)
@@ -84,9 +84,10 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 							SecurityContext: &corev1.SecurityContext{
 								RunAsUser: &runAsUser,
 							},
-							Env:          env.MergeEnvs([]corev1.EnvVar{}, envVars),
-							VolumeMounts: getVolumeMounts(),
-							Resources:    instance.Spec.Resources,
+							Env:           env.MergeEnvs([]corev1.EnvVar{}, envVars),
+							VolumeMounts:  getVolumeMounts(),
+							Resources:     instance.Spec.Resources,
+							LivenessProbe: livenessProbe,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
