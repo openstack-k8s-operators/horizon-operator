@@ -217,6 +217,7 @@ func (r *HorizonReconciler) reconcileInit(
 		horizon.ServiceName,
 		serviceLabels,
 		horizonPorts,
+		time.Duration(5)*time.Second,
 	)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -288,7 +289,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 				condition.RequestedReason,
 				condition.SeverityInfo,
 				condition.InputReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("OpenStack secret %s not found", instance.Spec.Secret)
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("OpenStack secret %s not found", instance.Spec.Secret)
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.InputReadyCondition,
@@ -394,7 +395,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 
 	depl := deployment.NewDeployment(
 		deplDef,
-		5,
+		time.Duration(5)*time.Second,
 	)
 
 	ctrlResult, err = depl.CreateOrPatch(ctx, helper)
