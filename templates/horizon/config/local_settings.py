@@ -29,28 +29,12 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 OPENSTACK_API_VERSIONS = {
   'identity': 3,
 }
-HORIZON_CONFIG = {
-    'default_dashboard': 'project',
-    'user_home': 'openstack_dashboard.views.get_user_home',
-    'ajax_queue_limit': 10,
-    'auto_fade_alerts': {
-        'delay': 3000,
-        'fade_duration': 1500,
-        'types': ['alert-success', 'alert-info']
-    },
-    'help_url': "https://access.redhat.com/documentation/en-us/red_hat_openstack_platform",
-    'exceptions': {'recoverable': exceptions.RECOVERABLE,
-                   'not_found': exceptions.NOT_FOUND,
-                   'unauthorized': exceptions.UNAUTHORIZED},
-}
+HORIZON_CONFIG['default_dashboard'] = 'project'
 HORIZON_CONFIG["password_validator"] = {
     "regex": '',
     "help_text": _(""),
 }
-HORIZON_CONFIG["password_autocomplete"] = "off"
-HORIZON_CONFIG["disable_password_reveal"] = True
 HORIZON_CONFIG["enforce_password_check"] = True
-HORIZON_CONFIG["images_panel"] = "legacy"
 
 
 DEBUG = "{{ .horizonDebug }}"
@@ -86,29 +70,6 @@ ALLOWED_HOSTS = ["*", ]
 # settings to better secure the cookies from security exploits
 #CSRF_COOKIE_SECURE = True
 #SESSION_COOKIE_SECURE = True
-
-# If provided, a "Report Bug" link will be displayed in the site header
-# which links to the value of this setting (ideally a URL containing
-# information on how to report issues).
-#HORIZON_CONFIG["bug_url"] = "http://bug-report.example.com"
-
-# Show backdrop element outside the modal, do not close the modal
-# after clicking on backdrop.
-#HORIZON_CONFIG["modal_backdrop"] = "static"
-
-# Specify a regular expression to validate user passwords.
-#HORIZON_CONFIG["password_validator"] = {
-#    "regex": '.*',
-#    "help_text": _("Your password does not meet the requirements."),
-#}
-
-# Turn off browser autocompletion for forms including the login form and
-# the database creation workflow if so desired.
-#HORIZON_CONFIG["password_autocomplete"] = "off"
-
-# Setting this to True will disable the reveal button for password fields,
-# including on the login form.
-#HORIZON_CONFIG["disable_password_reveal"] = False
 
 LOCAL_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -422,7 +383,3 @@ SECURITY_GROUP_RULES = {
         'to_port': '3389',
     },
 }
-
-# Help URL can be made available for the client. To provide a help URL, edit the
-# following attribute to the URL of your choice.
-#HORIZON_CONFIG["help_url"] = "http://openstack.mycompany.org"
