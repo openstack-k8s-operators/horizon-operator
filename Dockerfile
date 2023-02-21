@@ -60,8 +60,6 @@ ENV USER_UID=$USER_ID \
     OPERATOR_TEMPLATES=/usr/share/horizon-operator/templates/
 
 WORKDIR /
-COPY --from=builder /workspace/manager .
-USER 65532:65532
 
 # Install operator binary to WORKDIR
 COPY --from=builder ${DEST_ROOT}/manager .
