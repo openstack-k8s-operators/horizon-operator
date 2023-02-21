@@ -35,7 +35,7 @@ FROM $OPERATOR_BASE_IMAGE
 ARG DEST_ROOT=/dest-root
 ARG USER_ID=65532
 
-ARG IMAGE COMPONENT="horizon-operator-container"
+ARG IMAGE_COMPONENT="horizon-operator-container"
 ARG IMAGE_NAME="horizon-operator"
 ARG IMAGE_VERSION="1.0.0"
 ARG IMAGE_SUMMARY="Horizon Operator"
