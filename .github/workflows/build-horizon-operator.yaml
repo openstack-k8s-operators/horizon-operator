@@ -1,4 +1,4 @@
-name: Ceilometer Operator image builder
+name: Horizon Operator image builder
 
 on:
   push:
