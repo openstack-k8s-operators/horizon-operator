@@ -6,9 +6,9 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - ""
+  - apps
   resources:
-  - configmaps
+  - deployments
   verbs:
   - create
   - get
@@ -19,7 +19,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - deployments
+  - configmaps
   verbs:
   - create
   - get
