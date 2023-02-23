@@ -77,10 +77,6 @@ type HorizonSpec struct {
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:"HorizonSecretKey"
-	HorizonSecret string `json:"horizonSecret,omitempty"`
-
-	// +kubebuilder:validation:Optional
 	// HorizonRoute holds all of the necessary options for configuring the Horizon Route object.
 	// This can be used to configure TLS
 	//TODO(bshephar) Implement everything about this. It's just a placeholder at the moment.

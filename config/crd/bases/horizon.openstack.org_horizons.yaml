@@ -65,8 +65,6 @@ spec:
                   to add additional files. Those get added to the service config dir
                   in /etc/<service> . TODO: -> implement'
                 type: object
-              horizonSecret:
-                type: string
               nodeSelector:
                 additionalProperties:
                   type: string
