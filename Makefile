@@ -264,6 +264,45 @@ operator-sdk: $(OPERATOR_SDK) ## Download operator-sdk locally if necessary.
 $(OPERATOR_SDK): $(LOCALBIN)
 	test -s $(OPERATOR_SDK) || curl -o $(LOCALBIN)/operator-sdk -L https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk_linux_amd64 && chmod +x $(LOCALBIN)/operator-sdk
 
+# CI tools repo for running tests
+CI_TOOLS_REPO := https://github.com/openstack-k8s-operators/openstack-k8s-operators-ci
+CI_TOOLS_REPO_DIR = $(shell pwd)/CI_TOOLS_REPO
+.PHONY: get-ci-tools
+get-ci-tools:
+	if [ -d  "$(CI_TOOLS_REPO_DIR)" ]; then \
+		echo "Ci tools exists"; \
+		pushd "$(CI_TOOLS_REPO_DIR)"; \
+		git pull --rebase; \
+		popd; \
+	else \
+		git clone $(CI_TOOLS_REPO) "$(CI_TOOLS_REPO_DIR)"; \
+	fi
+
+# Run go fmt against code
+gofmt: get-ci-tools
+	GOWORK=off $(CI_TOOLS_REPO_DIR)/test-runner/gofmt.sh
+	GOWORK=off $(CI_TOOLS_REPO_DIR)/test-runner/gofmt.sh ./api
+
+# Run go vet against code
+govet: get-ci-tools
+	GOWORK=off $(CI_TOOLS_REPO_DIR)/test-runner/govet.sh
+	GOWORK=off $(CI_TOOLS_REPO_DIR)/test-runner/govet.sh ./api
+
+# Run go test against code
+gotest: get-ci-tools
+	GOWORK=off $(CI_TOOLS_REPO_DIR)/test-runner/gotest.sh
+	GOWORK=off $(CI_TOOLS_REPO_DIR)/test-runner/gotest.sh ./api
+
+# Run golangci-lint test against code
+golangci: get-ci-tools
+	GOWORK=off $(CI_TOOLS_REPO_DIR)/test-runner/golangci.sh
+	GOWORK=off $(CI_TOOLS_REPO_DIR)/test-runner/golangci.sh ./api
+
+# Run go lint against code
+golint: get-ci-tools
+	GOWORK=off PATH=$(GOBIN):$(PATH); $(CI_TOOLS_REPO_DIR)/test-runner/golint.sh
+	GOWORK=off PATH=$(GOBIN):$(PATH); $(CI_TOOLS_REPO_DIR)/test-runner/golint.sh ./api
+
 .PHONY: gowork
 gowork: ## Generate go.work file
 	test -f go.work || go work init
