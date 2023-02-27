@@ -1,10 +1,10 @@
 name: Pull Request Workflow
 
-# Run workflow when a new pull request is opened against master branch.
+# Run workflow when a new pull request is opened against main branch.
 on:
   pull_request_target:
     branches:
-    - 'master'
+    - 'main'
 
 jobs:
   check_user_permission:
