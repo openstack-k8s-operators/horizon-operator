@@ -36,6 +36,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	horizonv1alpha1 "github.com/openstack-k8s-operators/horizon-operator/api/v1alpha1"
 	"github.com/openstack-k8s-operators/horizon-operator/controllers"
+	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	//+kubebuilder:scaffold:imports
 )
@@ -55,6 +56,7 @@ func init() {
 	// type with the scheme
 	utilruntime.Must(routev1.AddToScheme(scheme))
 	utilruntime.Must(keystonev1.AddToScheme(scheme))
+	utilruntime.Must(memcachedv1.AddToScheme(scheme))
 }
 
 func main() {
