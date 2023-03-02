@@ -57,6 +57,7 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 	envVars["ENABLE_IRONIC"] = env.SetValue("yes")
 	envVars["ENABLE_MANILA"] = env.SetValue("yes")
 	envVars["ENABLE_OCTAVIA"] = env.SetValue("yes")
+	envVars["CONFIG_HASH"] = env.SetValue(configHash)
 
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
