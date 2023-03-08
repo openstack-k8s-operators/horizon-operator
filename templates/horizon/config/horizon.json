@@ -26,13 +26,13 @@
             "source": "/var/lib/config-data/merged/local_settings.py",
             "dest": "/etc/openstack-dashboard/local_settings",
             "merge": false,
-            "preserve_properties": true 
+            "preserve_properties": true
         },
         {
             "source": "/var/lib/config-data/merged/ssl.conf",
             "dest": "/etc/httpd/conf.d/ssl.conf",
             "merge": false,
-            "preserve_properties": true 
+            "preserve_properties": true
         },
         {
             "source": "/var/lib/config-data/merged/9999_custom_settings.py",
