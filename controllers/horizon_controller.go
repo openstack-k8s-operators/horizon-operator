@@ -26,6 +26,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	horizonv1alpha1 "github.com/openstack-k8s-operators/horizon-operator/api/v1alpha1"
 	horizon "github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
+	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
@@ -36,11 +37,14 @@ import (
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
 	oko_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
+	oko_svc "github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8s_labels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
@@ -184,6 +188,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&routev1.Route{}).
+		Owns(&memcachedv1.Memcached{}).
 		Complete(r)
 }
 
@@ -307,6 +312,36 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
 
 	// run check OpenStack secret - end
+
+	// Create Memcached instance if no shared instance exists.
+	if instance.Spec.SharedMemcached == "" {
+		memcached := r.renderMemcached(instance)
+		op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), memcached, func() error {
+			memcached.Labels = map[string]string{"service": instance.Name}
+			memcached.Spec.Replicas = instance.Spec.Replicas
+
+			err := controllerutil.SetControllerReference(helper.GetBeforeObject(), memcached, helper.GetScheme())
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
+		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				r.Log.Info(fmt.Sprintf("Memcached %s not found", memcached.Name))
+				return ctrl.Result{RequeueAfter: time.Duration(5) * time.Second}, nil
+			}
+			return ctrl.Result{}, err
+		}
+		if op != controllerutil.OperationResultNone {
+			r.Log.Info(fmt.Sprintf("Memcached %s - %s", memcached.Name, op))
+		}
+
+		// Mark the Memcached Service as Ready if we get to this point with no errors
+		instance.Status.Conditions.MarkTrue(
+			horizonv1alpha1.HorizonMemcachedReadyCondition, horizonv1alpha1.HorizonMemcachedReadyMessage)
+	}
 
 	//
 	// Create ConfigMaps and Secrets required as input for the Service and calculate an overall hash of hashes
@@ -436,6 +471,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	h *helper.Helper,
 	envVars *map[string]env.Setter,
 ) error {
+	var memcachedSvc string
 	//
 	// create Configmap/Secret required for horizon input
 	// - %-scripts configmap holding scripts to e.g. bootstrap the service
@@ -463,12 +499,37 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return err
 	}
 
+	if instance.Spec.SharedMemcached == "" {
+		memcachedSvc, err = r.getMemcachedSvc(ctx, fmt.Sprintf("%s-memcached", instance.Name), h, instance.Namespace)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				horizonv1alpha1.HorizonMemcachedReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityError,
+				horizonv1alpha1.HorizonMemcachedServiceError,
+				err.Error()))
+			return err
+		}
+	} else {
+		memcachedSvc, err = r.getMemcachedSvc(ctx, instance.Spec.SharedMemcached, h, instance.Namespace)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				horizonv1alpha1.HorizonMemcachedReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityError,
+				horizonv1alpha1.HorizonMemcachedServiceError,
+				err.Error()))
+			return err
+		}
+	}
+
 	url := strings.TrimPrefix(instance.Status.HorizonEndpoints["public"], "http://")
 
 	templateParameters := map[string]interface{}{
 		"keystoneURL":        keystonePublicURL,
 		"horizonDebug":       instance.Spec.Debug,
 		"horizonEndpointUrl": url,
+		"memcachedSvc":       memcachedSvc,
 	}
 
 	cms := []util.Template{
@@ -546,4 +607,33 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 	}
 
 	return nil
+}
+
+func (r *HorizonReconciler) renderMemcached(instance *horizonv1alpha1.Horizon) *memcachedv1.Memcached {
+	return &memcachedv1.Memcached{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "memcached.openstack.org/v1beta1",
+			Kind:       "Memcached",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-memcached", instance.Name),
+			Namespace: instance.Namespace,
+		},
+	}
+}
+
+func (r *HorizonReconciler) getMemcachedSvc(ctx context.Context, memcachedName string, h *helper.Helper, namespace string) (svc string, err error) {
+	labelSelector := k8s_labels.Set{"app": "memcached"}
+	svcList, err := oko_svc.GetServicesListWithLabel(ctx, h, namespace, labelSelector)
+
+	if err != nil {
+		r.Log.Info("Error getting service list: %s", err)
+		return "", err
+	}
+	for _, service := range svcList.Items {
+		if service.Name == memcachedName {
+			return service.Name, nil
+		}
+	}
+	return "", fmt.Errorf("No memcached service was found")
 }

@@ -160,6 +160,12 @@ spec:
                 description: Secret containing OpenStack password information for
                   Horizon Secret Key
                 type: string
+              sharedMemcached:
+                description: SharedMemcahed holds the name of the central memcached
+                  instance if it exists. If this value is provided, then Horizon will
+                  use the shared memcached service. Otherwise, we will create one
+                  just for Horizon.
+                type: string
             required:
             - secret
             type: object
