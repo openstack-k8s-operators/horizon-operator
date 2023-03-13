@@ -1,6 +1,6 @@
 module github.com/openstack-k8s-operators/horizon-operator
 
-go 1.20
+go 1.19
 
 replace github.com/openstack-k8s-operators/horizon-operator/api => ./api
 
