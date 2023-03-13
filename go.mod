@@ -4,6 +4,8 @@ go 1.19
 
 replace github.com/openstack-k8s-operators/horizon-operator/api => ./api
 
+replace github.com/openstack-k8s-operators/horizon-operator/api => ./api
+
 require (
 	github.com/go-logr/logr v1.2.3
 	github.com/onsi/ginkgo/v2 v2.8.3

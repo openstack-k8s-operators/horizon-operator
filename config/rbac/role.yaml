@@ -93,6 +93,32 @@ rules:
   - list
   - watch
 - apiGroups:
+  - memcached.openstack.org
+  resources:
+  - memcacheds
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - memcached.openstack.org
+  resources:
+  - memcacheds/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - memcached.openstack.org
+  resources:
+  - memcacheds/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - route.openshift.io
   resources:
   - routes
