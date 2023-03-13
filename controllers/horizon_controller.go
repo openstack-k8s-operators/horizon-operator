@@ -500,7 +500,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	}
 
 	if instance.Spec.SharedMemcached == "" {
-		memcachedSvc, err = r.getMemcachedSvc(ctx, fmt.Sprintf("%s-memcached", instance.Name), h, instance.Namespace)
+		memcachedSvc, err = r.getMemcachedSvc(ctx, instance.Name, h, instance.Namespace)
 		if err != nil {
 			instance.Status.Conditions.Set(condition.FalseCondition(
 				horizonv1alpha1.HorizonMemcachedReadyCondition,
@@ -616,7 +616,7 @@ func (r *HorizonReconciler) renderMemcached(instance *horizonv1alpha1.Horizon) *
 			Kind:       "Memcached",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-memcached", instance.Name),
+			Name:      instance.Name,
 			Namespace: instance.Namespace,
 		},
 	}
