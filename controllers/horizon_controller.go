@@ -628,7 +628,7 @@ func (r *HorizonReconciler) getMemcachedSvc(ctx context.Context, memcachedName s
 	svcList, err := oko_svc.GetServicesListWithLabel(ctx, h, namespace, labelSelector)
 
 	if err != nil {
-		r.Log.Info("Error getting service list: %s", err)
+		r.Log.Info(fmt.Sprintf("Error getting service list: %s", err))
 		return "", err
 	}
 	for _, service := range svcList.Items {
