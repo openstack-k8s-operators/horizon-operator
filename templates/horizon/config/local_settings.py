@@ -97,7 +97,7 @@ SECRET_KEY = secret_key.read_from_file(
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
-        'LOCATION': '{{.memcachedSvc}}:11211',
+        'LOCATION': [ {{.memcachedServers}} ]
     },
 }
 
