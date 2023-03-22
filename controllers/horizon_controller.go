@@ -586,10 +586,10 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 	//
 	// check if secret already exist
 	//
-	_, _, err := oko_secret.GetSecret(ctx, h, horizon.ServiceName, instance.Namespace)
+	scrt, _, err := oko_secret.GetSecret(ctx, h, horizon.ServiceName, instance.Namespace)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return err
-	} else if k8s_errors.IsNotFound(err) {
+	} else if k8s_errors.IsNotFound(err) || !validateHorizonSecret(scrt) {
 		r.Log.Info("Creating Horizon Secret")
 		// Create k8s secret to store Horizon Secret
 		tmpl := []util.Template{
@@ -639,4 +639,8 @@ func (r *HorizonReconciler) getMemcachedSvc(ctx context.Context, memcachedName s
 		}
 	}
 	return "", fmt.Errorf("No memcached service was found")
+}
+
+func validateHorizonSecret(secret *corev1.Secret) bool {
+	return len(secret.Data["horizon-secret"]) != 0
 }
