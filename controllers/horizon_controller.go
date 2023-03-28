@@ -114,7 +114,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		if k8s_errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("Error retrieving %s: %w", instance.Name, err)
 	}
 
 	helper, err := helper.NewHelper(
@@ -126,7 +126,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	)
 
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("Error creating new helper: %w", err)
 	}
 
 	// Always patch the instance status when exiting this function so we can persist any changes.
@@ -145,7 +145,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 
 	// If we're not deleting this and the service object doesn't have our finalizer, add it.
 	if instance.DeletionTimestamp.IsZero() && controllerutil.AddFinalizer(instance, helper.GetFinalizer()) {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("Error adding finalizer to service: %s, %w", instance.Name, err)
 	}
 
 	//
@@ -237,7 +237,7 @@ func (r *HorizonReconciler) reconcileInit(
 			condition.SeverityWarning,
 			condition.ExposeServiceReadyErrorMessage,
 			err.Error()))
-		return ctrlResult, err
+		return ctrlResult, fmt.Errorf("Error exposing endpoints for service: %w", err)
 	} else if (ctrlResult != ctrl.Result{}) {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ExposeServiceReadyCondition,
@@ -308,7 +308,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 			condition.SeverityWarning,
 			condition.InputReadyErrorMessage,
 			err.Error()))
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("Error getting OpenStack secret: %w", err)
 	}
 	configMapVars[ospSecret.Name] = env.SetValue(hash)
 
@@ -325,7 +325,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 
 			err := controllerutil.SetControllerReference(helper.GetBeforeObject(), memcached, helper.GetScheme())
 			if err != nil {
-				return err
+				return fmt.Errorf("Error setting Owner Reference for instance %s: %w", instance.Name, err)
 			}
 
 			return nil
@@ -335,7 +335,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 				r.Log.Info(fmt.Sprintf("Memcached %s not found", memcached.Name))
 				return ctrl.Result{RequeueAfter: time.Duration(5) * time.Second}, nil
 			}
-			return ctrl.Result{}, err
+			return ctrl.Result{}, fmt.Errorf("Error creating memcached instance: %w", err)
 		}
 		if op != controllerutil.OperationResultNone {
 			r.Log.Info(fmt.Sprintf("Memcached %s - %s", memcached.Name, op))
@@ -364,7 +364,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 			condition.SeverityWarning,
 			condition.ServiceConfigReadyErrorMessage,
 			err.Error()))
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("Error generating Config Map for instance %s: %w", instance.Name, err)
 	}
 
 	err = r.ensureHorizonSecret(ctx, instance, helper, &configMapVars)
@@ -375,7 +375,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 			condition.SeverityWarning,
 			condition.ServiceConfigReadyErrorMessage,
 			err.Error()))
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("Error creating secret for %s: %w", instance.Name, err)
 	}
 
 	//
@@ -384,7 +384,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	//
 	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("Error creating hash of config inputs: %w", err)
 	} else if hashChanged {
 		// Hash changed and instance status should be updated (which will be done by main defer func),
 		// so we need to return and reconcile again
@@ -406,7 +406,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	// Handle service init
 	ctrlResult, err := r.reconcileInit(ctx, instance, helper, serviceLabels)
 	if err != nil {
-		return ctrlResult, err
+		return ctrlResult, fmt.Errorf("Error initializing service %s: %w", instance.Name, err)
 	} else if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
 	}
@@ -414,7 +414,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	// Handle service update
 	ctrlResult, err = r.reconcileUpdate(ctx, instance, helper)
 	if err != nil {
-		return ctrlResult, err
+		return ctrlResult, fmt.Errorf("Error updating service %s: %w", instance.Name, err)
 	} else if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
 	}
@@ -422,7 +422,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	// Handle service upgrade
 	ctrlResult, err = r.reconcileUpgrade(ctx, instance, helper)
 	if err != nil {
-		return ctrlResult, err
+		return ctrlResult, fmt.Errorf("Error upgrading service %s: %w", instance.Name, err)
 	} else if (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, nil
 	}
@@ -447,7 +447,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 			condition.SeverityWarning,
 			condition.DeploymentReadyErrorMessage,
 			err.Error()))
-		return ctrlResult, err
+		return ctrlResult, fmt.Errorf("Error creating deployment for %s: %w", instance.Name, err)
 	} else if (ctrlResult != ctrl.Result{}) {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.DeploymentReadyCondition,
@@ -495,11 +495,11 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 
 	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, h, instance.Namespace, map[string]string{})
 	if err != nil {
-		return err
+		return fmt.Errorf("Error getting KeystoneAPI: %s", err)
 	}
 	keystonePublicURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointPublic)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error getting KeystoneAPI Endpoint: %w", err)
 	}
 
 	if instance.Spec.SharedMemcached == "" {
@@ -511,7 +511,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 				condition.SeverityError,
 				horizonv1alpha1.HorizonMemcachedServiceError,
 				err.Error()))
-			return err
+			return fmt.Errorf("Error retrieving Memcached instance: %w", err)
 		}
 	} else {
 		memcachedSvc, err = r.getMemcachedSvc(ctx, instance.Spec.SharedMemcached, h, instance.Namespace)
@@ -522,7 +522,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 				condition.SeverityError,
 				horizonv1alpha1.HorizonMemcachedServiceError,
 				err.Error()))
-			return err
+			return fmt.Errorf("Error getting Memcached service: %w", err)
 		}
 	}
 
@@ -565,7 +565,7 @@ func (r *HorizonReconciler) createHashOfInputHashes(
 	mergedMapVars := env.MergeEnvs([]corev1.EnvVar{}, envVars)
 	hash, err := util.ObjectHash(mergedMapVars)
 	if err != nil {
-		return hash, changed, err
+		return hash, changed, fmt.Errorf("Error creating hash of config inputs: %w", err)
 	}
 	if hashMap, changed = util.SetHash(instance.Status.Hash, common.InputHashName, hash); changed {
 		instance.Status.Hash = hashMap
@@ -605,7 +605,7 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 		err := oko_secret.EnsureSecrets(ctx, h, instance, tmpl, envVars)
 
 		if err != nil {
-			return err
+			return fmt.Errorf("Error creating secret for %s: %w", instance.Name, err)
 		}
 	}
 
@@ -631,7 +631,7 @@ func (r *HorizonReconciler) getMemcachedSvc(ctx context.Context, memcachedName s
 
 	if err != nil {
 		r.Log.Info("Error getting service list: %s", err)
-		return "", err
+		return "", fmt.Errorf("Error getting memcached service with labels: %w", err)
 	}
 	for _, service := range svcList.Items {
 		if service.Name == memcachedName {
