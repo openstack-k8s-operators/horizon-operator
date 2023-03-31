@@ -26,14 +26,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	DeploymentHash = "deployment"
-)
-
 // HorizonSpec defines the desired state of Horizon
 type HorizonSpec struct {
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="quay.io/tripleozedcentos9/openstack-horizon:current-tripleo"
+	// +kubebuilder:default="quay.io/podified-zed-centos9/openstack-horizon:current-podified"
 	// horizon Container Image URL
 	ContainerImage string `json:"containerImage"`
 
@@ -81,16 +77,18 @@ type HorizonSpec struct {
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:"HorizonSecretKey"
-	HorizonSecret string `json:"horizonSecret,omitempty"`
-
-	// +kubebuilder:validation:Optional
 	// HorizonRoute holds all of the necessary options for configuring the Horizon Route object.
 	// This can be used to configure TLS
 	//TODO(bshephar) Implement everything about this. It's just a placeholder at the moment.
 	Route HorizonRoute `json:"route,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// SharedMemcahed holds the name of the central memcached instance if it exists. If this value is provided,
+	// then Horizon will use the shared memcached service. Otherwise, we will create one just for Horizon.
+	SharedMemcached string `json:"sharedMemcached,omitempty"`
 }
 
+// HorizonDebug can be used to enable debug in the Horizon service
 type HorizonDebug struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
@@ -98,6 +96,8 @@ type HorizonDebug struct {
 	Service bool `json:"service,omitempty"`
 }
 
+// HorizonRoute is used to define all of the information for the OpenShift route
+// todo(bshephar) implement
 type HorizonRoute struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=horizon
@@ -168,6 +168,7 @@ func (instance Horizon) GetEndpoint(endpointType endpoint.Endpoint) (string, err
 	return "", fmt.Errorf("%s endpoint not found", string(endpointType))
 }
 
+// IsReady - Checks for a ReadyCount greater than 1 and returns true or false
 func (instance Horizon) IsReady() bool {
 	// Ready there is at least one Horizon pod running
 	return instance.Status.ReadyCount >= 1

@@ -1,23 +1,9 @@
-name: Ceilometer Operator image builder
+name: Horizon Operator image builder
 
 on:
   push:
     branches:
       - '*'
-    paths-ignore:
-      - .gitignore
-      - .pull_request_pipeline
-      - changelog.txt
-      - kuttl-test.yaml
-      - LICENSE
-      - Makefile
-      - OWNERS
-      - PROJECT
-      - README.md
-      - .github/
-      - build/
-      - docs/
-      - tests/
 
 env:
   imageregistry: 'quay.io'
@@ -49,8 +35,8 @@ jobs:
       id: branch-name
       uses: tj-actions/branch-names@v5
 
-    - name: Set latest tag for non master branch
-      if: "${{ steps.branch-name.outputs.current_branch != 'master' }}"
+    - name: Set latest tag for non main branch
+      if: "${{ steps.branch-name.outputs.current_branch != 'main' }}"
       run: |
         echo "latesttag=${{ steps.branch-name.outputs.current_branch }}-latest" >> $GITHUB_ENV
 
@@ -117,13 +103,14 @@ jobs:
         REGISTRY:  ${{ env.imageregistry }}/${{ env.imagenamespace }}
         GITHUB_SHA: ${{ github.sha }}
         BASE_IMAGE: horizon-operator
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Get branch name
       id: branch-name
       uses: tj-actions/branch-names@v5
 
-    - name: Set latest tag for non master branch
-      if: "${{ steps.branch-name.outputs.current_branch != 'master' }}"
+    - name: Set latest tag for non main branch
+      if: "${{ steps.branch-name.outputs.current_branch != 'main' }}"
       run: |
         echo "latesttag=${{ steps.branch-name.outputs.current_branch }}-latest" >> $GITHUB_ENV
 
@@ -159,8 +146,8 @@ jobs:
       id: branch-name
       uses: tj-actions/branch-names@v5
 
-    - name: Set latest tag for non master branch
-      if: "${{ steps.branch-name.outputs.current_branch != 'master' }}"
+    - name: Set latest tag for non main branch
+      if: "${{ steps.branch-name.outputs.current_branch != 'main' }}"
       run: |
         echo "latesttag=${{ steps.branch-name.outputs.current_branch }}-latest" >> $GITHUB_ENV
 

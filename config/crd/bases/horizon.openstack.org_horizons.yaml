@@ -36,7 +36,7 @@ spec:
             description: HorizonSpec defines the desired state of Horizon
             properties:
               containerImage:
-                default: quay.io/tripleozedcentos9/openstack-horizon:current-tripleo
+                default: quay.io/podified-zed-centos9/openstack-horizon:current-podified
                 description: horizon Container Image URL
                 type: string
               customServiceConfig:
@@ -65,8 +65,6 @@ spec:
                   to add additional files. Those get added to the service config dir
                   in /etc/<service> . TODO: -> implement'
                 type: object
-              horizonSecret:
-                type: string
               nodeSelector:
                 additionalProperties:
                   type: string
@@ -89,6 +87,27 @@ spec:
                 description: Resources - Compute Resources required by this service
                   (Limits/Requests). https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                 properties:
+                  claims:
+                    description: "Claims lists the names of resources, defined in
+                      spec.resourceClaims, that are used by this container. \n This
+                      is an alpha field and requires enabling the DynamicResourceAllocation
+                      feature gate. \n This field is immutable. It can only be set
+                      for containers."
+                    items:
+                      description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                      properties:
+                        name:
+                          description: Name must match the name of one entry in pod.spec.resourceClaims
+                            of the Pod where this field is used. It makes that resource
+                            available inside a container.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
                   limits:
                     additionalProperties:
                       anyOf:
@@ -141,6 +160,12 @@ spec:
               secret:
                 description: Secret containing OpenStack password information for
                   Horizon Secret Key
+                type: string
+              sharedMemcached:
+                description: SharedMemcahed holds the name of the central memcached
+                  instance if it exists. If this value is provided, then Horizon will
+                  use the shared memcached service. Otherwise, we will create one
+                  just for Horizon.
                 type: string
             required:
             - secret

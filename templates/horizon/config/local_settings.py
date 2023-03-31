@@ -14,14 +14,31 @@
 
 import os
 
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ugettext_lazy as _
 
 from horizon.utils import secret_key
 
+from openstack_dashboard import exceptions
 from openstack_dashboard.settings import HORIZON_CONFIG
 
-DEBUG = "{{ .horizonDebug }}"
+WEBROOT = '/dashboard/'
+LOGIN_URL = '/dashboard/auth/login/'
+LOGOUT_URL = '/dashboard/auth/logout/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+OPENSTACK_API_VERSIONS = {
+  'identity': 3,
+}
+HORIZON_CONFIG['default_dashboard'] = 'project'
+HORIZON_CONFIG["password_validator"] = {
+    "regex": '',
+    "help_text": _(""),
+}
+HORIZON_CONFIG["enforce_password_check"] = True
 
+
+DEBUG = "{{ .horizonDebug }}"
+TEMPLATE_DEBUG = DEBUG
 # This setting controls whether or not compression is enabled. Disabling
 # compression makes Horizon considerably slower, but makes it much easier
 # to debug JS and CSS changes
@@ -37,7 +54,10 @@ DEBUG = "{{ .horizonDebug }}"
 # with the list of host/domain names that the application can serve.
 # For more information see:
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = ["{{ .horizonEndpoint }}", ]
+#ALLOWED_HOSTS = ["{{ .horizonEndpointUrl }}", ]
+# liveness checks will fail if we restrict this to just the route. We are setting
+# this to enable liveness checks.
+ALLOWED_HOSTS = ["*", ]
 
 # Set SSL proxy settings:
 # Pass this header from the proxy after terminating the SSL,
@@ -50,29 +70,6 @@ ALLOWED_HOSTS = ["{{ .horizonEndpoint }}", ]
 # settings to better secure the cookies from security exploits
 #CSRF_COOKIE_SECURE = True
 #SESSION_COOKIE_SECURE = True
-
-# If provided, a "Report Bug" link will be displayed in the site header
-# which links to the value of this setting (ideally a URL containing
-# information on how to report issues).
-#HORIZON_CONFIG["bug_url"] = "http://bug-report.example.com"
-
-# Show backdrop element outside the modal, do not close the modal
-# after clicking on backdrop.
-#HORIZON_CONFIG["modal_backdrop"] = "static"
-
-# Specify a regular expression to validate user passwords.
-#HORIZON_CONFIG["password_validator"] = {
-#    "regex": '.*',
-#    "help_text": _("Your password does not meet the requirements."),
-#}
-
-# Turn off browser autocompletion for forms including the login form and
-# the database creation workflow if so desired.
-#HORIZON_CONFIG["password_autocomplete"] = "off"
-
-# Setting this to True will disable the reveal button for password fields,
-# including on the login form.
-#HORIZON_CONFIG["disable_password_reveal"] = False
 
 LOCAL_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -97,12 +94,12 @@ SECRET_KEY = secret_key.read_from_file(
 # memcached set CACHES to something like below.
 # For more information, see
 # https://docs.djangoproject.com/en/1.11/topics/http/sessions/.
-#CACHES = {
-#    'default': {
-#        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-#        'LOCATION': '127.0.0.1:11211',
-#    },
-#}
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
+        'LOCATION': '{{.memcachedSvc}}:11211',
+    },
+}
 
 # If you use ``tox -e runserver`` for developments,then configure
 # SESSION_ENGINE to django.contrib.sessions.backends.signed_cookies
@@ -386,7 +383,3 @@ SECURITY_GROUP_RULES = {
         'to_port': '3389',
     },
 }
-
-# Help URL can be made available for the client. To provide a help URL, edit the
-# following attribute to the URL of your choice.
-#HORIZON_CONFIG["help_url"] = "http://openstack.mycompany.org"

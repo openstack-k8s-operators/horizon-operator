@@ -36,6 +36,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	horizonv1alpha1 "github.com/openstack-k8s-operators/horizon-operator/api/v1alpha1"
 	"github.com/openstack-k8s-operators/horizon-operator/controllers"
+	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	//+kubebuilder:scaffold:imports
 )
@@ -55,6 +56,7 @@ func init() {
 	// type with the scheme
 	utilruntime.Must(routev1.AddToScheme(scheme))
 	utilruntime.Must(keystonev1.AddToScheme(scheme))
+	utilruntime.Must(memcachedv1.AddToScheme(scheme))
 }
 
 func main() {
@@ -80,7 +82,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "5ad2eba0.github.com/openstack-k8s-operators",
+		LeaderElectionID:       "5ad2eba0.openstack.org",
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly

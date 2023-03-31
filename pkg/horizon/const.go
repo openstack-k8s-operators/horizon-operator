@@ -19,11 +19,11 @@ const (
 	// ServiceName -
 	ServiceName = "horizon"
 	// ServiceAccount -
-	ServiceAccount = "horizon-operator"
+	ServiceAccount = "horizon-operator-horizon"
 	// DatabaseName -
 	DatabaseName = "horizon"
 
-	// horizonPublicPort
+	// HorizonPublicPort -
 	HorizonPublicPort int32 = 80
 
 	// KollaConfig -

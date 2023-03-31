@@ -19,12 +19,14 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
 	horizonv1alpha1 "github.com/openstack-k8s-operators/horizon-operator/api/v1alpha1"
 	horizon "github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
+	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
@@ -35,12 +37,16 @@ import (
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
 	oko_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
+	oko_svc "github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8s_labels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -80,10 +86,15 @@ type HorizonReconciler struct {
 //+kubebuilder:rbac:groups=horizon.openstack.org,resources=horizons/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=horizon.openstack.org,resources=horizons/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups=core,resources=deployments,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete;
 //+kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapis,verbs=get;list;watch;
+//+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneendpoints,verbs=get;list;watch;
+//+kubebuilder:rbac:groups=memcached.openstack.org,resources=memcacheds,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=memcached.openstack.org,resources=memcacheds/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=memcached.openstack.org,resources=memcacheds/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -180,6 +191,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&routev1.Route{}).
+		Owns(&memcachedv1.Memcached{}).
 		Complete(r)
 }
 
@@ -216,6 +228,7 @@ func (r *HorizonReconciler) reconcileInit(
 		horizon.ServiceName,
 		serviceLabels,
 		horizonPorts,
+		time.Duration(5)*time.Second,
 	)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -287,7 +300,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 				condition.RequestedReason,
 				condition.SeverityInfo,
 				condition.InputReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("OpenStack secret %s not found", instance.Spec.Secret)
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("OpenStack secret %s not found", instance.Spec.Secret)
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.InputReadyCondition,
@@ -302,6 +315,36 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
 
 	// run check OpenStack secret - end
+
+	// Create Memcached instance if no shared instance exists.
+	if instance.Spec.SharedMemcached == "" {
+		memcached := r.renderMemcached(instance)
+		op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), memcached, func() error {
+			memcached.Labels = map[string]string{"service": instance.Name}
+			memcached.Spec.Replicas = instance.Spec.Replicas
+
+			err := controllerutil.SetControllerReference(helper.GetBeforeObject(), memcached, helper.GetScheme())
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
+		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				r.Log.Info(fmt.Sprintf("Memcached %s not found", memcached.Name))
+				return ctrl.Result{RequeueAfter: time.Duration(5) * time.Second}, nil
+			}
+			return ctrl.Result{}, err
+		}
+		if op != controllerutil.OperationResultNone {
+			r.Log.Info(fmt.Sprintf("Memcached %s - %s", memcached.Name, op))
+		}
+
+		// Mark the Memcached Service as Ready if we get to this point with no errors
+		instance.Status.Conditions.MarkTrue(
+			horizonv1alpha1.HorizonMemcachedReadyCondition, horizonv1alpha1.HorizonMemcachedReadyMessage)
+	}
 
 	//
 	// Create ConfigMaps and Secrets required as input for the Service and calculate an overall hash of hashes
@@ -393,7 +436,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 
 	depl := deployment.NewDeployment(
 		deplDef,
-		5,
+		time.Duration(5)*time.Second,
 	)
 
 	ctrlResult, err = depl.CreateOrPatch(ctx, helper)
@@ -431,6 +474,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	h *helper.Helper,
 	envVars *map[string]env.Setter,
 ) error {
+	var memcachedSvc string
 	//
 	// create Configmap/Secret required for horizon input
 	// - %-scripts configmap holding scripts to e.g. bootstrap the service
@@ -444,7 +488,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	// custom.conf is going to /etc/<service>/<service>.conf.d
 	// all other files get placed into /etc/<service> to allow overwrite of e.g. logging.conf or policy.json
 	// TODO: make sure custom.conf can not be overwritten
-	customData := map[string]string{common.CustomServiceConfigFileName: instance.Spec.CustomServiceConfig}
+	customData := map[string]string{"9999_custom_settings.py": instance.Spec.CustomServiceConfig}
 	for key, data := range instance.Spec.DefaultConfigOverwrite {
 		customData[key] = data
 	}
@@ -458,11 +502,37 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return err
 	}
 
+	if instance.Spec.SharedMemcached == "" {
+		memcachedSvc, err = r.getMemcachedSvc(ctx, fmt.Sprintf("%s-memcached", instance.Name), h, instance.Namespace)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				horizonv1alpha1.HorizonMemcachedReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityError,
+				horizonv1alpha1.HorizonMemcachedServiceError,
+				err.Error()))
+			return err
+		}
+	} else {
+		memcachedSvc, err = r.getMemcachedSvc(ctx, instance.Spec.SharedMemcached, h, instance.Namespace)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				horizonv1alpha1.HorizonMemcachedReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityError,
+				horizonv1alpha1.HorizonMemcachedServiceError,
+				err.Error()))
+			return err
+		}
+	}
+
+	url := strings.TrimPrefix(instance.Status.HorizonEndpoints["public"], "http://")
+
 	templateParameters := map[string]interface{}{
-		"keystoneURL":      keystonePublicURL,
-		"horizonDebug":     instance.Spec.Debug,
-		"horizonSecretKey": instance.Spec.HorizonSecret,
-		"horizonEndpoint":  instance.Status.HorizonEndpoints["public"],
+		"keystoneURL":        keystonePublicURL,
+		"horizonDebug":       instance.Spec.Debug,
+		"horizonEndpointUrl": url,
+		"memcachedSvc":       memcachedSvc,
 	}
 
 	cms := []util.Template{
@@ -516,10 +586,10 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 	//
 	// check if secret already exist
 	//
-	_, _, err := oko_secret.GetSecret(ctx, h, horizon.ServiceName, instance.Namespace)
+	scrt, _, err := oko_secret.GetSecret(ctx, h, horizon.ServiceName, instance.Namespace)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return err
-	} else if k8s_errors.IsNotFound(err) {
+	} else if k8s_errors.IsNotFound(err) || !validateHorizonSecret(scrt) {
 		r.Log.Info("Creating Horizon Secret")
 		// Create k8s secret to store Horizon Secret
 		tmpl := []util.Template{
@@ -527,7 +597,7 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 				Name:       horizon.ServiceName,
 				Namespace:  instance.Namespace,
 				Type:       util.TemplateTypeNone,
-				CustomData: map[string]string{"horizon-secret": instance.Spec.HorizonSecret},
+				CustomData: map[string]string{"horizon-secret": rand.String(10)},
 				Labels:     Labels,
 			},
 		}
@@ -540,4 +610,37 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 	}
 
 	return nil
+}
+
+func (r *HorizonReconciler) renderMemcached(instance *horizonv1alpha1.Horizon) *memcachedv1.Memcached {
+	return &memcachedv1.Memcached{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "memcached.openstack.org/v1beta1",
+			Kind:       "Memcached",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-memcached", instance.Name),
+			Namespace: instance.Namespace,
+		},
+	}
+}
+
+func (r *HorizonReconciler) getMemcachedSvc(ctx context.Context, memcachedName string, h *helper.Helper, namespace string) (svc string, err error) {
+	labelSelector := k8s_labels.Set{"app": "memcached"}
+	svcList, err := oko_svc.GetServicesListWithLabel(ctx, h, namespace, labelSelector)
+
+	if err != nil {
+		r.Log.Info("Error getting service list: %s", err)
+		return "", err
+	}
+	for _, service := range svcList.Items {
+		if service.Name == memcachedName {
+			return service.Name, nil
+		}
+	}
+	return "", fmt.Errorf("No memcached service was found")
+}
+
+func validateHorizonSecret(secret *corev1.Secret) bool {
+	return len(secret.Data["horizon-secret"]) != 0
 }

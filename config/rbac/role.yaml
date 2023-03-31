@@ -6,9 +6,9 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - ""
+  - apps
   resources:
-  - configmaps
+  - deployments
   verbs:
   - create
   - get
@@ -19,7 +19,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - deployments
+  - configmaps
   verbs:
   - create
   - get
@@ -72,6 +72,48 @@ rules:
   - horizon.openstack.org
   resources:
   - horizons/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - keystone.openstack.org
+  resources:
+  - keystoneapis
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - keystone.openstack.org
+  resources:
+  - keystoneendpoints
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - memcached.openstack.org
+  resources:
+  - memcacheds
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - memcached.openstack.org
+  resources:
+  - memcacheds/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - memcached.openstack.org
+  resources:
+  - memcacheds/status
   verbs:
   - get
   - patch
