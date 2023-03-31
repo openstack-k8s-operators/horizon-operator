@@ -48,6 +48,17 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 			},
 		},
 	}
+	readinessProbe := &corev1.Probe{
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		InitialDelaySeconds: 10,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: "/dashboard/auth/login/?next=/dashboard/",
+				Port: intstr.IntOrString{IntVal: 80},
+			},
+		},
+	}
 
 	envVars := map[string]env.Setter{}
 	envVars["KOLLA_CONFIG_FILE"] = env.SetValue(KollaConfig)
@@ -85,10 +96,11 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 							SecurityContext: &corev1.SecurityContext{
 								RunAsUser: &runAsUser,
 							},
-							Env:           env.MergeEnvs([]corev1.EnvVar{}, envVars),
-							VolumeMounts:  getVolumeMounts(),
-							Resources:     instance.Spec.Resources,
-							LivenessProbe: livenessProbe,
+							Env:            env.MergeEnvs([]corev1.EnvVar{}, envVars),
+							VolumeMounts:   getVolumeMounts(),
+							Resources:      instance.Spec.Resources,
+							ReadinessProbe: readinessProbe,
+							LivenessProbe:  livenessProbe,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
