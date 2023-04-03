@@ -34,12 +34,14 @@ spec:
   - supported: true
     type: AllNamespaces
   keywords:
-  - fkjdasf
+    - OpenStack
+    - UI
+    - Horizon
   links:
   - name: Horizon Operator
-    url: https://horizon-operator.domain
+    url: https://github.com/openstack-k8s-operators/horizon-operator
   maturity: alpha
   provider:
-    name: anything
-    url: fsadfl
+    name: Red Hat Inc.
+    url: https://redhat.com/
   version: 0.0.0
