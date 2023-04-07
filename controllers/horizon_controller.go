@@ -619,7 +619,7 @@ func (r *HorizonReconciler) renderMemcached(instance *horizonv1alpha1.Horizon) *
 			Kind:       "Memcached",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-memcached", instance.Name),
+			Name:      instance.Name,
 			Namespace: instance.Namespace,
 		},
 	}
