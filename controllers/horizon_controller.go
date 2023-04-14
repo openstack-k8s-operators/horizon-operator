@@ -473,7 +473,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	h *helper.Helper,
 	envVars *map[string]env.Setter,
 ) error {
-	var serverList []string
+	var memcachedServerList []string
 	//
 	// create Configmap/Secret required for horizon input
 	// - %-scripts configmap holding scripts to e.g. bootstrap the service
@@ -501,7 +501,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return err
 	}
 
-	serverList, err = getMemcachedServerList(ctx, h, instance, fmt.Sprintf("%s-memcached", instance.Name))
+	memcachedServerList, err = getMemcachedServerList(ctx, h, instance, fmt.Sprintf("%s-memcached", instance.Name))
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			horizonv1alpha1.HorizonMemcachedReadyCondition,
@@ -512,7 +512,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return err
 	}
 
-	memcachedServers := formatMemcachedServers(serverList)
+	memcachedServers := formatMemcachedServers(memcachedServerList)
 
 	url := strings.TrimPrefix(instance.Status.HorizonEndpoints["public"], "http://")
 
@@ -632,9 +632,9 @@ func getMemcachedServerList(ctx context.Context, h *helper.Helper, instance *hor
 	return serverList, nil
 }
 
-func formatMemcachedServers(podList []string) string {
-	parts := make([]string, len(podList))
-	for i, elem := range podList {
+func formatMemcachedServers(serverList []string) string {
+	parts := make([]string, len(serverList))
+	for i, elem := range serverList {
 		parts[i] = fmt.Sprintf("'%s:11211'", elem)
 	}
 
