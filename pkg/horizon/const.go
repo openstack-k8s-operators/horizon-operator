@@ -18,8 +18,10 @@ package horizon
 const (
 	// ServiceName -
 	ServiceName = "horizon"
+
 	// ServiceAccount -
 	ServiceAccount = "horizon-operator-horizon"
+
 	// DatabaseName -
 	DatabaseName = "horizon"
 
