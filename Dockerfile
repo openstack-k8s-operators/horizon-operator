@@ -1,8 +1,8 @@
-# Build the manager binary
 ARG GOLANG_BUILDER=golang:1.19
 ARG OPERATOR_BASE_IMAGE=gcr.io/distroless/static:nonroot
 
-FROM $GOLANG_BUILDER as builder
+# Build the manager binary
+FROM $GOLANG_BUILDER AS builder
 
 ARG CACHITO_ENV_FILE=/remote-source/cachito.env
 
@@ -18,17 +18,12 @@ WORKDIR $REMOTE_SOURCE_DIR/$REMOTE_SOURCE_SUBDIR
 
 RUN mkdir -p ${DEST_ROOT}/usr/local/bin/
 
-
-ARG TARGETOS
-ARG TARGETARCH
-
 RUN if [ ! -f $CACHITO_ENV_FILE ]; then go mod download ; fi
 
 # Build manager
 RUN if [ -f $CACHITO_ENV_FILE ] ; then source $CACHITO_ENV_FILE ; fi ; CGO_ENABLED=0  GO111MODULE=on go build ${GO_BUILD_EXTRA_ARGS} -a -o ${DEST_ROOT}/manager main.go
 
 RUN cp -r templates ${DEST_ROOT}/templates
-
 
 FROM $OPERATOR_BASE_IMAGE
 
