@@ -81,6 +81,17 @@ type HorizonReconciler struct {
 	Scheme  *runtime.Scheme
 }
 
+// OkoPodInterface provides an interface for external functions used via the lib-common pod package.
+type OkoPodInterface interface {
+	GetPodFQDNList(ctx context.Context, h *helper.Helper, namespace string, labelSelectorMap map[string]string) ([]string, error)
+}
+
+type podFQDNListGetterImpl struct{}
+
+func (g podFQDNListGetterImpl) GetPodFQDNList(ctx context.Context, h *helper.Helper, namespace string, labelSelector map[string]string) ([]string, error) {
+	return oko_pod.GetPodFQDNList(ctx, h, namespace, labelSelector)
+}
+
 //+kubebuilder:rbac:groups=horizon.openstack.org,resources=horizons,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=horizon.openstack.org,resources=horizons/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=horizon.openstack.org,resources=horizons/finalizers,verbs=update
@@ -501,7 +512,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return err
 	}
 
-	memcachedServerList, err = getMemcachedServerList(ctx, h, instance, fmt.Sprintf("%s-memcached", instance.Name))
+	memcachedServerList, err = getMemcachedServerList(ctx, h, instance, fmt.Sprintf("%s-memcached", instance.Name), podFQDNListGetterImpl{})
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			horizonv1alpha1.HorizonMemcachedReadyCondition,
@@ -617,7 +628,7 @@ func validateHorizonSecret(secret *corev1.Secret) bool {
 	return len(secret.Data["horizon-secret"]) != 0
 }
 
-func getMemcachedServerList(ctx context.Context, h *helper.Helper, instance *horizonv1alpha1.Horizon, memcachedName string) ([]string, error) {
+func getMemcachedServerList(ctx context.Context, h *helper.Helper, instance *horizonv1alpha1.Horizon, memcachedName string, okoPod OkoPodInterface) ([]string, error) {
 
 	// Define the label selector to filter on
 	labelSelector := map[string]string{
@@ -625,7 +636,7 @@ func getMemcachedServerList(ctx context.Context, h *helper.Helper, instance *hor
 		"memcached/name": memcachedName,
 	}
 
-	serverList, err := oko_pod.GetPodFQDNList(ctx, h, instance.Namespace, labelSelector)
+	serverList, err := okoPod.GetPodFQDNList(ctx, h, instance.Namespace, labelSelector)
 	if err != nil {
 		return nil, err
 	}
