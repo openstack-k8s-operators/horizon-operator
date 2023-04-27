@@ -216,7 +216,7 @@ func (r *HorizonReconciler) reconcileInit(
 	// expose the service (create service, route and return the created endpoint URLs)
 	//
 	var horizonPorts = map[endpoint.Endpoint]endpoint.Data{
-		endpoint.EndpointPublic: endpoint.Data{
+		endpoint.EndpointPublic: {
 			Port: horizon.HorizonPublicPort,
 		},
 	}
