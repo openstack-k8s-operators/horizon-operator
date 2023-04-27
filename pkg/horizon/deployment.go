@@ -85,7 +85,7 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 					Labels: labels,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: ServiceAccount,
+					ServiceAccountName: instance.RbacResourceName(),
 					Containers: []corev1.Container{
 						{
 							Name: ServiceName,
