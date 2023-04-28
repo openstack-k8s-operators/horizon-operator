@@ -173,3 +173,18 @@ func (instance Horizon) IsReady() bool {
 	// Ready there is at least one Horizon pod running
 	return instance.Status.ReadyCount >= 1
 }
+
+// RbacConditionsSet - set the conditions for the rbac object
+func (instance Horizon) RbacConditionsSet(c *condition.Condition) {
+	instance.Status.Conditions.Set(c)
+}
+
+// RbacNamespace - return the namespace
+func (instance Horizon) RbacNamespace() string {
+	return instance.Namespace
+}
+
+// RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
+func (instance Horizon) RbacResourceName() string {
+	return "horizon-" + instance.Name
+}
