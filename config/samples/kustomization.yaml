@@ -1,4 +1,4 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
-- horizon_v1alpha1_horizon.yaml
+- horizon_v1beta1_horizon.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

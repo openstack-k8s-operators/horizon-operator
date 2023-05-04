@@ -3,10 +3,18 @@ module github.com/openstack-k8s-operators/horizon-operator/api
 go 1.19
 
 require (
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230427065458-ec1b923df88c
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230504085832-c15c933c2300
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
 	sigs.k8s.io/controller-runtime v0.14.6
+)
+
+require (
+	github.com/go-logr/zapr v1.2.3 // indirect
+	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/zap v1.24.0 // indirect
+	golang.org/x/tools v0.7.0 // indirect
 )
 
 require (
@@ -36,8 +44,8 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/onsi/ginkgo/v2 v2.9.2 // indirect
-	github.com/onsi/gomega v1.27.6 // indirect
+	github.com/onsi/ginkgo/v2 v2.9.2
+	github.com/onsi/gomega v1.27.6
 	github.com/openshift/api v3.9.0+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
@@ -59,7 +67,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.26.2 // indirect
-	k8s.io/client-go v0.26.3 // indirect
+	k8s.io/client-go v0.26.3
 	k8s.io/component-base v0.26.2 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230308215209-15aac26d736a // indirect

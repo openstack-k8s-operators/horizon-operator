@@ -14,22 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1beta1
 
 import (
 	"fmt"
 
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	// ContainerImage - default fall-back container image for Horizon if associated env var not provided
+	ContainerImage = "quay.io/podified-antelope-centos9/openstack-horizon:current-podified"
+)
+
 // HorizonSpec defines the desired state of Horizon
 type HorizonSpec struct {
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="quay.io/podified-antelope-centos9/openstack-horizon:current-podified"
+	// +kubebuilder:validation:Required
 	// horizon Container Image URL
 	ContainerImage string `json:"containerImage"`
 
@@ -187,4 +192,14 @@ func (instance Horizon) RbacNamespace() string {
 // RbacResourceName - return the name to be used for rbac objects (serviceaccount, role, rolebinding)
 func (instance Horizon) RbacResourceName() string {
 	return "horizon-" + instance.Name
+}
+
+// SetupDefaults - initializes any CRD field defaults based on environment variables (the defaulting mechanism itself is implemented via webhooks)
+func SetupDefaults() {
+	// Acquire environmental defaults and initialize Horizon defaults with them
+	horizonDefaults := HorizonDefaults{
+		ContainerImageURL: util.GetEnvVar("HORIZON_IMAGE_URL_DEFAULT", ContainerImage),
+	}
+
+	SetupHorizonDefaults(horizonDefaults)
 }

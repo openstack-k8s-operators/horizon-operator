@@ -15,7 +15,7 @@ spec:
     singular: horizon
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - name: v1beta1
     schema:
       openAPIV3Schema:
         description: Horizon is the Schema for the horizons API
@@ -36,7 +36,6 @@ spec:
             description: HorizonSpec defines the desired state of Horizon
             properties:
               containerImage:
-                default: quay.io/podified-antelope-centos9/openstack-horizon:current-podified
                 description: horizon Container Image URL
                 type: string
               customServiceConfig:
@@ -168,6 +167,7 @@ spec:
                   just for Horizon.
                 type: string
             required:
+            - containerImage
             - secret
             type: object
           status:
