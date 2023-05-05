@@ -34,9 +34,9 @@ spec:
   - supported: true
     type: AllNamespaces
   keywords:
-    - OpenStack
-    - UI
-    - Horizon
+  - OpenStack
+  - UI
+  - Horizon
   links:
   - name: Horizon Operator
     url: https://github.com/openstack-k8s-operators/horizon-operator
