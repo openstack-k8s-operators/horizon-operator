@@ -1,0 +1,9 @@
+apiVersion: horizon.openstack.org/v1alpha1
+kind: Horizon
+metadata:
+  name: horizon
+spec:
+  replicas: 1
+  secret: "osp-secret"
+  customServiceConfig: |
+    SESSION_TIMEOUT = 3600
