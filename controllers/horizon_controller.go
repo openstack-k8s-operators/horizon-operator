@@ -24,7 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
-	horizonv1alpha1 "github.com/openstack-k8s-operators/horizon-operator/api/v1alpha1"
+	horizonv1beta1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 	horizon "github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
@@ -116,7 +116,7 @@ type HorizonReconciler struct {
 func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
 	_ = log.FromContext(ctx)
 
-	instance := &horizonv1alpha1.Horizon{}
+	instance := &horizonv1beta1.Horizon{}
 	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
@@ -199,7 +199,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 // SetupWithManager -
 func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&horizonv1alpha1.Horizon{}).
+		For(&horizonv1beta1.Horizon{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.ConfigMap{}).
@@ -209,7 +209,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *HorizonReconciler) reconcileDelete(ctx context.Context, instance *horizonv1alpha1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
+func (r *HorizonReconciler) reconcileDelete(ctx context.Context, instance *horizonv1beta1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service delete")
 
 	// Service is deleted so remove the finalizer.
@@ -221,7 +221,7 @@ func (r *HorizonReconciler) reconcileDelete(ctx context.Context, instance *horiz
 
 func (r *HorizonReconciler) reconcileInit(
 	ctx context.Context,
-	instance *horizonv1alpha1.Horizon,
+	instance *horizonv1beta1.Horizon,
 	helper *helper.Helper,
 	serviceLabels map[string]string,
 ) (ctrl.Result, error) {
@@ -277,7 +277,7 @@ func (r *HorizonReconciler) reconcileInit(
 	return ctrl.Result{}, nil
 }
 
-func (r *HorizonReconciler) reconcileUpdate(ctx context.Context, instance *horizonv1alpha1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
+func (r *HorizonReconciler) reconcileUpdate(ctx context.Context, instance *horizonv1beta1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service update")
 
 	// TODO: should have minor update tasks if required
@@ -287,7 +287,7 @@ func (r *HorizonReconciler) reconcileUpdate(ctx context.Context, instance *horiz
 	return ctrl.Result{}, nil
 }
 
-func (r *HorizonReconciler) reconcileUpgrade(ctx context.Context, instance *horizonv1alpha1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
+func (r *HorizonReconciler) reconcileUpgrade(ctx context.Context, instance *horizonv1beta1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service upgrade")
 
 	// TODO: should have major version upgrade tasks
@@ -297,7 +297,7 @@ func (r *HorizonReconciler) reconcileUpgrade(ctx context.Context, instance *hori
 	return ctrl.Result{}, nil
 }
 
-func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horizonv1alpha1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
+func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horizonv1beta1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
 	r.Log.Info("Reconciling Service")
 
 	// Service account, role, binding
@@ -378,7 +378,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 
 		// Mark the Memcached Service as Ready if we get to this point with no errors
 		instance.Status.Conditions.MarkTrue(
-			horizonv1alpha1.HorizonMemcachedReadyCondition, horizonv1alpha1.HorizonMemcachedReadyMessage)
+			horizonv1beta1.HorizonMemcachedReadyCondition, horizonv1beta1.HorizonMemcachedReadyMessage)
 	}
 
 	//
@@ -505,7 +505,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 // TODO add DefaultConfigOverwrite
 func (r *HorizonReconciler) generateServiceConfigMaps(
 	ctx context.Context,
-	instance *horizonv1alpha1.Horizon,
+	instance *horizonv1beta1.Horizon,
 	h *helper.Helper,
 	envVars *map[string]env.Setter,
 ) error {
@@ -540,10 +540,10 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	memcachedServerList, err = getMemcachedServerList(ctx, h, instance, fmt.Sprintf("%s-memcached", instance.Name))
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			horizonv1alpha1.HorizonMemcachedReadyCondition,
+			horizonv1beta1.HorizonMemcachedReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityError,
-			horizonv1alpha1.HorizonMemcachedServiceError,
+			horizonv1beta1.HorizonMemcachedServiceError,
 			err.Error()))
 		return err
 	}
@@ -581,7 +581,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 // returns the hash, whether the hash changed (as a bool) and any error
 func (r *HorizonReconciler) createHashOfInputHashes(
 	ctx context.Context,
-	instance *horizonv1alpha1.Horizon,
+	instance *horizonv1beta1.Horizon,
 	envVars map[string]env.Setter,
 ) (string, bool, error) {
 	var hashMap map[string]string
@@ -601,7 +601,7 @@ func (r *HorizonReconciler) createHashOfInputHashes(
 // ensureHorizonSecret - Creates a k8s secret to hold the Horizon SECRET_KEY.
 func (r *HorizonReconciler) ensureHorizonSecret(
 	ctx context.Context,
-	instance *horizonv1alpha1.Horizon,
+	instance *horizonv1beta1.Horizon,
 	h *helper.Helper,
 	envVars *map[string]env.Setter,
 ) error {
@@ -636,7 +636,7 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 	return nil
 }
 
-func (r *HorizonReconciler) renderMemcached(instance *horizonv1alpha1.Horizon) *memcachedv1.Memcached {
+func (r *HorizonReconciler) renderMemcached(instance *horizonv1beta1.Horizon) *memcachedv1.Memcached {
 	return &memcachedv1.Memcached{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "memcached.openstack.org/v1beta1",
@@ -653,7 +653,7 @@ func validateHorizonSecret(secret *corev1.Secret) bool {
 	return len(secret.Data["horizon-secret"]) != 0
 }
 
-func getMemcachedServerList(ctx context.Context, h *helper.Helper, instance *horizonv1alpha1.Horizon, memcachedName string) ([]string, error) {
+func getMemcachedServerList(ctx context.Context, h *helper.Helper, instance *horizonv1beta1.Horizon, memcachedName string) ([]string, error) {
 
 	// Define the label selector to filter on
 	labelSelector := map[string]string{

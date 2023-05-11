@@ -16,7 +16,7 @@ limitations under the License.
 package horizon
 
 import (
-	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1alpha1"
+	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/affinity"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"

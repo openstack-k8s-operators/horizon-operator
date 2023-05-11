@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"os"
+	"strings"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -34,10 +35,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	routev1 "github.com/openshift/api/route/v1"
-	horizonv1alpha1 "github.com/openstack-k8s-operators/horizon-operator/api/v1alpha1"
-	"github.com/openstack-k8s-operators/horizon-operator/controllers"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
+
+	horizonv1beta1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
+	"github.com/openstack-k8s-operators/horizon-operator/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -49,7 +51,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(horizonv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(horizonv1beta1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 
 	// As we are creating routes, it's necessary to register the routev1.Route
@@ -119,6 +121,17 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Horizon")
 		os.Exit(1)
+	}
+
+	// Acquire environmental defaults and initialize operator defaults with them
+	horizonv1beta1.SetupDefaults()
+
+	// Setup webhooks if requested
+	if strings.ToLower(os.Getenv("ENABLE_WEBHOOKS")) != "false" {
+		if err = (&horizonv1beta1.Horizon{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Horizon")
+			os.Exit(1)
+		}
 	}
 	//+kubebuilder:scaffold:builder
 
