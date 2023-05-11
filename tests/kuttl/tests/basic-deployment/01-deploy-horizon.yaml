@@ -2,4 +2,4 @@ apiVersion: kuttl.dev/v1beta1
 kind: TestStep
 commands:
   - script: |
-      oc apply -n openstack -f ../../../../config/samples/horizon_v1alpha1_horizon.yaml
+      oc apply -n openstack -f ../../../../config/samples/horizon_v1beta1_horizon.yaml
