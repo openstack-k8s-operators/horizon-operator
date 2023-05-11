@@ -5,5 +5,6 @@ metadata:
 spec:
   replicas: 1
   secret: "osp-secret"
+  containerImage: quay.io/podified-antelope-centos9/openstack-horizon:current-podified
   customServiceConfig: |
     SESSION_TIMEOUT = 3600
