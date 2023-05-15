@@ -538,7 +538,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	}
 
 	memcachedServerList, err = getMemcachedServerList(ctx, h, instance, instance.Name)
-	if err != nil {
+	if (err != nil) || (len(memcachedServerList) == 0) {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			horizonv1beta1.HorizonMemcachedReadyCondition,
 			condition.ErrorReason,
