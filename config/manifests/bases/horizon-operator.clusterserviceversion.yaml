@@ -4,6 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
+    operatorframework.io/suggested-namespace: openstack
   name: horizon-operator.v0.0.0
   namespace: placeholder
 spec:
@@ -15,8 +16,8 @@ spec:
       kind: Horizon
       name: horizons.horizon.openstack.org
       version: v1beta1
-  description: horizon operator
-  displayName: horizon-operator-bundle
+  description: Horizon Operator
+  displayName: Horizon Operator
   icon:
   - base64data: ""
     mediatype: ""
@@ -40,7 +41,7 @@ spec:
   links:
   - name: Horizon Operator
     url: https://github.com/openstack-k8s-operators/horizon-operator
-  maturity: alpha
+  maturity: beta
   provider:
     name: Red Hat Inc.
     url: https://redhat.com/
