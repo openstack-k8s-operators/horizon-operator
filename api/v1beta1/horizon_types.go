@@ -67,7 +67,7 @@ type HorizonSpec struct {
 	// +kubebuilder:default="# add your customization here"
 	// CustomServiceConfig - customize the service config using this parameter to change service defaults,
 	// or overwrite rendered information using raw OpenStack config format. The content gets added to
-	// to /etc/<service>/<service>.conf.d directory as custom.conf file.
+	// to /etc/openstack-dashboard/local_settings.d directory as 9999_custom_settings.py file.
 	CustomServiceConfig string `json:"customServiceConfig,omitempty"`
 
 	// +kubebuilder:validation:Optional
