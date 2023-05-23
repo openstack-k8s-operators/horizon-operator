@@ -47,6 +47,7 @@ import (
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -169,6 +170,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
 			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
+			condition.UnknownCondition(horizonv1beta1.HorizonMemcachedReadyCondition, condition.InitReason, horizonv1beta1.HorizonMemcachedReadyInitMessage),
 			// service account, role, rolebinding conditions
 			condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
 			condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
@@ -350,14 +352,14 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	configMapVars[ospSecret.Name] = env.SetValue(hash)
 
 	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
-
 	// run check OpenStack secret - end
 
 	// Create Memcached instance if no shared instance exists.
+	memcachedName := r.getMemcachedName(instance)
 	if instance.Spec.SharedMemcached == "" {
 		memcached := r.renderMemcached(instance)
 		op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), memcached, func() error {
-			memcached.Labels = map[string]string{"service": instance.Name}
+			memcached.Labels = map[string]string{"service": memcachedName}
 			memcached.Spec.Replicas = instance.Spec.Replicas
 
 			err := controllerutil.SetControllerReference(helper.GetBeforeObject(), memcached, helper.GetScheme())
@@ -377,11 +379,45 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 		if op != controllerutil.OperationResultNone {
 			r.Log.Info(fmt.Sprintf("Memcached %s - %s", memcached.Name, op))
 		}
-
-		// Mark the Memcached Service as Ready if we get to this point with no errors
-		instance.Status.Conditions.MarkTrue(
-			horizonv1beta1.HorizonMemcachedReadyCondition, horizonv1beta1.HorizonMemcachedReadyMessage)
 	}
+
+	mc := &memcachedv1.Memcached{}
+	err = helper.GetClient().Get(
+		ctx,
+		types.NamespacedName{
+			Name:      memcachedName,
+			Namespace: instance.Namespace,
+		},
+		mc)
+	if err != nil {
+		if k8s_errors.IsNotFound(err) {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				horizonv1beta1.HorizonMemcachedReadyCondition,
+				condition.RequestedReason,
+				condition.SeverityInfo,
+				horizonv1beta1.HorizonMemcachedReadyWaitingMessage))
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("Memcached %s not found", memcachedName)
+		}
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			horizonv1beta1.HorizonMemcachedReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			horizonv1beta1.HorizonMemcachedReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
+
+	if !mc.IsReady() {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			horizonv1beta1.HorizonMemcachedReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			horizonv1beta1.HorizonMemcachedReadyWaitingMessage))
+		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("Memcached %s is not ready", memcachedName)
+	}
+	// Mark the Memcached Service as Ready if we get to this point with no errors
+	instance.Status.Conditions.MarkTrue(
+		horizonv1beta1.HorizonMemcachedReadyCondition, horizonv1beta1.HorizonMemcachedReadyMessage)
 
 	//
 	// Create ConfigMaps and Secrets required as input for the Service and calculate an overall hash of hashes
@@ -539,14 +575,8 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return err
 	}
 
-	memcachedServerList, err = getMemcachedServerList(ctx, h, instance, instance.Name)
+	memcachedServerList, err = getMemcachedServerList(ctx, h, instance, r.getMemcachedName(instance))
 	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			horizonv1beta1.HorizonMemcachedReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityError,
-			horizonv1beta1.HorizonMemcachedServiceError,
-			err.Error()))
 		return err
 	}
 
@@ -575,6 +605,16 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	}
 	r.Log.Info(fmt.Sprintf("Creating ConfigMaps with details: %v", cms))
 	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
+}
+
+// getMemcachedName - returns a name of Memcached CR instance used for cache backend
+func (r *HorizonReconciler) getMemcachedName(
+	instance *horizonv1beta1.Horizon,
+) string {
+	if instance.Spec.SharedMemcached != "" {
+		return instance.Spec.SharedMemcached
+	}
+	return instance.Name
 }
 
 // createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
