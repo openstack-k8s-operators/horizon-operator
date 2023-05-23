@@ -538,7 +538,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	}
 
 	memcachedServerList, err = getMemcachedServerList(ctx, h, instance, instance.Name)
-	if (err != nil) || (len(memcachedServerList) == 0) {
+	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			horizonv1beta1.HorizonMemcachedReadyCondition,
 			condition.ErrorReason,
@@ -665,6 +665,13 @@ func getMemcachedServerList(ctx context.Context, h *helper.Helper, instance *hor
 	if err != nil {
 		return nil, err
 	}
+
+	// If the serverList is empty, this should be considered an error condition since
+	// Horizon will fail to start. We should define an error here.
+	if len(serverList) == 0 {
+		return nil, fmt.Errorf("no memcached pods could be found")
+	}
+
 	return serverList, nil
 }
 
