@@ -9,10 +9,10 @@ require (
 	github.com/onsi/ginkgo/v2 v2.9.5
 	github.com/onsi/gomega v1.27.6
 	github.com/openshift/api v3.9.0+incompatible
-	github.com/openstack-k8s-operators/horizon-operator/api v0.0.0-20230420181734-07de4fee02af
-	github.com/openstack-k8s-operators/infra-operator/apis v0.0.0-20230420195930-f71e24e80596
-	github.com/openstack-k8s-operators/keystone-operator/api v0.0.0-20230412125711-203185e59d89
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230504085832-c15c933c2300
+	github.com/openstack-k8s-operators/horizon-operator/api v0.0.0-00010101000000-000000000000
+	github.com/openstack-k8s-operators/infra-operator/apis v0.0.0-20230522133301-4c8ff4fc4489
+	github.com/openstack-k8s-operators/keystone-operator/api v0.0.0-20230519193353-09694c267b18
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230522113906-6f4206cbf317
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
 	k8s.io/client-go v0.26.3
@@ -48,7 +48,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.0.0-20230420182422-a15a0625dc00 // indirect; indirect // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.0.0-20230314121334-30ee8131cd07 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
@@ -73,9 +73,9 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.26.2 // indirect
 	k8s.io/component-base v0.26.2 // indirect
-	k8s.io/klog/v2 v2.80.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20230308215209-15aac26d736a // indirect
-	k8s.io/utils v0.0.0-20230313181309-38a27ef9d749 // indirect
+	k8s.io/klog/v2 v2.100.1 // indirect
+	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
+	k8s.io/utils v0.0.0-20230505201702-9f6742963106 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
