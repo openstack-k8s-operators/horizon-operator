@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	horizon "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
+	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 )
@@ -56,6 +57,46 @@ func CreateHorizon(name types.NamespacedName) *horizon.Horizon {
 
 func GetHorizon(name types.NamespacedName) *horizon.Horizon {
 	instance := &horizon.Horizon{}
+	gomega.Eventually(func(g gomega.Gomega) error {
+		g.Expect(k8sClient.Get(ctx, name, instance)).Should(Succeed())
+		return nil
+	}, timeout, interval).Should(Succeed())
+	return instance
+}
+
+func CreateHorizonSharedMemcached(name types.NamespacedName) *horizon.Horizon {
+	instance := DefaultHorizonTemplate(name)
+	// Set shared Memcached
+	instance.Spec.SharedMemcached = "shared-memcached"
+	err := k8sClient.Create(ctx, instance)
+	Expect(err).NotTo(HaveOccurred())
+
+	return instance
+}
+
+func SharedMemcached() *memcachedv1.Memcached {
+	return &memcachedv1.Memcached{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "memcached.openstack.org/v1beta1",
+			Kind:       "Memcached",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shared-memcached",
+			Namespace: namespace,
+		},
+	}
+}
+
+func CreateSharedMemcached() *memcachedv1.Memcached {
+	instance := SharedMemcached()
+	err := k8sClient.Create(ctx, instance)
+	Expect(err).NotTo(HaveOccurred())
+
+	return instance
+}
+
+func GetMemcached(name types.NamespacedName) *memcachedv1.Memcached {
+	instance := &memcachedv1.Memcached{}
 	gomega.Eventually(func(g gomega.Gomega) error {
 		g.Expect(k8sClient.Get(ctx, name, instance)).Should(Succeed())
 		return nil
