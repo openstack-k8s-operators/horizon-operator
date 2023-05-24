@@ -8,13 +8,19 @@ const (
 	// HorizonMemcachedError - Provides a error that occured during the provisioning of the memcached instance
 	HorizonMemcachedError = "Error creating Memcached instance: %s"
 
-	// HorizonMemcachedServiceError - Provides an error received while trying to retrieve the memcached svc
-	HorizonMemcachedServiceError = "Error retrieving the memcached service: %s"
-
-	// HorizonMemcachedReadyCondition -  Indicates the Horizon memcached service is ready to be consumed
+	// HorizonMemcachedReadyCondition - Indicates the Horizon memcached service is ready to be consumed
 	// by Horizon
 	HorizonMemcachedReadyCondition condition.Type = "HorizonMemcached"
 
+	// HorizonMemcachedReadyInitMessage -
+	HorizonMemcachedReadyInitMessage = "Horizon Memcached create not started"
+
 	// HorizonMemcachedReadyMessage - Provides the message to clarify memcached has been provisioned
 	HorizonMemcachedReadyMessage = "Horizon Memcached instance has been provisioned"
+
+	// HorizonMemcachedReadyWaitingMessage - Provides the message to clarify memcached has not been provisioned
+	HorizonMemcachedReadyWaitingMessage = "Horizon Memcached instance has not been provisioned"
+
+	// HorizonMemcachedReadyErrorMessage -
+	HorizonMemcachedReadyErrorMessage = "iMemcached error occurred %s"
 )
