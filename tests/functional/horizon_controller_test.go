@@ -16,6 +16,7 @@ import (
 var _ = Describe("Horizon controller", func() {
 
 	var horizonName types.NamespacedName
+	var memcachedName types.NamespacedName
 	var secret *corev1.Secret
 
 	BeforeEach(func() {
@@ -23,6 +24,10 @@ var _ = Describe("Horizon controller", func() {
 		horizonName = types.NamespacedName{
 			Name:      "horizon",
 			Namespace: namespace,
+		}
+		memcachedName = types.NamespacedName{
+			Name:      horizonName.Name,
+			Namespace: horizonName.Namespace,
 		}
 
 		// lib-common uses OPERATOR_TEMPLATES env var to locate the "templates"
@@ -102,6 +107,39 @@ var _ = Describe("Horizon controller", func() {
 				condition.InputReadyCondition,
 				corev1.ConditionTrue,
 			)
+		})
+	})
+	When("Using dedicated memcached", func() {
+		BeforeEach(func() {
+			DeferCleanup(DeleteInstance, CreateHorizon(horizonName))
+			secret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      SecretName,
+					Namespace: namespace,
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
+		})
+		It("Should create a memcached deployment with service label", func() {
+			memcached := GetMemcached(memcachedName)
+			Expect(memcached.Labels["service"]).Should(Equal("horizon"))
+		})
+	})
+	When("using a shared memcached instance", func() {
+		BeforeEach(func() {
+			DeferCleanup(DeleteInstance, CreateSharedMemcached())
+			DeferCleanup(DeleteInstance, CreateHorizonSharedMemcached(horizonName))
+			secret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      SecretName,
+					Namespace: namespace,
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
+		})
+		It("Should find the shared-memcached instance", func() {
+			memcached := GetMemcached(types.NamespacedName{Namespace: namespace, Name: "shared-memcached"})
+			Expect(memcached).NotTo(BeNil())
 		})
 	})
 })
