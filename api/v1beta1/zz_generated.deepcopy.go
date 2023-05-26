@@ -172,13 +172,6 @@ func (in *HorizonStatus) DeepCopyInto(out *HorizonStatus) {
 			(*out)[key] = val
 		}
 	}
-	if in.HorizonEndpoints != nil {
-		in, out := &in.HorizonEndpoints, &out.HorizonEndpoints
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(condition.Conditions, len(*in))

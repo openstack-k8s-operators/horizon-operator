@@ -185,9 +185,6 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	if instance.Status.Hash == nil {
 		instance.Status.Hash = map[string]string{}
 	}
-	if instance.Status.HorizonEndpoints == nil {
-		instance.Status.HorizonEndpoints = map[string]string{}
-	}
 
 	// Handle service delete
 	if !instance.DeletionTimestamp.IsZero() {
@@ -269,11 +266,7 @@ func (r *HorizonReconciler) reconcileInit(
 	//
 	// Update instance status with service endpoint url from route host information
 	//
-	// TODO: need to support https default here
-	if instance.Status.HorizonEndpoints == nil {
-		instance.Status.HorizonEndpoints = map[string]string{}
-	}
-	instance.Status.HorizonEndpoints = apiEndpoints
+	instance.Status.Endpoint = apiEndpoints["public"]
 
 	// expose service - end
 
@@ -582,7 +575,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 
 	memcachedServers := formatMemcachedServers(memcachedServerList)
 
-	url := strings.TrimPrefix(instance.Status.HorizonEndpoints["public"], "http://")
+	url := strings.TrimPrefix(instance.Status.Endpoint, "http://")
 
 	templateParameters := map[string]interface{}{
 		"keystoneURL":        keystonePublicURL,

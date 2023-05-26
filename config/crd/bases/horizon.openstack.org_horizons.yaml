@@ -216,15 +216,13 @@ spec:
                   - type
                   type: object
                 type: array
+              endpoint:
+                description: Endpoint url to access OpenStack Dashboard
+                type: string
               hash:
                 additionalProperties:
                   type: string
                 description: Map of hashes to track e.g. job status
-                type: object
-              horizonEndpoint:
-                additionalProperties:
-                  type: string
-                description: API Endpoint
                 type: object
               readyCount:
                 description: ReadyCount of Horizon instances
