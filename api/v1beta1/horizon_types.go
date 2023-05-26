@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
-	endpoint "github.com/openstack-k8s-operators/lib-common/modules/common/endpoint"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	corev1 "k8s.io/api/core/v1"
@@ -133,8 +132,8 @@ type HorizonStatus struct {
 	// Map of hashes to track e.g. job status
 	Hash map[string]string `json:"hash,omitempty"`
 
-	// API Endpoint
-	HorizonEndpoints map[string]string `json:"horizonEndpoint,omitempty"`
+	// Endpoint url to access OpenStack Dashboard
+	Endpoint string `json:"endpoint,omitempty"`
 
 	// Conditions
 	Conditions condition.Conditions `json:"conditions,omitempty" option:"true"`
@@ -165,12 +164,13 @@ func init() {
 	SchemeBuilder.Register(&Horizon{}, &HorizonList{})
 }
 
-// GetEndpoint - Returns the OpenStack Endpoint URL for the type
-func (instance Horizon) GetEndpoint(endpointType endpoint.Endpoint) (string, error) {
-	if url, found := instance.Status.HorizonEndpoints[string(endpointType)]; found {
-		return url, nil
+// GetEndpoint - Returns the OpenStack Dashboard URL
+func (instance Horizon) GetEndpoint() (string, error) {
+	url := instance.Status.Endpoint
+	if url == "" {
+		return "", fmt.Errorf("Dashboard url not found")
 	}
-	return "", fmt.Errorf("%s endpoint not found", string(endpointType))
+	return url, nil
 }
 
 // IsReady - Checks for a ReadyCount greater than 1 and returns true or false
