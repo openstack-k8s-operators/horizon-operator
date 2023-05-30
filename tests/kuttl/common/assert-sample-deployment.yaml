@@ -7,3 +7,5 @@ spec:
   secret: "osp-secret"
   customServiceConfig: |
     SESSION_TIMEOUT = 3600
+status:
+  readyCount: 1
