@@ -266,7 +266,7 @@ func (r *HorizonReconciler) reconcileInit(
 	//
 	// Update instance status with service endpoint url from route host information
 	//
-	instance.Status.Endpoint = apiEndpoints["public"]
+	instance.Status.Endpoint = apiEndpoints[string(endpoint.EndpointPublic)]
 
 	// expose service - end
 
