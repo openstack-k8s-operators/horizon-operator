@@ -22,5 +22,5 @@ const (
 	HorizonMemcachedReadyWaitingMessage = "Horizon Memcached instance has not been provisioned"
 
 	// HorizonMemcachedReadyErrorMessage -
-	HorizonMemcachedReadyErrorMessage = "iMemcached error occurred %s"
+	HorizonMemcachedReadyErrorMessage = "Horizon Memcached error occurred %s"
 )
