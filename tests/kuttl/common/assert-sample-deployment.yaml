@@ -9,3 +9,10 @@ spec:
     SESSION_TIMEOUT = 3600
 status:
   readyCount: 1
+---
+apiVersion: memcached.openstack.org/v1beta1
+kind: Memcached
+metadata:
+  name: horizon
+spec:
+  replicas: 1
