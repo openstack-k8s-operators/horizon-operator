@@ -1,6 +1,7 @@
 package functional
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -26,7 +27,7 @@ var _ = Describe("Horizon controller", func() {
 			Namespace: namespace,
 		}
 		memcachedName = types.NamespacedName{
-			Name:      horizonName.Name,
+			Name:      fmt.Sprintf("%s-memcached", horizonName.Name),
 			Namespace: horizonName.Namespace,
 		}
 

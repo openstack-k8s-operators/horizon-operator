@@ -352,7 +352,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	if instance.Spec.SharedMemcached == "" {
 		memcached := r.renderMemcached(instance)
 		op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), memcached, func() error {
-			memcached.Labels = map[string]string{"service": memcachedName}
+			memcached.Labels = map[string]string{"service": horizon.ServiceName}
 			memcached.Spec.Replicas = instance.Spec.Replicas
 
 			err := controllerutil.SetControllerReference(helper.GetBeforeObject(), memcached, helper.GetScheme())
@@ -607,7 +607,7 @@ func (r *HorizonReconciler) getMemcachedName(
 	if instance.Spec.SharedMemcached != "" {
 		return instance.Spec.SharedMemcached
 	}
-	return instance.Name
+	return fmt.Sprintf("%s-memcached", instance.Name)
 }
 
 // createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
@@ -678,7 +678,7 @@ func (r *HorizonReconciler) renderMemcached(instance *horizonv1beta1.Horizon) *m
 			Kind:       "Memcached",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Name,
+			Name:      fmt.Sprintf("%s-memcached", instance.Name),
 			Namespace: instance.Namespace,
 		},
 	}

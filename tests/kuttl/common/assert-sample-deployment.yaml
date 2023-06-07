@@ -13,6 +13,6 @@ status:
 apiVersion: memcached.openstack.org/v1beta1
 kind: Memcached
 metadata:
-  name: horizon
+  name: horizon-memcached
 spec:
   replicas: 1
