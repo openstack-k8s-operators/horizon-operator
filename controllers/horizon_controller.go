@@ -36,7 +36,6 @@ import (
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
-	oko_pod "github.com/openstack-k8s-operators/lib-common/modules/common/pod"
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
 	oko_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
@@ -348,40 +347,13 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	// run check OpenStack secret - end
 
 	// Create Memcached instance if no shared instance exists.
-	memcachedName := r.getMemcachedName(instance)
+	var memcached *memcachedv1.Memcached
 	if instance.Spec.SharedMemcached == "" {
-		memcached := r.renderMemcached(instance)
-		op, err := controllerutil.CreateOrPatch(ctx, helper.GetClient(), memcached, func() error {
-			memcached.Labels = map[string]string{"service": horizon.ServiceName}
-			memcached.Spec.Replicas = instance.Spec.Replicas
-
-			err := controllerutil.SetControllerReference(helper.GetBeforeObject(), memcached, helper.GetScheme())
-			if err != nil {
-				return err
-			}
-
-			return nil
-		})
-		if err != nil {
-			if k8s_errors.IsNotFound(err) {
-				r.Log.Info(fmt.Sprintf("Memcached %s not found", memcached.Name))
-				return ctrl.Result{RequeueAfter: time.Duration(5) * time.Second}, nil
-			}
-			return ctrl.Result{}, err
-		}
-		if op != controllerutil.OperationResultNone {
-			r.Log.Info(fmt.Sprintf("Memcached %s - %s", memcached.Name, op))
-		}
+		memcached, err = r.ensureHorizonMemcached(ctx, helper, instance)
+	} else {
+		memcached, err = r.getSharedMemcached(ctx, helper, instance)
 	}
 
-	mc := &memcachedv1.Memcached{}
-	err = helper.GetClient().Get(
-		ctx,
-		types.NamespacedName{
-			Name:      memcachedName,
-			Namespace: instance.Namespace,
-		},
-		mc)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -389,7 +361,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 				condition.RequestedReason,
 				condition.SeverityInfo,
 				horizonv1beta1.HorizonMemcachedReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("Memcached %s not found", memcachedName)
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("Memcached %s not found", instance.Spec.SharedMemcached)
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			horizonv1beta1.HorizonMemcachedReadyCondition,
@@ -400,13 +372,13 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 		return ctrl.Result{}, err
 	}
 
-	if !mc.IsReady() {
+	if !memcached.IsReady() {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			horizonv1beta1.HorizonMemcachedReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
 			horizonv1beta1.HorizonMemcachedReadyWaitingMessage))
-		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("Memcached %s is not ready", memcachedName)
+		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("Memcached %s is not ready", memcached.Name)
 	}
 	// Mark the Memcached Service as Ready if we get to this point with no errors
 	instance.Status.Conditions.MarkTrue(
@@ -422,7 +394,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	// - %-config configmap holding minimal horizon config required to get the service up, user can add additional files to be added to the service
 	// - parameters which has passwords gets added from the OpenStack secret via the init container
 	//
-	err = r.generateServiceConfigMaps(ctx, instance, helper, &configMapVars)
+	err = r.generateServiceConfigMaps(ctx, instance, helper, &configMapVars, memcached)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ServiceConfigReadyCondition,
@@ -539,8 +511,8 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	instance *horizonv1beta1.Horizon,
 	h *helper.Helper,
 	envVars *map[string]env.Setter,
+	mc *memcachedv1.Memcached,
 ) error {
-	var memcachedServerList []string
 	//
 	// create Configmap/Secret required for horizon input
 	// - %-scripts configmap holding scripts to e.g. bootstrap the service
@@ -568,12 +540,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return err
 	}
 
-	memcachedServerList, err = getMemcachedServerList(ctx, h, instance, r.getMemcachedName(instance))
-	if err != nil {
-		return err
-	}
-
-	memcachedServers := formatMemcachedServers(memcachedServerList)
+	memcachedServers := strings.Join(mc.Status.ServerList, "', '")
 
 	url := strings.TrimPrefix(instance.Status.Endpoint, "http://")
 
@@ -581,7 +548,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		"keystoneURL":        keystonePublicURL,
 		"horizonDebug":       instance.Spec.Debug,
 		"horizonEndpointUrl": url,
-		"memcachedServers":   memcachedServers,
+		"memcachedServers":   fmt.Sprintf("'%s'", memcachedServers),
 	}
 
 	cms := []util.Template{
@@ -598,16 +565,6 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	}
 	r.Log.Info(fmt.Sprintf("Creating ConfigMaps with details: %v", cms))
 	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
-}
-
-// getMemcachedName - returns a name of Memcached CR instance used for cache backend
-func (r *HorizonReconciler) getMemcachedName(
-	instance *horizonv1beta1.Horizon,
-) string {
-	if instance.Spec.SharedMemcached != "" {
-		return instance.Spec.SharedMemcached
-	}
-	return fmt.Sprintf("%s-memcached", instance.Name)
 }
 
 // createHashOfInputHashes - creates a hash of hashes which gets added to the resources which requires a restart
@@ -671,8 +628,12 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 	return nil
 }
 
-func (r *HorizonReconciler) renderMemcached(instance *horizonv1beta1.Horizon) *memcachedv1.Memcached {
-	return &memcachedv1.Memcached{
+func (r *HorizonReconciler) ensureHorizonMemcached(
+	ctx context.Context,
+	h *helper.Helper,
+	instance *horizonv1beta1.Horizon,
+) (*memcachedv1.Memcached, error) {
+	memcached := &memcachedv1.Memcached{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "memcached.openstack.org/v1beta1",
 			Kind:       "Memcached",
@@ -682,39 +643,41 @@ func (r *HorizonReconciler) renderMemcached(instance *horizonv1beta1.Horizon) *m
 			Namespace: instance.Namespace,
 		},
 	}
+
+	op, err := controllerutil.CreateOrPatch(ctx, h.GetClient(), memcached, func() error {
+		memcached.Labels = map[string]string{"service": horizon.ServiceName}
+		memcached.Spec.Replicas = instance.Spec.Replicas
+		return controllerutil.SetControllerReference(h.GetBeforeObject(), memcached, h.GetScheme())
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	if op != controllerutil.OperationResultNone {
+		r.Log.Info(fmt.Sprintf("Memcached %s - %s", memcached.Name, op))
+	}
+	return memcached, nil
+}
+
+func (r *HorizonReconciler) getSharedMemcached(
+	ctx context.Context,
+	h *helper.Helper,
+	instance *horizonv1beta1.Horizon,
+) (*memcachedv1.Memcached, error) {
+	memcached := &memcachedv1.Memcached{}
+	err := h.GetClient().Get(
+		ctx,
+		types.NamespacedName{
+			Name:      instance.Spec.SharedMemcached,
+			Namespace: instance.Namespace,
+		},
+		memcached)
+	if err != nil {
+		return nil, err
+	}
+	return memcached, err
 }
 
 func validateHorizonSecret(secret *corev1.Secret) bool {
 	return len(secret.Data["horizon-secret"]) != 0
-}
-
-func getMemcachedServerList(ctx context.Context, h *helper.Helper, instance *horizonv1beta1.Horizon, memcachedName string) ([]string, error) {
-
-	// Define the label selector to filter on
-	labelSelector := map[string]string{
-		"app":            "memcached",
-		"memcached/name": memcachedName,
-	}
-
-	serverList, err := oko_pod.GetPodFQDNList(ctx, h, instance.Namespace, labelSelector)
-	if err != nil {
-		return nil, err
-	}
-
-	// If the serverList is empty, this should be considered an error condition since
-	// Horizon will fail to start. We should define an error here.
-	if len(serverList) == 0 {
-		return nil, fmt.Errorf("no memcached pods could be found")
-	}
-
-	return serverList, nil
-}
-
-func formatMemcachedServers(serverList []string) string {
-	parts := make([]string, len(serverList))
-	for i, elem := range serverList {
-		parts[i] = fmt.Sprintf("'%s:11211'", elem)
-	}
-
-	return strings.Join(parts, ",")
 }
