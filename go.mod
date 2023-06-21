@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/logr v1.2.4
 	github.com/google/uuid v1.3.0
 	github.com/onsi/ginkgo/v2 v2.9.7
-	github.com/onsi/gomega v1.27.7
+	github.com/onsi/gomega v1.27.8
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/openstack-k8s-operators/horizon-operator/api v0.0.0-20230605110447-ba28284f05ce
 	github.com/openstack-k8s-operators/infra-operator/apis v0.0.0-20230620100436-011c7e736b1e
