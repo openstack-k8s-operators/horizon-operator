@@ -11,10 +11,10 @@ require (
 	github.com/onsi/gomega v1.27.7
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/openstack-k8s-operators/horizon-operator/api v0.0.0-20230605110447-ba28284f05ce
-	github.com/openstack-k8s-operators/infra-operator/apis v0.0.0-20230609175832-5a9a30056080
-	github.com/openstack-k8s-operators/keystone-operator/api v0.0.0-20230602104114-29d472a62f87
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230606033311-3b01713e4d45
-	github.com/openstack-k8s-operators/lib-common/modules/test v0.0.0-20230601090817-30a4a761a756
+	github.com/openstack-k8s-operators/infra-operator/apis v0.0.0-20230620100436-011c7e736b1e
+	github.com/openstack-k8s-operators/keystone-operator/api v0.0.0-20230615172650-7d7aa98bc08c
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230619102827-49e72f626a11
+	github.com/openstack-k8s-operators/lib-common/modules/test v0.0.0-20230619102827-49e72f626a11
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
 	k8s.io/client-go v0.26.3
