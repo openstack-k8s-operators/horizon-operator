@@ -1,7 +1,6 @@
 package functional_test
 
 import (
-	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -12,23 +11,19 @@ import (
 
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	. "github.com/openstack-k8s-operators/lib-common/modules/test/helpers"
+
+	horizonv1beta1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 )
 
 var _ = Describe("Horizon controller", func() {
 
 	var horizonName types.NamespacedName
-	var memcachedName types.NamespacedName
 	var secret *corev1.Secret
 
 	BeforeEach(func() {
-
 		horizonName = types.NamespacedName{
 			Name:      "horizon",
 			Namespace: namespace,
-		}
-		memcachedName = types.NamespacedName{
-			Name:      fmt.Sprintf("%s-memcached", horizonName.Name),
-			Namespace: horizonName.Namespace,
 		}
 
 		// lib-common uses OPERATOR_TEMPLATES env var to locate the "templates"
@@ -94,7 +89,7 @@ var _ = Describe("Horizon controller", func() {
 		BeforeEach(func() {
 			DeferCleanup(DeleteInstance, CreateHorizon(horizonName))
 		})
-		It("should not be in a state of having the input ready", func() {
+		It("should be in a state of having the input ready", func() {
 			secret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      SecretName,
@@ -110,28 +105,11 @@ var _ = Describe("Horizon controller", func() {
 			)
 		})
 	})
-	When("Using dedicated memcached", func() {
-		BeforeEach(func() {
-			DeferCleanup(DeleteInstance, CreateHorizon(horizonName))
-			secret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      SecretName,
-					Namespace: namespace,
-				},
-			}
-			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
-		})
-		It("Should create a memcached deployment with service label", func() {
-			memcached := GetMemcached(memcachedName)
-			instance := GetHorizon(horizonName)
-			Expect(memcached.Labels["service"]).Should(Equal("horizon"))
-			Expect(memcached.Spec.Replicas).Should(Equal(instance.Spec.Replicas))
-		})
-	})
+
 	When("using a shared memcached instance", func() {
 		BeforeEach(func() {
-			DeferCleanup(DeleteInstance, CreateSharedMemcached())
-			DeferCleanup(DeleteInstance, CreateHorizonSharedMemcached(horizonName))
+			DeferCleanup(DeleteInstance, CreateHorizon(horizonName))
+			DeferCleanup(DeleteInstance, CreateHorizonMemcached())
 			secret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      SecretName,
@@ -140,9 +118,13 @@ var _ = Describe("Horizon controller", func() {
 			}
 			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
 		})
-		It("Should find the shared-memcached instance", func() {
-			memcached := GetMemcached(types.NamespacedName{Namespace: namespace, Name: "shared-memcached"})
-			Expect(memcached).NotTo(BeNil())
+		It("should be in a state of having the memcached ready", func() {
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				horizonv1beta1.HorizonMemcachedReadyCondition,
+				corev1.ConditionTrue,
+			)
 		})
 	})
 })
