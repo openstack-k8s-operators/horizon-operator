@@ -235,6 +235,11 @@ func (r *HorizonReconciler) reconcileInit(
 			Port: horizon.HorizonPublicPort,
 		},
 	}
+	
+	var routeAnnotations = map[string]string{}
+	if len(instance.Spec.Route.RouteAnnotations) != 0 {
+		routeAnnotations = instance.Spec.Route.RouteAnnotations
+	}
 
 	apiEndpoints, ctrlResult, err := endpoint.ExposeEndpoints(
 		ctx,
@@ -242,6 +247,7 @@ func (r *HorizonReconciler) reconcileInit(
 		horizon.ServiceName,
 		serviceLabels,
 		horizonPorts,
+		routeAnnotations,
 		time.Duration(5)*time.Second,
 	)
 	if err != nil {

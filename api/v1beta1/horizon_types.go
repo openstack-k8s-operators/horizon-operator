@@ -104,6 +104,11 @@ type HorizonDebug struct {
 // todo(bshephar) implement
 type HorizonRoute struct {
 	// +kubebuilder:validation:Optional
+	// RouteAnnotations takes a map of Annotations that will be applied to the
+	// Horizon OpenShift Route.
+	RouteAnnotations map[string]string `json:"routeAnnotations,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=horizon
 	RouteName string `json:"routeName,omitempty"`
 

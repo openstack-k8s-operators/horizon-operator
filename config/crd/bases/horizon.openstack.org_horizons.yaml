@@ -145,6 +145,12 @@ spec:
                   Implement everything about this. It's just a placeholder at the
                   moment.
                 properties:
+                  routeAnnotations:
+                    additionalProperties:
+                      type: string
+                    description: RouteAnnotations takes a map of Annotations that
+                      will be applied to the Horizon OpenShift Route.
+                    type: object
                   routeLocation:
                     description: TODO(bshephar) We need to implement TLS handling
                       here to secure the route
