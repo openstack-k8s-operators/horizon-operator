@@ -74,6 +74,18 @@ func CreateHorizonSharedMemcached(name types.NamespacedName) *horizon.Horizon {
 	return instance
 }
 
+func CreateHorizonWithAnnotation(name types.NamespacedName) *horizon.Horizon {
+	instance := DefaultHorizonTemplate(name)
+	// Set shared Memcached
+	instance.Spec.Route.RouteAnnotations = map[string]string{
+		"router.openshift.io/cookie_name": "horizon-cookie",
+	}
+	err := k8sClient.Create(ctx, instance)
+	Expect(err).NotTo(HaveOccurred())
+
+	return instance
+}
+
 func SharedMemcached() *memcachedv1.Memcached {
 	return &memcachedv1.Memcached{
 		TypeMeta: metav1.TypeMeta{

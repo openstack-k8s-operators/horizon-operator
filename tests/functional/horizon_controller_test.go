@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -143,6 +144,30 @@ var _ = Describe("Horizon controller", func() {
 		It("Should find the shared-memcached instance", func() {
 			memcached := GetMemcached(types.NamespacedName{Namespace: namespace, Name: "shared-memcached"})
 			Expect(memcached).NotTo(BeNil())
+		})
+	})
+	When("Route Annotation is supplied", func() {
+		BeforeEach(func() {
+			DeferCleanup(DeleteInstance, CreateHorizonWithAnnotation(horizonName))
+			secret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      SecretName,
+					Namespace: namespace,
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
+		})
+		It("Assert Services are created", func() {
+			th.AssertServiceExists(types.NamespacedName{Namespace: namespace, Name: "horizon-public"})
+		})
+
+		It("Assert Routes are created", func() {
+			th.AssertRouteExists(types.NamespacedName{Namespace: namespace, Name: "horizon-public"})
+		})
+
+		It("Should have an Annotation on the Route", func() {
+			horizonRoute := k8sClient.Get(ctx, types.NamespacedName{Name: "horizon-public", Namespace: namespace}, &routev1.Route{})
+			fmt.Printf("debug: HorizonRoute: %+v", horizonRoute)
 		})
 	})
 })

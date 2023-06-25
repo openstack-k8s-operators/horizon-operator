@@ -235,7 +235,7 @@ func (r *HorizonReconciler) reconcileInit(
 			Port: horizon.HorizonPublicPort,
 		},
 	}
-	
+
 	var routeAnnotations = map[string]string{}
 	if len(instance.Spec.Route.RouteAnnotations) != 0 {
 		routeAnnotations = instance.Spec.Route.RouteAnnotations
