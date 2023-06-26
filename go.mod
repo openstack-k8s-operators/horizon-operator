@@ -11,8 +11,8 @@ require (
 	github.com/onsi/gomega v1.27.8
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/openstack-k8s-operators/horizon-operator/api v0.0.0-20230605110447-ba28284f05ce
-	github.com/openstack-k8s-operators/infra-operator/apis v0.0.0-20230620100436-011c7e736b1e
-	github.com/openstack-k8s-operators/keystone-operator/api v0.0.0-20230615172650-7d7aa98bc08c
+	github.com/openstack-k8s-operators/infra-operator/apis v0.0.0-20230623104334-20f123263119
+	github.com/openstack-k8s-operators/keystone-operator/api v0.0.0-20230622141005-e9220a4b3dfe
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.0.0-20230619102827-49e72f626a11
 	github.com/openstack-k8s-operators/lib-common/modules/test v0.0.0-20230619102827-49e72f626a11
 	k8s.io/api v0.26.3
