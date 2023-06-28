@@ -297,20 +297,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	r.Log.Info("Reconciling Service")
 
 	// Service account, role, binding
-	rbacRules := []rbacv1.PolicyRule{
-		{
-			APIGroups:     []string{"security.openshift.io"},
-			ResourceNames: []string{"anyuid"},
-			Resources:     []string{"securitycontextconstraints"},
-			Verbs:         []string{"use"},
-		},
-		{
-			APIGroups: []string{""},
-			Resources: []string{"pods"},
-			Verbs:     []string{"create", "get", "list", "watch", "update", "patch", "delete"},
-		},
-	}
-	rbacResult, err := common_rbac.ReconcileRbac(ctx, helper, instance, rbacRules)
+	rbacResult, err := configureHorizonRbac(ctx, helper, instance)
 	if err != nil {
 		return rbacResult, err
 	} else if (rbacResult != ctrl.Result{}) {
@@ -331,7 +318,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 				condition.RequestedReason,
 				condition.SeverityInfo,
 				condition.InputReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("OpenStack secret %s not found", instance.Spec.Secret)
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("openstack secret %s not found", instance.Spec.Secret)
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.InputReadyCondition,
@@ -361,7 +348,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 				condition.RequestedReason,
 				condition.SeverityInfo,
 				horizonv1beta1.HorizonMemcachedReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("Memcached %s not found", instance.Spec.SharedMemcached)
+			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("memcached %s not found", instance.Spec.SharedMemcached)
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			horizonv1beta1.HorizonMemcachedReadyCondition,
@@ -378,7 +365,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 			condition.RequestedReason,
 			condition.SeverityInfo,
 			horizonv1beta1.HorizonMemcachedReadyWaitingMessage))
-		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("Memcached %s is not ready", memcached.Name)
+		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("memcached %s is not ready", memcached.Name)
 	}
 	// Mark the Memcached Service as Ready if we get to this point with no errors
 	instance.Status.Conditions.MarkTrue(
@@ -680,4 +667,21 @@ func (r *HorizonReconciler) getSharedMemcached(
 
 func validateHorizonSecret(secret *corev1.Secret) bool {
 	return len(secret.Data["horizon-secret"]) != 0
+}
+
+func configureHorizonRbac(ctx context.Context, helper *helper.Helper, instance *horizonv1beta1.Horizon) (rbacResult ctrl.Result, err error) {
+	rbacRules := []rbacv1.PolicyRule{
+		{
+			APIGroups:     []string{"security.openshift.io"},
+			ResourceNames: []string{"anyuid"},
+			Resources:     []string{"securitycontextconstraints"},
+			Verbs:         []string{"use"},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"pods"},
+			Verbs:     []string{"create", "get", "list", "watch", "update", "patch", "delete"},
+		},
+	}
+	return common_rbac.ReconcileRbac(ctx, helper, instance, rbacRules)
 }
