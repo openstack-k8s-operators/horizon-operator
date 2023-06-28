@@ -170,7 +170,7 @@ func init() {
 func (instance Horizon) GetEndpoint() (string, error) {
 	url := instance.Status.Endpoint
 	if url == "" {
-		return "", fmt.Errorf("Dashboard url not found")
+		return "", fmt.Errorf("dashboard url not found")
 	}
 	return url, nil
 }
