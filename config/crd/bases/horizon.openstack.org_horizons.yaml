@@ -165,10 +165,6 @@ spec:
                       here to secure the route
                     type: string
                 type: object
-              secret:
-                description: Secret containing OpenStack password information for
-                  Horizon Secret Key
-                type: string
               sharedMemcached:
                 description: SharedMemcahed holds the name of the central memcached
                   instance if it exists. If this value is provided, then Horizon will
@@ -177,7 +173,6 @@ spec:
                 type: string
             required:
             - containerImage
-            - secret
             type: object
           status:
             description: HorizonStatus defines the observed state of Horizon

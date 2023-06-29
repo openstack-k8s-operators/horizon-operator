@@ -42,7 +42,7 @@ func DefaultHorizonTemplate(name types.NamespacedName) *horizon.Horizon {
 		},
 		Spec: horizon.HorizonSpec{
 			ContainerImage: "test-horizon-container-image",
-			Secret:         SecretName,
+			Replicas:       1,
 		},
 	}
 }

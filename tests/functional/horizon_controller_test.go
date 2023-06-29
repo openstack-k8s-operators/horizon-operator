@@ -45,9 +45,7 @@ var _ = Describe("Horizon controller", func() {
 
 		It("should have the Spec and Status fields initialized", func() {
 			horizon := GetHorizon(horizonName)
-			Expect(horizon.Spec.Secret).Should(Equal("test-osp-secret"))
-			// TODO(gibi): Why defaulting does not work?
-			// Expect(horizon.Instance.Spec.ServiceUser).Should(Equal("horizon"))
+			Expect(horizon.Spec.Replicas).Should(Equal(int32(1)))
 		})
 
 		It("should have a finalizer", func() {
@@ -56,15 +54,6 @@ var _ = Describe("Horizon controller", func() {
 			Eventually(func() []string {
 				return GetHorizon(horizonName).Finalizers
 			}, timeout, interval).Should(ContainElement("Horizon"))
-		})
-
-		It("should have Unknown Conditions initialized as transporturl not created", func() {
-			th.ExpectCondition(
-				horizonName,
-				ConditionGetterFunc(HorizonConditionGetter),
-				condition.InputReadyCondition,
-				corev1.ConditionFalse,
-			)
 		})
 	})
 
@@ -84,42 +73,29 @@ var _ = Describe("Horizon controller", func() {
 			th.ExpectCondition(
 				horizonName,
 				ConditionGetterFunc(HorizonConditionGetter),
-				condition.InputReadyCondition,
-				corev1.ConditionFalse,
+				condition.ServiceConfigReadyCondition,
+				corev1.ConditionUnknown,
 			)
 		})
 	})
 
-	When("the proper secret is provided", func() {
+	When("Horizon deployed", func() {
 		BeforeEach(func() {
-			DeferCleanup(DeleteInstance, CreateHorizon(horizonName))
+			DeferCleanup(DeleteInstance, CreateSharedMemcached())
+			DeferCleanup(DeleteInstance, CreateHorizonSharedMemcached(horizonName))
 		})
-		It("should not be in a state of having the input ready", func() {
-			secret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      SecretName,
-					Namespace: namespace,
-				},
-			}
-			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
+		It("should not be in a state of having the service config ready", func() {
 			th.ExpectCondition(
 				horizonName,
 				ConditionGetterFunc(HorizonConditionGetter),
-				condition.InputReadyCondition,
-				corev1.ConditionTrue,
+				condition.ServiceConfigReadyCondition,
+				corev1.ConditionUnknown,
 			)
 		})
 	})
 	When("Using dedicated memcached", func() {
 		BeforeEach(func() {
 			DeferCleanup(DeleteInstance, CreateHorizon(horizonName))
-			secret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      SecretName,
-					Namespace: namespace,
-				},
-			}
-			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
 		})
 		It("Should create a memcached deployment with service label", func() {
 			memcached := GetMemcached(memcachedName)
@@ -132,13 +108,6 @@ var _ = Describe("Horizon controller", func() {
 		BeforeEach(func() {
 			DeferCleanup(DeleteInstance, CreateSharedMemcached())
 			DeferCleanup(DeleteInstance, CreateHorizonSharedMemcached(horizonName))
-			secret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      SecretName,
-					Namespace: namespace,
-				},
-			}
-			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
 		})
 		It("Should find the shared-memcached instance", func() {
 			memcached := GetMemcached(types.NamespacedName{Namespace: namespace, Name: "shared-memcached"})

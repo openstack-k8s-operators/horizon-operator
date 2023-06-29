@@ -173,7 +173,6 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 
 		cl := condition.CreateList(
 			condition.UnknownCondition(condition.ExposeServiceReadyCondition, condition.InitReason, condition.ExposeServiceReadyInitMessage),
-			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
 			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
 			condition.UnknownCondition(horizonv1beta1.HorizonMemcachedReadyCondition, condition.InitReason, horizonv1beta1.HorizonMemcachedReadyInitMessage),
@@ -313,32 +312,6 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 
 	// ConfigMap
 	configMapVars := make(map[string]env.Setter)
-
-	//
-	// check for required OpenStack secret holding passwords for service/admin user and add hash to the vars map
-	//
-	ospSecret, hash, err := oko_secret.GetSecret(ctx, helper, instance.Spec.Secret, instance.Namespace)
-	if err != nil {
-		if k8s_errors.IsNotFound(err) {
-			instance.Status.Conditions.Set(condition.FalseCondition(
-				condition.InputReadyCondition,
-				condition.RequestedReason,
-				condition.SeverityInfo,
-				condition.InputReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("openstack secret %s not found", instance.Spec.Secret)
-		}
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.InputReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.InputReadyErrorMessage,
-			err.Error()))
-		return ctrl.Result{}, err
-	}
-	configMapVars[ospSecret.Name] = env.SetValue(hash)
-
-	instance.Status.Conditions.MarkTrue(condition.InputReadyCondition, condition.InputReadyMessage)
-	// run check OpenStack secret - end
 
 	// Create Memcached instance if no shared instance exists.
 	var memcached *memcachedv1.Memcached
@@ -601,7 +574,7 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 		return err
 	} else if k8s_errors.IsNotFound(err) || !validateHorizonSecret(scrt) {
 		r.Log.Info("Creating Horizon Secret")
-		// Create k8s secret to store Horizon Secret
+		// Create k8s secret to store Horizon Secret.
 		tmpl := []util.Template{
 			{
 				Name:       horizon.ServiceName,

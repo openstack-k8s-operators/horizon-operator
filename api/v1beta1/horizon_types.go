@@ -44,10 +44,6 @@ type HorizonSpec struct {
 	// Replicas of horizon API to run
 	Replicas int32 `json:"replicas"`
 
-	// +kubebuilder:validation:Required
-	// Secret containing OpenStack password information for Horizon Secret Key
-	Secret string `json:"secret"`
-
 	// +kubebuilder:validation:Optional
 	// NodeSelector to target subset of worker nodes running this service
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
