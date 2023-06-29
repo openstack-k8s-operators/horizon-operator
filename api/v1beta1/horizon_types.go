@@ -175,10 +175,9 @@ func (instance Horizon) GetEndpoint() (string, error) {
 	return url, nil
 }
 
-// IsReady - Checks for a ReadyCount greater than 1 and returns true or false
+// IsReady - returns true if Horizon is reconciled successfully
 func (instance Horizon) IsReady() bool {
-	// Ready there is at least one Horizon pod running
-	return instance.Status.ReadyCount >= 1
+	return instance.Status.Conditions.IsTrue(condition.ReadyCondition)
 }
 
 // RbacConditionsSet - set the conditions for the rbac object
