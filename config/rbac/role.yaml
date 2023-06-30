@@ -33,6 +33,7 @@ rules:
   - deployments
   verbs:
   - create
+  - delete
   - get
   - list
   - patch
@@ -44,6 +45,7 @@ rules:
   - configmaps
   verbs:
   - create
+  - delete
   - get
   - list
   - patch
@@ -62,6 +64,7 @@ rules:
   - secrets
   verbs:
   - create
+  - delete
   - get
   - list
   - patch
@@ -159,6 +162,7 @@ rules:
   - routes
   verbs:
   - create
+  - delete
   - get
   - list
   - patch
