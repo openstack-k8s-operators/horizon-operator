@@ -60,14 +60,14 @@ type HorizonSpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	// PreserveJobs - do not delete jobs after they finished e.g. to check logs
-	PreserveJobs bool `json:"preserveJobs,omitempty"`
+	PreserveJobs bool `json:"preserveJobs"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="# add your customization here"
 	// CustomServiceConfig - customize the service config using this parameter to change service defaults,
 	// or overwrite rendered information using raw OpenStack config format. The content gets added to
 	// to /etc/openstack-dashboard/local_settings.d directory as 9999_custom_settings.py file.
-	CustomServiceConfig string `json:"customServiceConfig,omitempty"`
+	CustomServiceConfig string `json:"customServiceConfig"`
 
 	// +kubebuilder:validation:Optional
 	// ConfigOverwrite - interface to overwrite default config files like e.g. logging.conf or policy.json.
@@ -97,7 +97,7 @@ type HorizonDebug struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	// Service enable debug
-	Service bool `json:"service,omitempty"`
+	Service bool `json:"service"`
 }
 
 // HorizonRoute is used to define all of the information for the OpenShift route
@@ -105,7 +105,7 @@ type HorizonDebug struct {
 type HorizonRoute struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=horizon
-	RouteName string `json:"routeName,omitempty"`
+	RouteName string `json:"routeName"`
 
 	//TODO(bshephar) We need to implement TLS handling here to secure the route
 	// +kubebuilder:validation:Optional
