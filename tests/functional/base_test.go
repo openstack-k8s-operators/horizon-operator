@@ -41,8 +41,9 @@ func DefaultHorizonTemplate(name types.NamespacedName) *horizon.Horizon {
 			Namespace: name.Namespace,
 		},
 		Spec: horizon.HorizonSpec{
-			ContainerImage: "test-horizon-container-image",
-			Secret:         SecretName,
+			ContainerImage:    "test-horizon-container-image",
+			Secret:            SecretName,
+			MemcachedInstance: "memcached",
 		},
 	}
 }
@@ -64,33 +65,29 @@ func GetHorizon(name types.NamespacedName) *horizon.Horizon {
 	return instance
 }
 
-func CreateHorizonSharedMemcached(name types.NamespacedName) *horizon.Horizon {
-	instance := DefaultHorizonTemplate(name)
-	// Set shared Memcached
-	instance.Spec.SharedMemcached = "shared-memcached"
-	err := k8sClient.Create(ctx, instance)
-	Expect(err).NotTo(HaveOccurred())
-
-	return instance
-}
-
-func SharedMemcached() *memcachedv1.Memcached {
+func HorizonMemcached() *memcachedv1.Memcached {
 	return &memcachedv1.Memcached{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "memcached.openstack.org/v1beta1",
 			Kind:       "Memcached",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "shared-memcached",
+			Name:      "memcached",
 			Namespace: namespace,
 		},
 	}
 }
 
-func CreateSharedMemcached() *memcachedv1.Memcached {
-	instance := SharedMemcached()
+func CreateHorizonMemcached() *memcachedv1.Memcached {
+	instance := HorizonMemcached()
 	err := k8sClient.Create(ctx, instance)
 	Expect(err).NotTo(HaveOccurred())
+
+	instance.Status.Conditions.MarkTrue(condition.ReadyCondition, condition.ReadyMessage)
+	instance.Status.ReadyCount = int32(1)
+	instance.Status.ServerList = []string{"memcached-0.memcached:11211"}
+	instance.Status.ServerListWithInet = []string{"inet:[memcached-0.memcached]:11211"}
+	Expect(k8sClient.Status().Update(ctx, instance)).Should(Succeed())
 
 	return instance
 }

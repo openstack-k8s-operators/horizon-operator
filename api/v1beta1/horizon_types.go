@@ -86,10 +86,10 @@ type HorizonSpec struct {
 	//TODO(bshephar) Implement everything about this. It's just a placeholder at the moment.
 	Route HorizonRoute `json:"route,omitempty"`
 
-	// +kubebuilder:validation:Optional
-	// SharedMemcahed holds the name of the central memcached instance if it exists. If this value is provided,
-	// then Horizon will use the shared memcached service. Otherwise, we will create one just for Horizon.
-	SharedMemcached string `json:"sharedMemcached,omitempty"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default=memcached
+	// Memcached instance name.
+	MemcachedInstance string `json:"memcachedInstance"`
 }
 
 // HorizonDebug can be used to enable debug in the Horizon service

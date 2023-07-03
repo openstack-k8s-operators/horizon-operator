@@ -4,14 +4,14 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 )
 
+// Horizon Condition Types used by API objects.
 const (
-	// HorizonMemcachedError - Provides a error that occured during the provisioning of the memcached instance
-	HorizonMemcachedError = "Error creating Memcached instance: %s"
-
-	// HorizonMemcachedReadyCondition - Indicates the Horizon memcached service is ready to be consumed
-	// by Horizon
+	// HorizonMemcachedReadyCondition - Indicates the Horizon memcached service is ready to be consumed by Horizon
 	HorizonMemcachedReadyCondition condition.Type = "HorizonMemcached"
+)
 
+// Horizon Messages used by API objects.
+const (
 	// HorizonMemcachedReadyInitMessage -
 	HorizonMemcachedReadyInitMessage = "Horizon Memcached create not started"
 
