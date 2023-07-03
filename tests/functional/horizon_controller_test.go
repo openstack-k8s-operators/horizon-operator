@@ -35,7 +35,7 @@ var _ = Describe("Horizon controller", func() {
 
 	When("A Horizon instance is created", func() {
 		BeforeEach(func() {
-			DeferCleanup(DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
 		})
 
 		It("should have the Spec and Status fields initialized", func() {
@@ -65,7 +65,7 @@ var _ = Describe("Horizon controller", func() {
 
 	When("an unrelated secret is provided", func() {
 		BeforeEach(func() {
-			DeferCleanup(DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
 		})
 		It("should remain in a state of waiting for the proper secret", func() {
 			secret = &corev1.Secret{
@@ -87,7 +87,7 @@ var _ = Describe("Horizon controller", func() {
 
 	When("the proper secret is provided", func() {
 		BeforeEach(func() {
-			DeferCleanup(DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
 		})
 		It("should be in a state of having the input ready", func() {
 			secret = &corev1.Secret{
@@ -108,8 +108,8 @@ var _ = Describe("Horizon controller", func() {
 
 	When("using a shared memcached instance", func() {
 		BeforeEach(func() {
-			DeferCleanup(DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
-			DeferCleanup(DeleteInstance, CreateHorizonMemcached())
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
+			DeferCleanup(th.DeleteInstance, CreateHorizonMemcached())
 			secret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      SecretName,

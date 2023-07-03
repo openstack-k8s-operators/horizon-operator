@@ -22,12 +22,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	horizon "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
-	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func CreateHorizon(name types.NamespacedName, spec horizon.HorizonSpec) *horizon.Horizon {
@@ -104,23 +102,4 @@ func GetMemcached(name types.NamespacedName) *memcachedv1.Memcached {
 func HorizonConditionGetter(name types.NamespacedName) condition.Conditions {
 	instance := GetHorizon(name)
 	return instance.Status.Conditions
-}
-
-func DeleteInstance(instance client.Object) {
-	// We have to wait for the controller to fully delete the instance
-	logger.Info("Deleting", "Name", instance.GetName(), "Namespace", instance.GetNamespace(), "Kind", instance.GetObjectKind().GroupVersionKind().Kind)
-	gomega.Eventually(func(g gomega.Gomega) {
-		name := types.NamespacedName{Name: instance.GetName(), Namespace: instance.GetNamespace()}
-		err := k8sClient.Get(ctx, name, instance)
-		// if it is already gone that is OK
-		if k8s_errors.IsNotFound(err) {
-			return
-		}
-		g.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-		g.Expect(k8sClient.Delete(ctx, instance)).Should(Succeed())
-
-		err = k8sClient.Get(ctx, name, instance)
-		g.Expect(k8s_errors.IsNotFound(err)).To(BeTrue())
-	}, timeout, interval).Should(Succeed())
 }
