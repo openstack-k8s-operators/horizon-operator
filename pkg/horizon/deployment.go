@@ -38,9 +38,9 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 
 	args := []string{"-c", ServiceCommand}
 	livenessProbe := &corev1.Probe{
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-		InitialDelaySeconds: 10,
+		TimeoutSeconds:      15,
+		PeriodSeconds:       5,
+		InitialDelaySeconds: 15,
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/dashboard/auth/login/?next=/dashboard/",
@@ -49,9 +49,21 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 		},
 	}
 	readinessProbe := &corev1.Probe{
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-		InitialDelaySeconds: 10,
+		TimeoutSeconds:      25,
+		PeriodSeconds:       5,
+		InitialDelaySeconds: 15,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: "/dashboard/auth/login/?next=/dashboard/",
+				Port: intstr.IntOrString{IntVal: 80},
+			},
+		},
+	}
+
+	startupProbe := &corev1.Probe{
+		TimeoutSeconds:      30,
+		PeriodSeconds:       60,
+		InitialDelaySeconds: 60,
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/dashboard/auth/login/?next=/dashboard/",
@@ -101,6 +113,7 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 							Resources:      instance.Spec.Resources,
 							ReadinessProbe: readinessProbe,
 							LivenessProbe:  livenessProbe,
+							StartupProbe:   startupProbe,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
