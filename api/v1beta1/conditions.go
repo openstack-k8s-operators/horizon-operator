@@ -7,7 +7,7 @@ import (
 // Horizon Condition Types used by API objects.
 const (
 	// HorizonMemcachedReadyCondition - Indicates the Horizon memcached service is ready to be consumed by Horizon
-	HorizonMemcachedReadyCondition condition.Type = "HorizonMemcached"
+	HorizonMemcachedReadyCondition condition.Type = "HorizonMemcachedReady"
 )
 
 // Horizon Messages used by API objects.
