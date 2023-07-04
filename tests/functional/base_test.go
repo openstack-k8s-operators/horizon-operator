@@ -30,8 +30,8 @@ import (
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-func DefaultHorizonTemplate(name types.NamespacedName) *horizon.Horizon {
-	return &horizon.Horizon{
+func CreateHorizon(name types.NamespacedName, spec horizon.HorizonSpec) *horizon.Horizon {
+	instance := &horizon.Horizon{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "horizon.openstack.org/v1alpha1",
 			Kind:       "Horizon",
@@ -40,20 +40,20 @@ func DefaultHorizonTemplate(name types.NamespacedName) *horizon.Horizon {
 			Name:      name.Name,
 			Namespace: name.Namespace,
 		},
-		Spec: horizon.HorizonSpec{
-			ContainerImage:    "test-horizon-container-image",
-			Secret:            SecretName,
-			MemcachedInstance: "memcached",
-		},
+		Spec: spec,
 	}
-}
-
-func CreateHorizon(name types.NamespacedName) *horizon.Horizon {
-	instance := DefaultHorizonTemplate(name)
 	err := k8sClient.Create(ctx, instance)
 	Expect(err).NotTo(HaveOccurred())
 
 	return instance
+}
+
+func GetDefaultHorizonSpec() horizon.HorizonSpec {
+	return horizon.HorizonSpec{
+		ContainerImage:    "test-horizon-container-image",
+		Secret:            SecretName,
+		MemcachedInstance: "memcached",
+	}
 }
 
 func GetHorizon(name types.NamespacedName) *horizon.Horizon {
