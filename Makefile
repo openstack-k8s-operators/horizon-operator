@@ -291,10 +291,7 @@ govet: get-ci-tools
 	GOWORK=off $(CI_TOOLS_REPO_DIR)/test-runner/govet.sh ./api
 
 # Run go test against code
-gotest: envtest get-ci-tools
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)"
-	GOWORK=off $(CI_TOOLS_REPO_DIR)/test-runner/gotest.sh KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)"
-	GOWORK=off $(CI_TOOLS_REPO_DIR)/test-runner/gotest.sh ./api
+gotest: test
 
 # Run golangci-lint test against code
 golangci: get-ci-tools
