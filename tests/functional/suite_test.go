@@ -40,7 +40,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 
-	horizon "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
+	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	test "github.com/openstack-k8s-operators/lib-common/modules/test"
@@ -101,6 +101,13 @@ var _ = BeforeSuite(func() {
 			routev1CRDs,
 		},
 		ErrorIfCRDPathMissing: true,
+		WebhookInstallOptions: envtest.WebhookInstallOptions{
+			Paths: []string{filepath.Join("..", "..", "config", "webhook")},
+			// NOTE(gibi): if localhost is resolved to ::1 (ipv6) then starting
+			// the webhook fails as it try to parse the address as ipv4 and
+			// failing on the colons in ::1
+			LocalServingHost: "127.0.0.1",
+		},
 	}
 
 	// cfg is defined in this file globally.
@@ -108,7 +115,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = horizon.AddToScheme(scheme.Scheme)
+	err = horizonv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 	err = keystonev1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
@@ -129,13 +136,29 @@ var _ = BeforeSuite(func() {
 	th = NewTestHelper(ctx, k8sClient, timeout, interval, logger)
 	Expect(th).NotTo(BeNil())
 
+	// Start the controller-manager if goroutine
+	webhookInstallOptions := &testEnv.WebhookInstallOptions
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
+		// NOTE(gibi): disable metrics reporting in test to allow
+		// parallel test execution. Otherwise each instance would like to
+		// bind to the same port
+		MetricsBindAddress: "0",
+		Host:               webhookInstallOptions.LocalServingHost,
+		Port:               webhookInstallOptions.LocalServingPort,
+		CertDir:            webhookInstallOptions.LocalServingCertDir,
+		LeaderElection:     false,
 	})
 	Expect(err).ToNot(HaveOccurred())
 
 	kclient, err := kubernetes.NewForConfig(cfg)
 	Expect(err).ToNot(HaveOccurred(), "failed to create kclient")
+
+	err = (&horizonv1.Horizon{}).SetupWebhookWithManager(k8sManager)
+	Expect(err).NotTo(HaveOccurred())
+
+	horizonv1.SetupDefaults()
+
 	err = (&controllers.HorizonReconciler{
 		Client:  k8sManager.GetClient(),
 		Scheme:  k8sManager.GetScheme(),
