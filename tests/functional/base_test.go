@@ -48,7 +48,6 @@ func CreateHorizon(name types.NamespacedName, spec horizon.HorizonSpec) *horizon
 
 func GetDefaultHorizonSpec() horizon.HorizonSpec {
 	return horizon.HorizonSpec{
-		ContainerImage:    "test-horizon-container-image",
 		Secret:            SecretName,
 		MemcachedInstance: "memcached",
 	}
