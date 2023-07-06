@@ -27,7 +27,7 @@ We can see in this example, that we're making some customizations to the config.
 
 Customisations are added to the `horizon-config-data` ConfigMap. If we look at a default ConfigMap with no customizations, we can see it has the following Keys:
 ```sh
-❯ oc get cm horizon-config-data -o jsonpath={.data} | jq '. | keys'      
+❯ oc get cm horizon-config-data -o jsonpath={.data} | jq '. | keys'
 [
   "9999_custom_settings.py",
   "horizon.json",
@@ -61,7 +61,7 @@ horizon-65c6b8fff8-8sqr9   0/1     Running   0          63s
 
 
 ❯ oc exec horizon-65c6b8fff8-8sqr9 -- cat /etc/openstack-dashboard/local_settings.d/9999_custom_settings.py
-SESSION_TIMEOUT = 3600% 
+SESSION_TIMEOUT = 3600%
 ```
 
 ### Running on the cluster
