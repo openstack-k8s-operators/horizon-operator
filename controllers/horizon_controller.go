@@ -206,8 +206,6 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 
 // SetupWithManager -
 func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	logger := mgr.GetLogger()
-
 	memcachedFn := func(o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
@@ -217,7 +215,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			client.InNamespace(o.GetNamespace()),
 		}
 		if err := r.Client.List(context.Background(), horizons, listOpts...); err != nil {
-			logger.Error(err, "Unable to retrieve Horizon CRs %w")
+			r.Log.Error(err, "Unable to retrieve Horizon CRs %w")
 			return nil
 		}
 
@@ -227,7 +225,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					Namespace: o.GetNamespace(),
 					Name:      cr.Name,
 				}
-				logger.Info(fmt.Sprintf("Memcached %s is used by Horizon CR %s", o.GetName(), cr.Name))
+				r.Log.Info(fmt.Sprintf("Memcached %s is used by Horizon CR %s", o.GetName(), cr.Name))
 				result = append(result, reconcile.Request{NamespacedName: name})
 			}
 		}
