@@ -6,6 +6,6 @@ spec:
   replicas: 1
   secret: "osp-secret"
   customServiceConfig: |
-    SESSION_TIMEOUT = 3600
+    DEBUG = True
 status:
   readyCount: 1
