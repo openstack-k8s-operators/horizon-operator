@@ -6,24 +6,32 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	. "github.com/openstack-k8s-operators/lib-common/modules/test/helpers"
 
-	horizonv1beta1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
+	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
+	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 )
 
 var _ = Describe("Horizon controller", func() {
 
 	var horizonName types.NamespacedName
-	var secret *corev1.Secret
+	var deploymentName types.NamespacedName
+	var memcachedSpec memcachedv1.MemcachedSpec
 
 	BeforeEach(func() {
 		horizonName = types.NamespacedName{
 			Name:      "horizon",
 			Namespace: namespace,
+		}
+		deploymentName = types.NamespacedName{
+			Name:      "horizon",
+			Namespace: horizonName.Namespace,
+		}
+		memcachedSpec = memcachedv1.MemcachedSpec{
+			Replicas: int32(3),
 		}
 
 		// lib-common uses OPERATOR_TEMPLATES env var to locate the "templates"
@@ -41,8 +49,6 @@ var _ = Describe("Horizon controller", func() {
 		It("should have the Spec and Status fields initialized", func() {
 			horizon := GetHorizon(horizonName)
 			Expect(horizon.Spec.Secret).Should(Equal("test-osp-secret"))
-			// TODO(gibi): Why defaulting does not work?
-			// Expect(horizon.Instance.Spec.ServiceUser).Should(Equal("horizon"))
 		})
 
 		It("should have a finalizer", func() {
@@ -53,78 +59,197 @@ var _ = Describe("Horizon controller", func() {
 			}, timeout, interval).Should(ContainElement("Horizon"))
 		})
 
-		It("should have Unknown Conditions initialized as transporturl not created", func() {
+		It("should have Unknown Conditions initialized", func() {
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ReadyCondition,
+				corev1.ConditionFalse,
+			)
 			th.ExpectCondition(
 				horizonName,
 				ConditionGetterFunc(HorizonConditionGetter),
 				condition.InputReadyCondition,
 				corev1.ConditionFalse,
 			)
-		})
-	})
 
-	When("an unrelated secret is provided", func() {
-		BeforeEach(func() {
-			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
-		})
-		It("should remain in a state of waiting for the proper secret", func() {
-			secret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "an-unrelated-secret",
-					Namespace: namespace,
-				},
+			for _, cond := range []condition.Type{
+				condition.ServiceConfigReadyCondition,
+				condition.ExposeServiceReadyCondition,
+				condition.DeploymentReadyCondition,
+				horizonv1.HorizonMemcachedReadyCondition,
+			} {
+				th.ExpectCondition(
+					horizonName,
+					ConditionGetterFunc(HorizonConditionGetter),
+					cond,
+					corev1.ConditionUnknown,
+				)
 			}
-			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
-
-			th.ExpectCondition(
-				horizonName,
-				ConditionGetterFunc(HorizonConditionGetter),
-				condition.InputReadyCondition,
-				corev1.ConditionFalse,
-			)
 		})
 	})
 
 	When("the proper secret is provided", func() {
 		BeforeEach(func() {
 			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
 		})
-		It("should be in a state of having the input ready", func() {
-			secret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      SecretName,
-					Namespace: namespace,
-				},
-			}
-			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
+		It("should have input ready", func() {
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ReadyCondition,
+				corev1.ConditionFalse,
+			)
 			th.ExpectCondition(
 				horizonName,
 				ConditionGetterFunc(HorizonConditionGetter),
 				condition.InputReadyCondition,
 				corev1.ConditionTrue,
 			)
-		})
-	})
-
-	When("using a shared memcached instance", func() {
-		BeforeEach(func() {
-			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
-			DeferCleanup(th.DeleteInstance, CreateHorizonMemcached())
-			secret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      SecretName,
-					Namespace: namespace,
-				},
-			}
-			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
-		})
-		It("should be in a state of having the memcached ready", func() {
 			th.ExpectCondition(
 				horizonName,
 				ConditionGetterFunc(HorizonConditionGetter),
-				horizonv1beta1.HorizonMemcachedReadyCondition,
+				horizonv1.HorizonMemcachedReadyCondition,
+				corev1.ConditionFalse,
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ExposeServiceReadyCondition,
+				corev1.ConditionUnknown,
+			)
+		})
+	})
+
+	When("Memcached instance is available", func() {
+		BeforeEach(func() {
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
+			DeferCleanup(th.DeleteMemcached, th.CreateMemcached(namespace, "memcached", memcachedSpec))
+			th.SimulateMemcachedReady(types.NamespacedName{
+				Name:      "memcached",
+				Namespace: namespace,
+			})
+		})
+		It("should have memcached ready", func() {
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ReadyCondition,
+				corev1.ConditionFalse,
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				horizonv1.HorizonMemcachedReadyCondition,
 				corev1.ConditionTrue,
 			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ServiceConfigReadyCondition,
+				corev1.ConditionFalse,
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ExposeServiceReadyCondition,
+				corev1.ConditionUnknown,
+			)
+		})
+	})
+
+	When("keystoneAPI instance is available", func() {
+		BeforeEach(func() {
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
+			DeferCleanup(th.DeleteMemcached, th.CreateMemcached(namespace, "memcached", memcachedSpec))
+			th.SimulateMemcachedReady(types.NamespacedName{
+				Name:      "memcached",
+				Namespace: namespace,
+			})
+			keystoneAPI := th.CreateKeystoneAPI(namespace)
+			DeferCleanup(th.DeleteKeystoneAPI, keystoneAPI)
+		})
+
+		It("should have service config ready and expose service ready", func() {
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ReadyCondition,
+				corev1.ConditionFalse,
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ServiceConfigReadyCondition,
+				corev1.ConditionTrue,
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ExposeServiceReadyCondition,
+				corev1.ConditionTrue,
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.DeploymentReadyCondition,
+				corev1.ConditionFalse,
+			)
+		})
+		It("should create a ConfigMap for local_settings", func() {
+			cm := th.GetConfigMap(types.NamespacedName{
+				Namespace: horizonName.Namespace,
+				Name:      horizonName.Name + "-config-data",
+			})
+			Expect(cm.Data["local_settings.py"]).Should(
+				ContainSubstring("OPENSTACK_KEYSTONE_URL = \"http://keystone-public-openstack.testing/v3\""))
+			Expect(cm.Data["local_settings.py"]).Should(
+				ContainSubstring("'LOCATION': [ 'memcached-0.memcached:11211', 'memcached-1.memcached:11211', 'memcached-2.memcached:11211' ]"))
+			th.AssertRouteExists(types.NamespacedName{
+				Name:      "horizon-public",
+				Namespace: horizonName.Namespace,
+			})
+		})
+	})
+
+	When("deployment is ready", func() {
+		BeforeEach(func() {
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
+			DeferCleanup(th.DeleteMemcached, th.CreateMemcached(namespace, "memcached", memcachedSpec))
+			th.SimulateMemcachedReady(types.NamespacedName{
+				Name:      "memcached",
+				Namespace: namespace,
+			})
+			keystoneAPI := th.CreateKeystoneAPI(namespace)
+			DeferCleanup(th.DeleteKeystoneAPI, keystoneAPI)
+			th.SimulateDeploymentReadyWithPods(deploymentName, map[string][]string{})
+		})
+
+		It("should have deployment ready", func() {
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ReadyCondition,
+				corev1.ConditionTrue,
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.DeploymentReadyCondition,
+				corev1.ConditionTrue,
+			)
+		})
+		It("should have ReadyCount set", func() {
+			horizon := GetHorizon(horizonName)
+			Expect(horizon.Status.ReadyCount).Should(Equal(horizon.Spec.Replicas))
 		})
 	})
 })

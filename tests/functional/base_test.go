@@ -20,11 +20,11 @@ import (
 	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	horizon "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
-	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 )
 
@@ -62,40 +62,11 @@ func GetHorizon(name types.NamespacedName) *horizon.Horizon {
 	return instance
 }
 
-func HorizonMemcached() *memcachedv1.Memcached {
-	return &memcachedv1.Memcached{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "memcached.openstack.org/v1beta1",
-			Kind:       "Memcached",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "memcached",
-			Namespace: namespace,
-		},
-	}
-}
-
-func CreateHorizonMemcached() *memcachedv1.Memcached {
-	instance := HorizonMemcached()
-	err := k8sClient.Create(ctx, instance)
-	Expect(err).NotTo(HaveOccurred())
-
-	instance.Status.Conditions.MarkTrue(condition.ReadyCondition, condition.ReadyMessage)
-	instance.Status.ReadyCount = int32(1)
-	instance.Status.ServerList = []string{"memcached-0.memcached:11211"}
-	instance.Status.ServerListWithInet = []string{"inet:[memcached-0.memcached]:11211"}
-	Expect(k8sClient.Status().Update(ctx, instance)).Should(Succeed())
-
-	return instance
-}
-
-func GetMemcached(name types.NamespacedName) *memcachedv1.Memcached {
-	instance := &memcachedv1.Memcached{}
-	gomega.Eventually(func(g gomega.Gomega) error {
-		g.Expect(k8sClient.Get(ctx, name, instance)).Should(Succeed())
-		return nil
-	}, timeout, interval).Should(Succeed())
-	return instance
+func CreateHorizonSecret(namespace string, name string) *corev1.Secret {
+	return th.CreateSecret(
+		types.NamespacedName{Namespace: namespace, Name: name},
+		map[string][]byte{},
+	)
 }
 
 func HorizonConditionGetter(name types.NamespacedName) condition.Conditions {

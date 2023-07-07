@@ -524,6 +524,12 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	instance.Status.ReadyCount = depl.GetDeployment().Status.ReadyReplicas
 	if instance.Status.ReadyCount > 0 {
 		instance.Status.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
+	} else {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.DeploymentReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.DeploymentReadyRunningMessage))
 	}
 	// create Deployment - end
 
