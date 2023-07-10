@@ -67,21 +67,20 @@ func (r *HorizonReconciler) GetKClient() kubernetes.Interface {
 	return r.Kclient
 }
 
-// GetLogger -
-func (r *HorizonReconciler) GetLogger() logr.Logger {
-	return r.Log
-}
-
 // GetScheme -
 func (r *HorizonReconciler) GetScheme() *runtime.Scheme {
 	return r.Scheme
+}
+
+// GetLog returns a logger object with a prefix of "conroller.name" and aditional controller context fields
+func GetLog(ctx context.Context) logr.Logger {
+	return log.FromContext(ctx).WithName("Controllers").WithName("Horizon")
 }
 
 // HorizonReconciler reconciles a Horizon object
 type HorizonReconciler struct {
 	client.Client
 	Kclient kubernetes.Interface
-	Log     logr.Logger
 	Scheme  *runtime.Scheme
 }
 
@@ -115,8 +114,7 @@ type HorizonReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
-	_ = log.FromContext(ctx)
-
+	// Fetch the Horizon instance
 	instance := &horizonv1beta1.Horizon{}
 	err := r.Client.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
@@ -131,7 +129,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		r.Client,
 		r.Kclient,
 		r.Scheme,
-		r.Log,
+		GetLog(ctx),
 	)
 
 	if err != nil {
@@ -199,13 +197,13 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	}
 
 	// Handle non-deleted clusters
-	r.Log.Info("Starting Reconcile")
-
 	return r.reconcileNormal(ctx, instance, helper)
 }
 
 // SetupWithManager -
 func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	logger := mgr.GetLogger()
+
 	memcachedFn := func(o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
@@ -215,7 +213,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			client.InNamespace(o.GetNamespace()),
 		}
 		if err := r.Client.List(context.Background(), horizons, listOpts...); err != nil {
-			r.Log.Error(err, "Unable to retrieve Horizon CRs %w")
+			logger.Error(err, "Unable to retrieve Horizon CRs %w")
 			return nil
 		}
 
@@ -225,7 +223,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					Namespace: o.GetNamespace(),
 					Name:      cr.Name,
 				}
-				r.Log.Info(fmt.Sprintf("Memcached %s is used by Horizon CR %s", o.GetName(), cr.Name))
+				logger.Info(fmt.Sprintf("Memcached %s is used by Horizon CR %s", o.GetName(), cr.Name))
 				result = append(result, reconcile.Request{NamespacedName: name})
 			}
 		}
@@ -251,11 +249,12 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *HorizonReconciler) reconcileDelete(ctx context.Context, instance *horizonv1beta1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service delete")
+	l := GetLog(ctx)
+	l.Info("Reconciling Service delete")
 
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
-	r.Log.Info("Reconciled Service delete successfully")
+	l.Info("Reconciled Service delete successfully")
 
 	return ctrl.Result{}, nil
 }
@@ -266,7 +265,8 @@ func (r *HorizonReconciler) reconcileInit(
 	helper *helper.Helper,
 	serviceLabels map[string]string,
 ) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service init")
+	l := GetLog(ctx)
+	l.Info("Reconciling Service init")
 
 	//
 	// expose the service (create service, route and return the created endpoint URLs)
@@ -310,32 +310,35 @@ func (r *HorizonReconciler) reconcileInit(
 
 	// expose service - end
 
-	r.Log.Info("Reconciled Service init successfully")
+	l.Info("Reconciled Service init successfully")
 	return ctrl.Result{}, nil
 }
 
 func (r *HorizonReconciler) reconcileUpdate(ctx context.Context, instance *horizonv1beta1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service update")
+	l := GetLog(ctx)
+	l.Info("Reconciling Service update")
 
 	// TODO: should have minor update tasks if required
 	// - delete dbsync hash from status to rerun it?
 
-	r.Log.Info("Reconciled Service update successfully")
+	l.Info("Reconciled Service update successfully")
 	return ctrl.Result{}, nil
 }
 
 func (r *HorizonReconciler) reconcileUpgrade(ctx context.Context, instance *horizonv1beta1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service upgrade")
+	l := GetLog(ctx)
+	l.Info("Reconciling Service upgrade")
 
 	// TODO: should have major version upgrade tasks
 	// -delete dbsync hash from status to rerun it?
 
-	r.Log.Info("Reconciled Service upgrade successfully")
+	l.Info("Reconciled Service upgrade successfully")
 	return ctrl.Result{}, nil
 }
 
 func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horizonv1beta1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
-	r.Log.Info("Reconciling Service")
+	l := GetLog(ctx)
+	l.Info("Reconciling Service")
 
 	// Service account, role, binding
 	rbacResult, err := configureHorizonRbac(ctx, helper, instance)
@@ -531,7 +534,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	}
 	// create Deployment - end
 
-	r.Log.Info("Reconciled Service successfully")
+	l.Info("Reconciled Service successfully")
 	return ctrl.Result{}, nil
 }
 
@@ -593,7 +596,6 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 			Labels:        cmLabels,
 		},
 	}
-	r.Log.Info(fmt.Sprintf("Creating ConfigMaps with details: %v", cms))
 	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
 }
 
@@ -615,7 +617,7 @@ func (r *HorizonReconciler) createHashOfInputHashes(
 	}
 	if hashMap, changed = util.SetHash(instance.Status.Hash, common.InputHashName, hash); changed {
 		instance.Status.Hash = hashMap
-		r.Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
+		GetLog(ctx).Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
 	}
 	return hash, changed, nil
 }
@@ -636,7 +638,7 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return err
 	} else if k8s_errors.IsNotFound(err) || !validateHorizonSecret(scrt) {
-		r.Log.Info("Creating Horizon Secret")
+		GetLog(ctx).Info("Creating Horizon Secret")
 		// Create k8s secret to store Horizon Secret
 		tmpl := []util.Template{
 			{
