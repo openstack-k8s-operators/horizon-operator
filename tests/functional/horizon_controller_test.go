@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
-	. "github.com/openstack-k8s-operators/lib-common/modules/test/helpers"
+	. "github.com/openstack-k8s-operators/lib-common/modules/common/test/helpers"
 
 	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
