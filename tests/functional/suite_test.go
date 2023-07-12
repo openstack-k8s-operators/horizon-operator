@@ -46,10 +46,10 @@ import (
 	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
-	test "github.com/openstack-k8s-operators/lib-common/modules/test"
 
 	"github.com/openstack-k8s-operators/horizon-operator/controllers"
-	. "github.com/openstack-k8s-operators/lib-common/modules/test-operators/helpers"
+	"github.com/openstack-k8s-operators/lib-common/modules/test"
+	. "github.com/openstack-k8s-operators/lib-common/modules/test/helpers"
 	//+kubebuilder:scaffold:imports
 )
 
