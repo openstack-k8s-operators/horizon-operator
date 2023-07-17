@@ -91,7 +91,7 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
-			Replicas: &instance.Spec.Replicas,
+			Replicas: instance.Spec.Replicas,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,

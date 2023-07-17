@@ -49,6 +49,7 @@ var _ = Describe("Horizon controller", func() {
 		It("should have the Spec and Status fields initialized", func() {
 			horizon := GetHorizon(horizonName)
 			Expect(horizon.Spec.Secret).Should(Equal("test-osp-secret"))
+			Expect(*(horizon.Spec.Replicas)).Should(Equal(int32(1)))
 		})
 
 		It("should have a finalizer", func() {
@@ -230,7 +231,7 @@ var _ = Describe("Horizon controller", func() {
 			})
 			keystoneAPI := th.CreateKeystoneAPI(namespace)
 			DeferCleanup(th.DeleteKeystoneAPI, keystoneAPI)
-			th.SimulateDeploymentReadyWithPods(deploymentName, map[string][]string{})
+			th.SimulateDeploymentReplicaReady(deploymentName)
 		})
 
 		It("should have deployment ready", func() {
@@ -248,8 +249,9 @@ var _ = Describe("Horizon controller", func() {
 			)
 		})
 		It("should have ReadyCount set", func() {
-			horizon := GetHorizon(horizonName)
-			Expect(horizon.Status.ReadyCount).Should(Equal(horizon.Spec.Replicas))
+			Eventually(func() int32 {
+				return GetHorizon(horizonName).Status.ReadyCount
+			}, timeout, interval).Should(Equal(int32(1)))
 		})
 	})
 })
