@@ -11,7 +11,6 @@ import (
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	. "github.com/openstack-k8s-operators/lib-common/modules/common/test/helpers"
 
-	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 )
 
@@ -75,10 +74,10 @@ var _ = Describe("Horizon controller", func() {
 			)
 
 			for _, cond := range []condition.Type{
+				condition.MemcachedReadyCondition,
 				condition.ServiceConfigReadyCondition,
 				condition.ExposeServiceReadyCondition,
 				condition.DeploymentReadyCondition,
-				horizonv1.HorizonMemcachedReadyCondition,
 			} {
 				th.ExpectCondition(
 					horizonName,
@@ -112,7 +111,7 @@ var _ = Describe("Horizon controller", func() {
 			th.ExpectCondition(
 				horizonName,
 				ConditionGetterFunc(HorizonConditionGetter),
-				horizonv1.HorizonMemcachedReadyCondition,
+				condition.MemcachedReadyCondition,
 				corev1.ConditionFalse,
 			)
 			th.ExpectCondition(
@@ -145,7 +144,7 @@ var _ = Describe("Horizon controller", func() {
 			th.ExpectCondition(
 				horizonName,
 				ConditionGetterFunc(HorizonConditionGetter),
-				horizonv1.HorizonMemcachedReadyCondition,
+				condition.MemcachedReadyCondition,
 				corev1.ConditionTrue,
 			)
 			th.ExpectCondition(

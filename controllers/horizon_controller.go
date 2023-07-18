@@ -171,11 +171,11 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		instance.Status.Conditions = condition.Conditions{}
 
 		cl := condition.CreateList(
-			condition.UnknownCondition(condition.ExposeServiceReadyCondition, condition.InitReason, condition.ExposeServiceReadyInitMessage),
 			condition.UnknownCondition(condition.InputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
+			condition.UnknownCondition(condition.MemcachedReadyCondition, condition.InitReason, condition.MemcachedReadyInitMessage),
 			condition.UnknownCondition(condition.ServiceConfigReadyCondition, condition.InitReason, condition.ServiceConfigReadyInitMessage),
+			condition.UnknownCondition(condition.ExposeServiceReadyCondition, condition.InitReason, condition.ExposeServiceReadyInitMessage),
 			condition.UnknownCondition(condition.DeploymentReadyCondition, condition.InitReason, condition.DeploymentReadyInitMessage),
-			condition.UnknownCondition(horizonv1beta1.HorizonMemcachedReadyCondition, condition.InitReason, horizonv1beta1.HorizonMemcachedReadyInitMessage),
 			// service account, role, rolebinding conditions
 			condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
 			condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
@@ -384,32 +384,32 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			instance.Status.Conditions.Set(condition.FalseCondition(
-				horizonv1beta1.HorizonMemcachedReadyCondition,
+				condition.MemcachedReadyCondition,
 				condition.RequestedReason,
 				condition.SeverityInfo,
-				horizonv1beta1.HorizonMemcachedReadyWaitingMessage))
+				condition.MemcachedReadyWaitingMessage))
 			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("memcached %s not found", instance.Spec.MemcachedInstance)
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			horizonv1beta1.HorizonMemcachedReadyCondition,
+			condition.MemcachedReadyCondition,
 			condition.ErrorReason,
 			condition.SeverityWarning,
-			horizonv1beta1.HorizonMemcachedReadyErrorMessage,
+			condition.MemcachedReadyErrorMessage,
 			err.Error()))
 		return ctrl.Result{}, err
 	}
 
 	if !memcached.IsReady() {
 		instance.Status.Conditions.Set(condition.FalseCondition(
-			horizonv1beta1.HorizonMemcachedReadyCondition,
+			condition.MemcachedReadyCondition,
 			condition.RequestedReason,
 			condition.SeverityInfo,
-			horizonv1beta1.HorizonMemcachedReadyWaitingMessage))
+			condition.MemcachedReadyWaitingMessage))
 		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("memcached %s is not ready", memcached.Name)
 	}
 	// Mark the Memcached Service as Ready if we get to this point with no errors
 	instance.Status.Conditions.MarkTrue(
-		horizonv1beta1.HorizonMemcachedReadyCondition, horizonv1beta1.HorizonMemcachedReadyMessage)
+		condition.MemcachedReadyCondition, condition.MemcachedReadyMessage)
 	// run check memcached - end
 
 	//
