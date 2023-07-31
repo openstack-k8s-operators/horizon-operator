@@ -157,11 +157,9 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		}
 	}()
 
-	// If the service object doesn't have our finalizer, add it.
-	controllerutil.AddFinalizer(instance, helper.GetFinalizer())
-	// Register the finalizer immediately to avoid orphaning resources on delete
-	if err := r.Update(ctx, instance); err != nil {
-		return ctrl.Result{}, err
+	// If we're not deleting this and the service object doesn't have our finalizer, add it.
+	if instance.DeletionTimestamp.IsZero() && controllerutil.AddFinalizer(instance, helper.GetFinalizer()) {
+		return ctrl.Result{}, nil
 	}
 
 	//
