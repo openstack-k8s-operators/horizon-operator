@@ -7,3 +7,4 @@ spec:
   secret: "osp-secret"
   customServiceConfig: |
     DEBUG = True
+    LOGGING['handlers']['console']['level'] = 'DEBUG'
