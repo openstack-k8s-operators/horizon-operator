@@ -14,7 +14,7 @@
 
 import os
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from horizon.utils import secret_key
 
@@ -29,7 +29,6 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 OPENSTACK_API_VERSIONS = {
   'identity': 3,
 }
-HORIZON_CONFIG['default_dashboard'] = 'project'
 HORIZON_CONFIG["password_validator"] = {
     "regex": '',
     "help_text": _(""),
