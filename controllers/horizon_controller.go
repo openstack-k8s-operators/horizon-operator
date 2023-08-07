@@ -281,7 +281,7 @@ func (r *HorizonReconciler) reconcileInit(
 		horizon.ServiceName,
 		serviceLabels,
 		horizonPorts,
-		time.Duration(5)*time.Second,
+		time.Second * 5,
 	)
 	if err != nil {
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -360,7 +360,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 				condition.RequestedReason,
 				condition.SeverityInfo,
 				condition.InputReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("openstack secret %s not found", instance.Spec.Secret)
+			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("openstack secret %s not found", instance.Spec.Secret)
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.InputReadyCondition,
@@ -386,7 +386,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 				condition.RequestedReason,
 				condition.SeverityInfo,
 				condition.MemcachedReadyWaitingMessage))
-			return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("memcached %s not found", instance.Spec.MemcachedInstance)
+			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("memcached %s not found", instance.Spec.MemcachedInstance)
 		}
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.MemcachedReadyCondition,
@@ -403,7 +403,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 			condition.RequestedReason,
 			condition.SeverityInfo,
 			condition.MemcachedReadyWaitingMessage))
-		return ctrl.Result{RequeueAfter: time.Duration(10) * time.Second}, fmt.Errorf("memcached %s is not ready", memcached.Name)
+		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("memcached %s is not ready", memcached.Name)
 	}
 	// Mark the Memcached Service as Ready if we get to this point with no errors
 	instance.Status.Conditions.MarkTrue(
@@ -500,7 +500,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 
 	depl := deployment.NewDeployment(
 		deplDef,
-		time.Duration(5)*time.Second,
+		time.Second * 5,
 	)
 
 	ctrlResult, err = depl.CreateOrPatch(ctx, helper)
