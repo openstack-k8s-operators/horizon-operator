@@ -9,7 +9,10 @@ require (
 	sigs.k8s.io/controller-runtime v0.14.6
 )
 
-require github.com/onsi/gomega v1.27.10 // indirect
+require (
+	github.com/onsi/gomega v1.27.10 // indirect
+	go.uber.org/zap v1.25.0 // indirect
+)
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
