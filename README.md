@@ -80,8 +80,6 @@ template:
   preserveJobs: false
   replicas: 1
   resources: {}
-  route:
-    routeName: horizon
   secret: osp-secret
 ```
 
@@ -111,8 +109,6 @@ template:
   preserveJobs: false
   replicas: 1
   resources: {}
-  route:
-    routeName: horizon
   secret: osp-secret
   memcachedInstance: my-custom-memcached #<<-- Custom memcached instance supplied here.
 ```

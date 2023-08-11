@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	routev1 "github.com/openshift/api/route/v1"
 	horizonv1beta1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 	horizon "github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
@@ -38,6 +37,7 @@ import (
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
 	oko_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -91,7 +91,6 @@ type HorizonReconciler struct {
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete;
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete;
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete;
-//+kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;watch;create;update;patch;delete;
 //+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapis,verbs=get;list;watch;
 //+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneendpoints,verbs=get;list;watch;
 //+kubebuilder:rbac:groups=memcached.openstack.org,resources=memcacheds,verbs=get;list;watch;
@@ -237,7 +236,6 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.Deployment{}).
-		Owns(&routev1.Route{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
@@ -267,42 +265,87 @@ func (r *HorizonReconciler) reconcileInit(
 	l.Info("Reconciling Service init")
 
 	//
-	// expose the service (create service, route and return the created endpoint URLs)
+	// expose the service (create service and return the created endpoint URLs)
 	//
-	var horizonPorts = map[endpoint.Endpoint]endpoint.Data{
-		endpoint.EndpointPublic: {
+	var horizonEndpoints = map[service.Endpoint]endpoint.Data{
+		service.EndpointPublic: {
 			Port: horizon.HorizonPublicPort,
 		},
 	}
 
-	apiEndpoints, ctrlResult, err := endpoint.ExposeEndpoints(
-		ctx,
-		helper,
-		horizon.ServiceName,
-		serviceLabels,
-		horizonPorts,
-		time.Second * 5,
-	)
-	if err != nil {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.ExposeServiceReadyCondition,
-			condition.ErrorReason,
-			condition.SeverityWarning,
-			condition.ExposeServiceReadyErrorMessage,
-			err.Error()))
-		return ctrlResult, err
-	} else if (ctrlResult != ctrl.Result{}) {
-		instance.Status.Conditions.Set(condition.FalseCondition(
-			condition.ExposeServiceReadyCondition,
-			condition.RequestedReason,
-			condition.SeverityInfo,
-			condition.ExposeServiceReadyRunningMessage))
-		return ctrlResult, nil
+	apiEndpoints := make(map[string]string)
+
+	for endpointType, data := range horizonEndpoints {
+		endpointTypeStr := string(endpointType)
+		endpointName := horizon.ServiceName + "-" + endpointTypeStr
+
+		svcOverride := instance.Spec.Override.Service[endpointTypeStr]
+
+		exportLabels := util.MergeStringMaps(
+			serviceLabels,
+			map[string]string{
+				string(endpointType): "true",
+			},
+		)
+
+		// Create the service
+		svc, err := service.NewService(
+			service.GenericService(&service.GenericServiceDetails{
+				Name:      endpointName,
+				Namespace: instance.Namespace,
+				Labels:    exportLabels,
+				Selector:  serviceLabels,
+				Port: service.GenericServicePort{
+					Name:     endpointName,
+					Port:     data.Port,
+					Protocol: corev1.ProtocolTCP,
+				},
+			}),
+			5,
+			&svcOverride,
+		)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.ExposeServiceReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.ExposeServiceReadyErrorMessage,
+				err.Error()))
+
+			return ctrl.Result{}, err
+		}
+
+		ctrlResult, err := svc.CreateOrPatch(ctx, helper)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.ExposeServiceReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.ExposeServiceReadyErrorMessage,
+				err.Error()))
+
+			return ctrlResult, err
+		} else if (ctrlResult != ctrl.Result{}) {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.ExposeServiceReadyCondition,
+				condition.RequestedReason,
+				condition.SeverityInfo,
+				condition.ExposeServiceReadyRunningMessage))
+			return ctrlResult, nil
+		}
+		// create service - end
+
+		// TODO: TLS, pass in https as protocol, create TLS cert
+		apiEndpoints[string(endpointType)], err = svc.GetAPIEndpoint(
+			&svcOverride, data.Protocol, data.Path)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 	instance.Status.Conditions.MarkTrue(condition.ExposeServiceReadyCondition, condition.ExposeServiceReadyMessage)
 
 	//
-	// Update instance status with service endpoint url from route host information
+	// Update instance status with service endpoint url information
 	//
 	instance.Status.Endpoint = apiEndpoints[string(endpoint.EndpointPublic)]
 
@@ -500,7 +543,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 
 	depl := deployment.NewDeployment(
 		deplDef,
-		time.Second * 5,
+		time.Second*5,
 	)
 
 	ctrlResult, err = depl.CreateOrPatch(ctx, helper)

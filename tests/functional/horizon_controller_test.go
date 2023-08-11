@@ -212,10 +212,6 @@ var _ = Describe("Horizon controller", func() {
 				ContainSubstring("OPENSTACK_KEYSTONE_URL = \"http://keystone-public-openstack.testing/v3\""))
 			Expect(cm.Data["local_settings.py"]).Should(
 				ContainSubstring("'LOCATION': [ 'memcached-0.memcached:11211', 'memcached-1.memcached:11211', 'memcached-2.memcached:11211' ]"))
-			th.AssertRouteExists(types.NamespacedName{
-				Name:      "horizon-public",
-				Namespace: horizonName.Namespace,
-			})
 		})
 	})
 
