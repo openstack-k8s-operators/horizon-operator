@@ -2,7 +2,7 @@
     "command": "/usr/sbin/httpd -DFOREGROUND",
     "config_files": [
         {
-            "source": "/var/lib/config-data/merged/httpd.conf",
+            "source": "/var/lib/config-data/httpd.conf",
             "dest": "/etc/httpd/conf/httpd.conf",
             "merge": false,
             "preserve_properties": true,
@@ -16,19 +16,19 @@
             "perm": "0600"
         },
         {
-            "source": "/var/lib/config-data/merged/local_settings.py",
+            "source": "/var/lib/config-data/local_settings.py",
             "dest": "/etc/openstack-dashboard/local_settings",
             "merge": false,
             "preserve_properties": true
         },
         {
-            "source": "/var/lib/config-data/merged/ssl.conf",
+            "source": "/var/lib/config-data/ssl.conf",
             "dest": "/etc/httpd/conf.d/ssl.conf",
             "merge": false,
             "preserve_properties": true
         },
         {
-            "source": "/var/lib/config-data/merged/9999_custom_settings.py",
+            "source": "/var/lib/config-data/9999_custom_settings.py",
             "dest": "/etc/openstack-dashboard/local_settings.d/9999_custom_settings.py",
             "merge": false,
             "preserve_properties": true
