@@ -73,7 +73,6 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 	}
 
 	envVars := map[string]env.Setter{}
-	envVars["KOLLA_CONFIG_FILE"] = env.SetValue(KollaConfig)
 	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
 	envVars["ENABLE_DESIGNATE"] = env.SetValue("yes")
 	envVars["ENABLE_HEAT"] = env.SetValue("yes")

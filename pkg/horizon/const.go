@@ -24,7 +24,4 @@ const (
 
 	// HorizonPublicPort -
 	HorizonPublicPort int32 = 80
-
-	// KollaConfig -
-	KollaConfig = "/var/lib/config-data/merged/horizon.json"
 )
