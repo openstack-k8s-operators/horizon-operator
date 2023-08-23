@@ -291,7 +291,8 @@ func (r *HorizonReconciler) reconcileInit(
 			condition.ExposeServiceReadyErrorMessage,
 			err.Error()))
 		return ctrlResult, err
-	} else if (ctrlResult != ctrl.Result{}) {
+	}
+	if (ctrlResult != ctrl.Result{}) {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.ExposeServiceReadyCondition,
 			condition.RequestedReason,
@@ -340,10 +341,8 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 
 	// Service account, role, binding
 	rbacResult, err := configureHorizonRbac(ctx, helper, instance)
-	if err != nil {
+	if err != nil || (rbacResult != ctrl.Result{}) {
 		return rbacResult, err
-	} else if (rbacResult != ctrl.Result{}) {
-		return rbacResult, nil
 	}
 
 	// ConfigMap
@@ -447,12 +446,8 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	// and a restart/recreate is required.
 	//
 	inputHash, hashChanged, err := r.createHashOfInputHashes(ctx, instance, configMapVars)
-	if err != nil {
+	if err != nil || hashChanged {
 		return ctrl.Result{}, err
-	} else if hashChanged {
-		// Hash changed and instance status should be updated (which will be done by main defer func),
-		// so we need to return and reconcile again
-		return ctrl.Result{}, nil
 	}
 
 	instance.Status.Conditions.MarkTrue(condition.ServiceConfigReadyCondition, condition.ServiceConfigReadyMessage)
@@ -469,26 +464,20 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 
 	// Handle service init
 	ctrlResult, err := r.reconcileInit(ctx, instance, helper, serviceLabels)
-	if err != nil {
+	if err != nil || (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, err
-	} else if (ctrlResult != ctrl.Result{}) {
-		return ctrlResult, nil
 	}
 
 	// Handle service update
 	ctrlResult, err = r.reconcileUpdate(ctx, instance, helper)
-	if err != nil {
+	if err != nil || (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, err
-	} else if (ctrlResult != ctrl.Result{}) {
-		return ctrlResult, nil
 	}
 
 	// Handle service upgrade
 	ctrlResult, err = r.reconcileUpgrade(ctx, instance, helper)
-	if err != nil {
+	if err != nil || (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, err
-	} else if (ctrlResult != ctrl.Result{}) {
-		return ctrlResult, nil
 	}
 
 	//
@@ -512,7 +501,8 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 			condition.DeploymentReadyErrorMessage,
 			err.Error()))
 		return ctrlResult, err
-	} else if (ctrlResult != ctrl.Result{}) {
+	}
+	if (ctrlResult != ctrl.Result{}) {
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.DeploymentReadyCondition,
 			condition.RequestedReason,
@@ -635,7 +625,8 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 	scrt, _, err := oko_secret.GetSecret(ctx, h, horizon.ServiceName, instance.Namespace)
 	if err != nil && !k8s_errors.IsNotFound(err) {
 		return err
-	} else if k8s_errors.IsNotFound(err) || !validateHorizonSecret(scrt) {
+	}
+	if k8s_errors.IsNotFound(err) || !validateHorizonSecret(scrt) {
 		GetLog(ctx).Info("Creating Horizon Secret")
 		// Create k8s secret to store Horizon Secret
 		tmpl := []util.Template{
