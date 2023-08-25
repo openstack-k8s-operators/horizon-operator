@@ -22,12 +22,6 @@
             "preserve_properties": true
         },
         {
-            "source": "/var/lib/config-data/ssl.conf",
-            "dest": "/etc/httpd/conf.d/ssl.conf",
-            "merge": false,
-            "preserve_properties": true
-        },
-        {
             "source": "/var/lib/config-data/9999_custom_settings.py",
             "dest": "/etc/openstack-dashboard/local_settings.d/9999_custom_settings.py",
             "merge": false,

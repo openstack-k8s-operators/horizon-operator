@@ -33,7 +33,6 @@ Customisations are added to the `horizon-config-data` ConfigMap. If we look at a
   "horizon.json",
   "httpd.conf",
   "local_settings.py",
-  "ssl.conf"
 ]
 ```
 Any user provided customizations will go into the `9999_custom_settings.py` section. Without any customizations, it will just contain the default description:
