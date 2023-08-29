@@ -11,5 +11,5 @@ spec:
       containers:
       - name: manager
         env:
-        - name: HORIZON_IMAGE_URL_DEFAULT
+        - name: RELATED_IMAGE_HORIZON_IMAGE_URL_DEFAULT
           value: quay.io/podified-antelope-centos9/openstack-horizon:current-podified

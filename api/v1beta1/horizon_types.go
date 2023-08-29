@@ -199,7 +199,7 @@ func (instance Horizon) RbacResourceName() string {
 func SetupDefaults() {
 	// Acquire environmental defaults and initialize Horizon defaults with them
 	horizonDefaults := HorizonDefaults{
-		ContainerImageURL: util.GetEnvVar("HORIZON_IMAGE_URL_DEFAULT", ContainerImage),
+		ContainerImageURL: util.GetEnvVar("RELATED_IMAGE_HORIZON_IMAGE_URL_DEFAULT", ContainerImage),
 	}
 
 	SetupHorizonDefaults(horizonDefaults)
