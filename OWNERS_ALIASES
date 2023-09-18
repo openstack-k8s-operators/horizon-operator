@@ -6,6 +6,7 @@ aliases:
   - viroel
   horizon-approvers:
   - bshephar
+  - kajinamit
   openstack-approvers:
   - abays
   - dprince
