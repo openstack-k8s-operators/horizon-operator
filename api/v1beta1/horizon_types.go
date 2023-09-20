@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 
 	corev1 "k8s.io/api/core/v1"
@@ -80,16 +81,20 @@ type HorizonSpec struct {
 	// https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 
-	// +kubebuilder:validation:Optional
-	// HorizonRoute holds all of the necessary options for configuring the Horizon Route object.
-	// This can be used to configure TLS
-	//TODO(bshephar) Implement everything about this. It's just a placeholder at the moment.
-	Route HorizonRoute `json:"route,omitempty"`
-
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default=memcached
 	// Memcached instance name.
 	MemcachedInstance string `json:"memcachedInstance"`
+
+	// +kubebuilder:validation:Optional
+	// Override, provides the ability to override the generated manifest of several child resources.
+	Override HorizionOverrideSpec `json:"override,omitempty"`
+}
+
+// HorizionOverrideSpec to override the generated manifest of several child resources.
+type HorizionOverrideSpec struct {
+	// Override configuration for the Service created to serve traffic to the cluster.
+	Service *service.RoutedOverrideSpec `json:"service,omitempty"`
 }
 
 // HorizonDebug can be used to enable debug in the Horizon service
@@ -98,30 +103,6 @@ type HorizonDebug struct {
 	// +kubebuilder:default=false
 	// Service enable debug
 	Service bool `json:"service"`
-}
-
-// HorizonRoute is used to define all of the information for the OpenShift route
-// todo(bshephar) implement
-type HorizonRoute struct {
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=horizon
-	RouteName string `json:"routeName"`
-
-	//TODO(bshephar) We need to implement TLS handling here to secure the route
-	// +kubebuilder:validation:Optional
-	RouteTLSEnabled string `json:"routeTLSEnabled,omitempty"`
-
-	//TODO(bshephar) We need to implement TLS handling here to secure the route
-	// +kubebuilder:validation:Optional
-	RouteTLSCA string `json:"routeTLSCA,omitempty"`
-
-	//TODO(bshephar) We need to implement TLS handling here to secure the route
-	// +kubebuilder:validation:Optional
-	RouteTLSKey string `json:"routeTLSKey,omitempty"`
-
-	//TODO(bshephar) We need to implement TLS handling here to secure the route
-	// +kubebuilder:validation:Optional
-	RouteLocation string `json:"routeLocation,omitempty"`
 }
 
 // HorizonStatus defines the observed state of Horizon
