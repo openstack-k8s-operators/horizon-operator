@@ -173,8 +173,8 @@ var _ = Describe("Horizon controller", func() {
 				Name:      "memcached",
 				Namespace: namespace,
 			})
-			keystoneAPI := th.CreateKeystoneAPI(namespace)
-			DeferCleanup(th.DeleteKeystoneAPI, keystoneAPI)
+			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
+			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
 		})
 
 		It("should have service config ready and expose service ready", func() {
@@ -225,8 +225,8 @@ var _ = Describe("Horizon controller", func() {
 				Name:      "memcached",
 				Namespace: namespace,
 			})
-			keystoneAPI := th.CreateKeystoneAPI(namespace)
-			DeferCleanup(th.DeleteKeystoneAPI, keystoneAPI)
+			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
+			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
 			th.SimulateDeploymentReplicaReady(deploymentName)
 		})
 
