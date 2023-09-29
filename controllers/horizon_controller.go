@@ -56,6 +56,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	routev1 "github.com/openshift/api/route/v1"
 )
 
 // GetClient -
@@ -342,7 +344,7 @@ func (r *HorizonReconciler) reconcileInit(
 	// create service - end
 
 	// TODO: TLS, pass in https as protocol
-	apiEndpoint, err := svc.GetAPIEndpoint(
+	_, err = svc.GetAPIEndpoint(
 		svcOverride.EndpointURL, ptr.To(service.ProtocolHTTP), "")
 	if err != nil {
 		return ctrl.Result{}, err
@@ -352,7 +354,12 @@ func (r *HorizonReconciler) reconcileInit(
 	//
 	// Update instance status with service endpoint url information
 	//
-	instance.Status.Endpoint = apiEndpoint
+	horizonRoute := routev1.Route{}
+	err = r.Client.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &horizonRoute)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("Failed to get Horizon route info: %w", err)
+	}
+	instance.Status.Endpoint = horizonRoute.Spec.Host
 
 	// expose service - end
 
