@@ -305,6 +305,10 @@ func (r *HorizonReconciler) reconcileInit(
 		return ctrl.Result{}, err
 	}
 
+	svc.AddAnnotation(map[string]string{
+		service.AnnotationEndpointKey: string(service.EndpointPublic),
+	})
+
 	// add Annotation to whether creating an ingress is required or not
 	if svc.GetServiceType() == corev1.ServiceTypeClusterIP {
 		svc.AddAnnotation(map[string]string{
