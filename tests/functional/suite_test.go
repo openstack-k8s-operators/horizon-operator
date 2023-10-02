@@ -42,6 +42,7 @@ import (
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 
 	"github.com/openstack-k8s-operators/horizon-operator/controllers"
+	infra_test "github.com/openstack-k8s-operators/infra-operator/apis/test/helpers"
 	keystone_test "github.com/openstack-k8s-operators/keystone-operator/api/test/helpers"
 	"github.com/openstack-k8s-operators/lib-common/modules/test"
 	common_test "github.com/openstack-k8s-operators/lib-common/modules/test/helpers"
@@ -60,6 +61,7 @@ var (
 	logger    logr.Logger
 	th        *common_test.TestHelper
 	keystone  *keystone_test.TestHelper
+	infra     *infra_test.TestHelper
 	namespace string
 )
 
@@ -127,6 +129,8 @@ var _ = BeforeSuite(func() {
 	Expect(th).NotTo(BeNil())
 	keystone = keystone_test.NewTestHelper(ctx, k8sClient, timeout, interval, logger)
 	Expect(th).NotTo(BeNil())
+	infra = infra_test.NewTestHelper(ctx, k8sClient, timeout, interval, logger)
+	Expect(infra).NotTo(BeNil())
 
 	// Start the controller-manager if goroutine
 	webhookInstallOptions := &testEnv.WebhookInstallOptions

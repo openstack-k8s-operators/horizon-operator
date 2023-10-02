@@ -129,8 +129,8 @@ var _ = Describe("Horizon controller", func() {
 			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
 			DeferCleanup(
 				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
-			DeferCleanup(th.DeleteMemcached, th.CreateMemcached(namespace, "memcached", memcachedSpec))
-			th.SimulateMemcachedReady(types.NamespacedName{
+			DeferCleanup(infra.DeleteMemcached, infra.CreateMemcached(namespace, "memcached", memcachedSpec))
+			infra.SimulateMemcachedReady(types.NamespacedName{
 				Name:      "memcached",
 				Namespace: namespace,
 			})
@@ -168,8 +168,8 @@ var _ = Describe("Horizon controller", func() {
 			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
 			DeferCleanup(
 				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
-			DeferCleanup(th.DeleteMemcached, th.CreateMemcached(namespace, "memcached", memcachedSpec))
-			th.SimulateMemcachedReady(types.NamespacedName{
+			DeferCleanup(infra.DeleteMemcached, infra.CreateMemcached(namespace, "memcached", memcachedSpec))
+			infra.SimulateMemcachedReady(types.NamespacedName{
 				Name:      "memcached",
 				Namespace: namespace,
 			})
@@ -220,8 +220,8 @@ var _ = Describe("Horizon controller", func() {
 			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
 			DeferCleanup(
 				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
-			DeferCleanup(th.DeleteMemcached, th.CreateMemcached(namespace, "memcached", memcachedSpec))
-			th.SimulateMemcachedReady(types.NamespacedName{
+			DeferCleanup(infra.DeleteMemcached, infra.CreateMemcached(namespace, "memcached", memcachedSpec))
+			infra.SimulateMemcachedReady(types.NamespacedName{
 				Name:      "memcached",
 				Namespace: namespace,
 			})
