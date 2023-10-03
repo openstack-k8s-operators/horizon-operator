@@ -41,7 +41,7 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20230510103437-eeec1cb781c3 // indirect
-	github.com/gophercloud/gophercloud v1.6.0 // indirect
+	github.com/gophercloud/gophercloud v1.7.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -52,8 +52,8 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.1.1-0.20230927082538-4f614f333d17 // indirect
-	github.com/openstack-k8s-operators/mariadb-operator/api v0.1.1-0.20230918111825-8999b3b2dc3c // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.1.1-0.20231001084618-12369665b166 // indirect
+	github.com/openstack-k8s-operators/mariadb-operator/api v0.1.1-0.20230928152002-65395552e015 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
