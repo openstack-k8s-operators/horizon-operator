@@ -44,8 +44,8 @@ import (
 	"github.com/openstack-k8s-operators/horizon-operator/controllers"
 	infra_test "github.com/openstack-k8s-operators/infra-operator/apis/test/helpers"
 	keystone_test "github.com/openstack-k8s-operators/keystone-operator/api/test/helpers"
+	common_test "github.com/openstack-k8s-operators/lib-common/modules/common/test/helpers"
 	"github.com/openstack-k8s-operators/lib-common/modules/test"
-	common_test "github.com/openstack-k8s-operators/lib-common/modules/test/helpers"
 	//+kubebuilder:scaffold:imports
 )
 
