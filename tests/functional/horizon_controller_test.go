@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
+	"k8s.io/utils/pointer"
 
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	. "github.com/openstack-k8s-operators/lib-common/modules/common/test/helpers"
@@ -31,7 +31,7 @@ var _ = Describe("Horizon controller", func() {
 			Namespace: horizonName.Namespace,
 		}
 		memcachedSpec = memcachedv1.MemcachedSpec{
-			Replicas: ptr.To[int32](3),
+			Replicas: pointer.Int32(3),
 		}
 
 		// lib-common uses OPERATOR_TEMPLATES env var to locate the "templates"
