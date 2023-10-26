@@ -3,9 +3,9 @@ module github.com/openstack-k8s-operators/horizon-operator/api
 go 1.19
 
 require (
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20231011150636-e8a0540a3c32
 	k8s.io/api v0.26.10
 	k8s.io/apimachinery v0.26.10
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20231019091705-f3aa3d057b0f
 	sigs.k8s.io/controller-runtime v0.14.6
 )
 
