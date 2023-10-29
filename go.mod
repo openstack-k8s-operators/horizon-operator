@@ -10,13 +10,13 @@ require (
 	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.28.0
 	github.com/openstack-k8s-operators/horizon-operator/api v0.1.1-0.20230828060631-f5678c16313e
-	k8s.io/api v0.26.10
-	k8s.io/apimachinery v0.26.10
-	k8s.io/client-go v0.26.10
 	github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20231020142809-b6b6796c004f
 	github.com/openstack-k8s-operators/keystone-operator/api v0.3.1-0.20231020144009-3e445cd965f8
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20231019091705-f3aa3d057b0f
 	github.com/openstack-k8s-operators/lib-common/modules/test v0.3.1-0.20231019091705-f3aa3d057b0f
+	k8s.io/api v0.26.10
+	k8s.io/apimachinery v0.26.10
+	k8s.io/client-go v0.26.10
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	sigs.k8s.io/controller-runtime v0.14.6
 )
