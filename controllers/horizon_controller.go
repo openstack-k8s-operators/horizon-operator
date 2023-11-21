@@ -131,7 +131,6 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		r.Scheme,
 		GetLog(ctx),
 	)
-
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -608,7 +607,8 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	if err != nil {
 		return err
 	}
-	keystonePublicURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointPublic)
+
+	authURL, err := keystoneAPI.GetEndpoint(endpoint.EndpointInternal)
 	if err != nil {
 		return err
 	}
@@ -618,7 +618,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	url := strings.TrimPrefix(instance.Status.Endpoint, "http://")
 
 	templateParameters := map[string]interface{}{
-		"keystoneURL":        keystonePublicURL,
+		"keystoneURL":        authURL,
 		"horizonEndpointUrl": url,
 		"memcachedServers":   fmt.Sprintf("'%s'", memcachedServers),
 	}
@@ -668,7 +668,6 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 	h *helper.Helper,
 	envVars *map[string]env.Setter,
 ) error {
-
 	Labels := labels.GetLabels(instance, labels.GetGroupLabel(horizon.ServiceName), map[string]string{})
 	//
 	// check if secret already exist
@@ -691,7 +690,6 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 		}
 
 		err := oko_secret.EnsureSecrets(ctx, h, instance, tmpl, envVars)
-
 		if err != nil {
 			return err
 		}
