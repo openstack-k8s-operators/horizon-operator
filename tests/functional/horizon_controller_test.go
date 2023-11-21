@@ -209,7 +209,7 @@ var _ = Describe("Horizon controller", func() {
 				Name:      horizonName.Name + "-config-data",
 			})
 			Expect(cm.Data["local_settings.py"]).Should(
-				ContainSubstring("OPENSTACK_KEYSTONE_URL = \"http://keystone-public-openstack.testing/v3\""))
+				ContainSubstring("OPENSTACK_KEYSTONE_URL = \"http://keystone-internal.openstack.svc:5000/v3\""))
 			Expect(cm.Data["local_settings.py"]).Should(
 				ContainSubstring("'LOCATION': [ 'memcached-0.memcached:11211', 'memcached-1.memcached:11211', 'memcached-2.memcached:11211' ]"))
 		})
