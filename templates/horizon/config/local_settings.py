@@ -120,6 +120,8 @@ OPENSTACK_HOST = "127.0.0.1"
 
 OPENSTACK_KEYSTONE_URL = "{{ .keystoneURL }}/v3"
 
+OPENSTACK_ENDPOINT_TYPE = "internalURL"
+
 # The timezone of the server. This should correspond with the timezone
 # of your entire OpenStack installation, and hopefully be in UTC.
 TIME_ZONE = "UTC"
