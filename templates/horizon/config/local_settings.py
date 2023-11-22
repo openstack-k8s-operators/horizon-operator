@@ -26,6 +26,7 @@ LOGIN_URL = '/dashboard/auth/login/'
 LOGOUT_URL = '/dashboard/auth/logout/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+OPENSTACK_ENDPOINT_TYPE = "internalURL"
 OPENSTACK_API_VERSIONS = {
   'identity': 3,
 }
