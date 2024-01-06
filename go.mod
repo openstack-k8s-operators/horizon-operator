@@ -17,10 +17,10 @@ require (
 	github.com/openstack-k8s-operators/keystone-operator/api v0.3.1-0.20231208104910-f8433c1c9399
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.3.1-0.20231209173030-f7a552f208e7
 	github.com/openstack-k8s-operators/lib-common/modules/test v0.3.1-0.20231209173030-f7a552f208e7
-	k8s.io/api v0.26.11
-	k8s.io/apimachinery v0.26.11
-	k8s.io/client-go v0.26.11
-	k8s.io/utils v0.0.0-20231127182322-b307cd553661
+	k8s.io/api v0.26.12
+	k8s.io/apimachinery v0.26.12
+	k8s.io/client-go v0.26.12
+	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 	sigs.k8s.io/controller-runtime v0.14.7
 )
 
@@ -78,8 +78,8 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.26.11 // indirect
-	k8s.io/component-base v0.26.11 // indirect
+	k8s.io/apiextensions-apiserver v0.26.12 // indirect
+	k8s.io/component-base v0.26.12 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230515203736-54b630e78af5 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
