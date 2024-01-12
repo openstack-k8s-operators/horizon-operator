@@ -1,0 +1,91 @@
+apiVersion: horizon.openstack.org/v1beta1
+kind: Horizon
+metadata:
+  name: horizon
+spec:
+  tls:
+    caBundleSecretName: combined-ca-bundle
+    secretName: cert-horizon-svc
+status:
+  readyCount: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: horizon
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        service: horizon
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: service
+                  operator: In
+                  values:
+                  - horizon
+              topologyKey: kubernetes.io/hostname
+            weight: 1
+      containers:
+      - livenessProbe:
+          httpGet:
+            port: horizon
+            scheme: HTTPS
+        name: horizon
+        ports:
+        - containerPort: 443
+          name: horizon
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            port: horizon
+            scheme: HTTPS
+        startupProbe:
+          httpGet:
+            port: horizon
+            scheme: HTTPS
+        volumeMounts:
+        - mountPath: /var/lib/config-data/default/
+          name: config-data
+        - mountPath: /var/lib/kolla/config_files/config.json
+          name: config-data
+          readOnly: true
+          subPath: horizon.json
+        - mountPath: /run/openstack-dashboard/.secrets
+          name: horizon-secret-key
+          readOnly: true
+        - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+          name: combined-ca-bundle
+          readOnly: true
+          subPath: tls-ca-bundle.pem
+        - mountPath: /var/lib/config-data/tls/certs/horizon.crt
+          name: horizon-tls-certs
+          readOnly: true
+          subPath: tls.crt
+        - mountPath: /var/lib/config-data/tls/private/horizon.key
+          name: horizon-tls-certs
+          readOnly: true
+          subPath: tls.key
+      volumes:
+      - configMap:
+          defaultMode: 416
+          name: horizon-config-data
+        name: config-data
+      - name: horizon-secret-key
+        secret:
+          defaultMode: 384
+          secretName: horizon
+      - name: combined-ca-bundle
+        secret:
+          defaultMode: 292
+          secretName: combined-ca-bundle
+      - name: horizon-tls-certs
+        secret:
+          defaultMode: 256
+          secretName: cert-horizon-svc

@@ -1,6 +1,7 @@
 package functional_test
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -9,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
+	"github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	. "github.com/openstack-k8s-operators/lib-common/modules/common/test/helpers"
 
@@ -79,6 +81,7 @@ var _ = Describe("Horizon controller", func() {
 				condition.ServiceConfigReadyCondition,
 				condition.ExposeServiceReadyCondition,
 				condition.DeploymentReadyCondition,
+				condition.TLSInputReadyCondition,
 			} {
 				th.ExpectCondition(
 					horizonName,
@@ -248,6 +251,142 @@ var _ = Describe("Horizon controller", func() {
 			Eventually(func() int32 {
 				return GetHorizon(horizonName).Status.ReadyCount
 			}, timeout, interval).Should(Equal(int32(1)))
+		})
+	})
+
+	When("TLS is enabled", func() {
+		BeforeEach(func() {
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetTLSHorizonSpec()))
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
+			DeferCleanup(infra.DeleteMemcached, infra.CreateMemcached(namespace, "memcached", memcachedSpec))
+			infra.SimulateMemcachedReady(types.NamespacedName{
+				Name:      "memcached",
+				Namespace: namespace,
+			})
+			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
+			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
+		})
+
+		It("reports that the CA secret is missing", func() {
+			th.ExpectConditionWithDetails(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.TLSInputReadyCondition,
+				corev1.ConditionFalse,
+				condition.ErrorReason,
+				fmt.Sprintf("TLSInput error occured in TLS sources Secret %s/combined-ca-bundle not found", namespace),
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ReadyCondition,
+				corev1.ConditionFalse,
+			)
+		})
+
+		It("reports that the cert secret is missing", func() {
+			DeferCleanup(k8sClient.Delete, ctx, th.CreateCABundleSecret(types.NamespacedName{
+				Name:      CABundleSecretName,
+				Namespace: namespace,
+			}))
+			th.ExpectConditionWithDetails(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.TLSInputReadyCondition,
+				corev1.ConditionFalse,
+				condition.ErrorReason,
+				fmt.Sprintf("TLSInput error occured in TLS sources Secret %s/horizon-tls-certs not found", namespace),
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ReadyCondition,
+				corev1.ConditionFalse,
+			)
+		})
+
+		It("creates a Deployment for horizon with TLS certs attached", func() {
+			DeferCleanup(k8sClient.Delete, ctx, th.CreateCABundleSecret(types.NamespacedName{
+				Name:      CABundleSecretName,
+				Namespace: namespace,
+			}))
+			DeferCleanup(k8sClient.Delete, ctx, th.CreateCertSecret(types.NamespacedName{
+				Name:      InternalCertSecretName,
+				Namespace: namespace,
+			}))
+
+			th.SimulateDeploymentReplicaReady(deploymentName)
+
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ServiceConfigReadyCondition,
+				corev1.ConditionTrue,
+			)
+
+			d := th.GetDeployment(deploymentName)
+
+			// check TLS volumes
+			th.AssertVolumeExists(CABundleSecretName, d.Spec.Template.Spec.Volumes)
+			th.AssertVolumeExists(InternalCertSecretName, d.Spec.Template.Spec.Volumes)
+
+			svcC := d.Spec.Template.Spec.Containers[0]
+
+			// check TLS volume mounts
+			th.AssertVolumeMountExists(CABundleSecretName, "tls-ca-bundle.pem", svcC.VolumeMounts)
+			th.AssertVolumeMountExists(InternalCertSecretName, "tls.key", svcC.VolumeMounts)
+			th.AssertVolumeMountExists(InternalCertSecretName, "tls.crt", svcC.VolumeMounts)
+
+			// check port and scheme for the container/probes
+			Expect(svcC.Ports[0].ContainerPort).To(Equal(horizon.HorizonPortTLS))
+			Expect(svcC.Ports[0].Name).To(Equal(horizon.HorizonPortName))
+			Expect(svcC.StartupProbe.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTPS))
+			Expect(svcC.StartupProbe.HTTPGet.Port.StrVal).To(Equal(horizon.HorizonPortName))
+			Expect(svcC.ReadinessProbe.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTPS))
+			Expect(svcC.ReadinessProbe.HTTPGet.Port.StrVal).To(Equal(horizon.HorizonPortName))
+			Expect(svcC.LivenessProbe.HTTPGet.Scheme).To(Equal(corev1.URISchemeHTTPS))
+			Expect(svcC.LivenessProbe.HTTPGet.Port.StrVal).To(Equal(horizon.HorizonPortName))
+		})
+
+		It("reconfigures the horizon pods when CA changes", func() {
+			DeferCleanup(k8sClient.Delete, ctx, th.CreateCABundleSecret(types.NamespacedName{
+				Name:      CABundleSecretName,
+				Namespace: namespace,
+			}))
+			DeferCleanup(k8sClient.Delete, ctx, th.CreateCertSecret(types.NamespacedName{
+				Name:      InternalCertSecretName,
+				Namespace: namespace,
+			}))
+
+			th.SimulateDeploymentReplicaReady(deploymentName)
+
+			originalHash := GetEnvVarValue(
+				th.GetDeployment(deploymentName).Spec.Template.Spec.Containers[0].Env,
+				"CONFIG_HASH",
+				"",
+			)
+			Expect(originalHash).NotTo(BeEmpty())
+
+			// Change the content of the CA secret
+			th.UpdateSecret(types.NamespacedName{
+				Name:      CABundleSecretName,
+				Namespace: namespace,
+			},
+				"tls-ca-bundle.pem",
+				[]byte("DifferentCAData"),
+			)
+
+			// Assert that the deployment is updated
+			Eventually(func(g Gomega) {
+				newHash := GetEnvVarValue(
+					th.GetDeployment(deploymentName).Spec.Template.Spec.Containers[0].Env,
+					"CONFIG_HASH",
+					"",
+				)
+				g.Expect(newHash).NotTo(BeEmpty())
+				g.Expect(newHash).NotTo(Equal(originalHash))
+			}, timeout, interval).Should(Succeed())
 		})
 	})
 })

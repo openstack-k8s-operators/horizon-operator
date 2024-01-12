@@ -1,0 +1,29 @@
+#
+# Check for:
+#
+# No Horizon CR
+# No Deployment for Horizon CR
+# No Pods in horizon Deployment
+# No Horizon Services
+#
+apiVersion: horizon.openstack.org/v1beta1
+kind: Horizon
+metadata:
+  name: horizon
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: horizon
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    service: horizon
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: horizon

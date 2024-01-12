@@ -29,14 +29,21 @@ import (
 
 const (
 	// ServiceCommand is the command used to run Kolla and launch the initial Apache process
-	ServiceCommand = "/usr/local/bin/kolla_set_configs && /usr/local/bin/kolla_start"
+	ServiceCommand = "/usr/local/bin/kolla_start"
 )
 
 // Deployment creates the k8s deployment structure required to run Horizon
-func Deployment(instance *horizonv1.Horizon, configHash string, labels map[string]string) *appsv1.Deployment {
+func Deployment(instance *horizonv1.Horizon, configHash string, labels map[string]string) (*appsv1.Deployment, error) {
 	runAsUser := int64(0)
 
 	args := []string{"-c", ServiceCommand}
+
+	containerPort := corev1.ContainerPort{
+		Name:          "horizon",
+		Protocol:      corev1.ProtocolTCP,
+		ContainerPort: HorizonPort,
+	}
+
 	livenessProbe := &corev1.Probe{
 		TimeoutSeconds:      15,
 		PeriodSeconds:       5,
@@ -44,7 +51,7 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/dashboard/auth/login/?next=/dashboard/",
-				Port: intstr.IntOrString{IntVal: 80},
+				Port: intstr.FromString("horizon"),
 			},
 		},
 	}
@@ -55,7 +62,7 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/dashboard/auth/login/?next=/dashboard/",
-				Port: intstr.IntOrString{IntVal: 80},
+				Port: intstr.FromString("horizon"),
 			},
 		},
 	}
@@ -67,7 +74,7 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/dashboard/auth/login/?next=/dashboard/",
-				Port: intstr.IntOrString{IntVal: 80},
+				Port: intstr.FromString("horizon"),
 			},
 		},
 	}
@@ -80,6 +87,29 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 	envVars["ENABLE_MANILA"] = env.SetValue("yes")
 	envVars["ENABLE_OCTAVIA"] = env.SetValue("yes")
 	envVars["CONFIG_HASH"] = env.SetValue(configHash)
+
+	// create Volumes and VolumeMounts
+	volumes := getVolumes(instance.Name)
+	volumeMounts := getVolumeMounts()
+
+	// add CA cert if defined
+	if instance.Spec.TLS.CaBundleSecretName != "" {
+		volumes = append(volumes, instance.Spec.TLS.CreateVolume())
+		volumeMounts = append(volumeMounts, instance.Spec.TLS.CreateVolumeMounts(nil)...)
+	}
+
+	if instance.Spec.TLS.Enabled() {
+		svc, err := instance.Spec.TLS.GenericService.ToService()
+		if err != nil {
+			return nil, err
+		}
+		containerPort.ContainerPort = HorizonPortTLS
+		livenessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+		readinessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+		startupProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+		volumes = append(volumes, svc.CreateVolume(ServiceName))
+		volumeMounts = append(volumeMounts, svc.CreateVolumeMounts(ServiceName)...)
+	}
 
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -108,25 +138,19 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 								RunAsUser: &runAsUser,
 							},
 							Env:            env.MergeEnvs([]corev1.EnvVar{}, envVars),
-							VolumeMounts:   getVolumeMounts(),
+							VolumeMounts:   volumeMounts,
 							Resources:      instance.Spec.Resources,
 							ReadinessProbe: readinessProbe,
 							LivenessProbe:  livenessProbe,
 							StartupProbe:   startupProbe,
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          "http",
-									Protocol:      corev1.ProtocolTCP,
-									ContainerPort: 80,
-								},
-							},
+							Ports:          []corev1.ContainerPort{containerPort},
 						},
 					},
+					Volumes: volumes,
 				},
 			},
 		},
 	}
-	deployment.Spec.Template.Spec.Volumes = getVolumes(instance.Name)
 	deployment.Spec.Template.Spec.Affinity = affinity.DistributePods(
 		common.AppSelector,
 		[]string{
@@ -138,5 +162,5 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 		deployment.Spec.Template.Spec.NodeSelector = instance.Spec.NodeSelector
 	}
 
-	return deployment
+	return deployment, nil
 }

@@ -12,7 +12,7 @@
 # 2. An OCP 4.10+ CRC cluster with Podified Operators has been deployed
 # 3. CLI user has access to $KUBECONFIG
 
-apiVersion: kuttl.dev/v1alpha1
+apiVersion: kuttl.dev/v1beta1
 kind: TestSuite
 reportFormat: JSON
 reportName: kuttl-test-horizon

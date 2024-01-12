@@ -19,38 +19,43 @@ package functional_test
 import (
 	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	horizon "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 )
 
-func CreateHorizon(name types.NamespacedName, spec horizon.HorizonSpec) *horizon.Horizon {
-	instance := &horizon.Horizon{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "horizon.openstack.org/v1alpha1",
-			Kind:       "Horizon",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name.Name,
-			Namespace: name.Namespace,
-		},
-		Spec: spec,
-	}
-	err := k8sClient.Create(ctx, instance)
-	Expect(err).NotTo(HaveOccurred())
+func CreateHorizon(name types.NamespacedName, spec map[string]interface{}) client.Object {
 
-	return instance
+	raw := map[string]interface{}{
+		"apiVersion": "horizon.openstack.org/v1beta1",
+		"kind":       "Horizon",
+		"metadata": map[string]interface{}{
+			"name":      name.Name,
+			"namespace": name.Namespace,
+		},
+		"spec": spec,
+	}
+	return th.CreateUnstructured(raw)
 }
 
-func GetDefaultHorizonSpec() horizon.HorizonSpec {
-	return horizon.HorizonSpec{
-		Secret:            SecretName,
-		MemcachedInstance: "memcached",
+func GetDefaultHorizonSpec() map[string]interface{} {
+	return map[string]interface{}{
+		"secret":            SecretName,
+		"memcachedInstance": "memcached",
 	}
+}
+
+func GetTLSHorizonSpec() map[string]interface{} {
+	spec := GetDefaultHorizonSpec()
+	spec["tls"] = map[string]interface{}{
+		"caBundleSecretName": CABundleSecretName,
+		"secretName":         InternalCertSecretName,
+	}
+	return spec
 }
 
 func GetHorizon(name types.NamespacedName) *horizon.Horizon {
