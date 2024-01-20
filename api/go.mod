@@ -9,7 +9,11 @@ require (
 	sigs.k8s.io/controller-runtime v0.14.7
 )
 
-require github.com/stretchr/testify v1.8.3 // indirect
+require (
+	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
+	github.com/onsi/gomega v1.31.1 // indirect
+	github.com/stretchr/testify v1.8.3 // indirect
+)
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
