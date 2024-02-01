@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -27,7 +28,7 @@ import (
 	horizon "github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
-	common "github.com/openstack-k8s-operators/lib-common/modules/common"
+	"github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	configmap "github.com/openstack-k8s-operators/lib-common/modules/common/configmap"
 	deployment "github.com/openstack-k8s-operators/lib-common/modules/common/deployment"
@@ -38,7 +39,9 @@ import (
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
 	oko_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
+	"k8s.io/apimachinery/pkg/fields"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -50,10 +53,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -177,6 +182,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 			condition.UnknownCondition(condition.ServiceAccountReadyCondition, condition.InitReason, condition.ServiceAccountReadyInitMessage),
 			condition.UnknownCondition(condition.RoleReadyCondition, condition.InitReason, condition.RoleReadyInitMessage),
 			condition.UnknownCondition(condition.RoleBindingReadyCondition, condition.InitReason, condition.RoleBindingReadyInitMessage),
+			condition.UnknownCondition(condition.TLSInputReadyCondition, condition.InitReason, condition.InputReadyInitMessage),
 		)
 
 		instance.Status.Conditions.Init(&cl)
@@ -197,9 +203,60 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	return r.reconcileNormal(ctx, instance, helper)
 }
 
+// fields to index to reconcile when change
+const (
+	passwordSecretField     = ".spec.secret"
+	tlsField                = ".spec.tls.secretName"
+	caBundleSecretNameField = ".spec.tls.caBundleSecretName"
+)
+
+var (
+	allWatchFields = []string{
+		passwordSecretField,
+		caBundleSecretNameField,
+		tlsField,
+	}
+)
+
 // SetupWithManager -
 func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	logger := mgr.GetLogger()
+
+	// index passwordSecretField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &horizonv1beta1.Horizon{}, passwordSecretField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*horizonv1beta1.Horizon)
+		if cr.Spec.Secret == "" {
+			return nil
+		}
+		return []string{cr.Spec.Secret}
+	}); err != nil {
+		return err
+	}
+
+	// index caBundleSecretNameField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &horizonv1beta1.Horizon{}, caBundleSecretNameField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*horizonv1beta1.Horizon)
+		if cr.Spec.TLS.CaBundleSecretName == "" {
+			return nil
+		}
+		return []string{cr.Spec.TLS.CaBundleSecretName}
+	}); err != nil {
+		return err
+	}
+
+	// index tlsField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &horizonv1beta1.Horizon{}, tlsField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*horizonv1beta1.Horizon)
+		if cr.Spec.TLS.SecretName == nil {
+			return nil
+		}
+		return []string{*cr.Spec.TLS.SecretName}
+	}); err != nil {
+		return err
+	}
 
 	memcachedFn := func(o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
@@ -241,7 +298,45 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rbacv1.RoleBinding{}).
 		Watches(&source.Kind{Type: &memcachedv1.Memcached{}},
 			handler.EnqueueRequestsFromMapFunc(memcachedFn)).
+		Watches(
+			&source.Kind{Type: &corev1.Secret{}},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
 		Complete(r)
+}
+
+func (r *HorizonReconciler) findObjectsForSrc(src client.Object) []reconcile.Request {
+	requests := []reconcile.Request{}
+
+	l := log.FromContext(context.Background()).WithName("Controllers").WithName("Horizon")
+
+	for _, field := range allWatchFields {
+		crList := &horizonv1beta1.HorizonList{}
+		listOps := &client.ListOptions{
+			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),
+			Namespace:     src.GetNamespace(),
+		}
+		err := r.Client.List(context.TODO(), crList, listOps)
+		if err != nil {
+			return []reconcile.Request{}
+		}
+
+		for _, item := range crList.Items {
+			l.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
+
+			requests = append(requests,
+				reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      item.GetName(),
+						Namespace: item.GetNamespace(),
+					},
+				},
+			)
+		}
+	}
+
+	return requests
 }
 
 func (r *HorizonReconciler) reconcileDelete(ctx context.Context, instance *horizonv1beta1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
@@ -277,6 +372,15 @@ func (r *HorizonReconciler) reconcileInit(
 		svcOverride.EmbeddedLabelsAnnotations = &service.EmbeddedLabelsAnnotations{}
 	}
 
+	servicePort := corev1.ServicePort{
+		Name:     endpointName,
+		Port:     horizon.HorizonPort,
+		Protocol: corev1.ProtocolTCP,
+	}
+	if instance.Spec.TLS.Enabled() {
+		servicePort.Port = horizon.HorizonPortTLS
+	}
+
 	// Create the service
 	svc, err := service.NewService(
 		service.GenericService(&service.GenericServiceDetails{
@@ -284,11 +388,7 @@ func (r *HorizonReconciler) reconcileInit(
 			Namespace: instance.Namespace,
 			Labels:    serviceLabels,
 			Selector:  serviceLabels,
-			Port: service.GenericServicePort{
-				Name:     endpointName,
-				Port:     horizon.HorizonPublicPort,
-				Protocol: corev1.ProtocolTCP,
-			},
+			Ports:     []corev1.ServicePort{servicePort},
 		}),
 		5,
 		&svcOverride.OverrideSpec,
@@ -344,9 +444,13 @@ func (r *HorizonReconciler) reconcileInit(
 	}
 	// create service - end
 
-	// TODO: TLS, pass in https as protocol
+	apiEndpointScheme := service.ProtocolHTTP
+	if instance.Spec.TLS.Enabled() {
+		apiEndpointScheme = service.ProtocolHTTPS
+	}
+
 	apiEndpoint, err := svc.GetAPIEndpoint(
-		svcOverride.EndpointURL, ptr.To(service.ProtocolHTTP), "")
+		svcOverride.EndpointURL, ptr.To(apiEndpointScheme), "")
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -460,6 +564,55 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	// run check memcached - end
 
 	//
+	// TLS input validation
+	//
+	// Validate the CA cert secret if provided
+	if instance.Spec.TLS.CaBundleSecretName != "" {
+		hash, ctrlResult, err := tls.ValidateCACertSecret(
+			ctx,
+			helper.GetClient(),
+			types.NamespacedName{
+				Name:      instance.Spec.TLS.CaBundleSecretName,
+				Namespace: instance.Namespace,
+			},
+		)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.TLSInputReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.TLSInputErrorMessage,
+				err.Error()))
+			return ctrlResult, err
+		} else if (ctrlResult != ctrl.Result{}) {
+			return ctrlResult, nil
+		}
+
+		if hash != "" {
+			configMapVars[tls.CABundleKey] = env.SetValue(hash)
+		}
+	}
+
+	// Validate metadata service cert secret
+	if instance.Spec.TLS.Enabled() {
+		hash, ctrlResult, err := instance.Spec.TLS.ValidateCertSecret(ctx, helper, instance.Namespace)
+		if err != nil {
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.TLSInputReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.TLSInputErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, err
+		} else if (ctrlResult != ctrl.Result{}) {
+			return ctrlResult, nil
+		}
+		configMapVars[tls.TLSHashName] = env.SetValue(hash)
+	}
+	// all cert input checks out so report InputReady
+	instance.Status.Conditions.MarkTrue(condition.TLSInputReadyCondition, condition.InputReadyMessage)
+
+	//
 	// Create ConfigMaps and Secrets required as input for the Service and calculate an overall hash of hashes
 	//
 
@@ -509,7 +662,8 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	//
 
 	serviceLabels := map[string]string{
-		common.AppSelector: horizon.ServiceName,
+		common.AppSelector:   horizon.ServiceName,
+		common.OwnerSelector: instance.Name,
 	}
 
 	// Handle service init
@@ -535,7 +689,18 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	//
 
 	// Define a new Deployment object
-	deplDef := horizon.Deployment(instance, inputHash, serviceLabels)
+	deplDef, err := horizon.Deployment(instance, inputHash, serviceLabels)
+
+	if err != nil {
+		Log.Error(err, "Deployment failed")
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.DeploymentReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.DeploymentReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, err
+	}
 
 	depl := deployment.NewDeployment(
 		deplDef,
@@ -615,12 +780,26 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 
 	memcachedServers := strings.Join(mc.Status.ServerList, "', '")
 
-	url := strings.TrimPrefix(instance.Status.Endpoint, "http://")
+	url, err := url.Parse(instance.Status.Endpoint)
+	if err != nil {
+		return err
+	}
 
 	templateParameters := map[string]interface{}{
 		"keystoneURL":        authURL,
-		"horizonEndpointUrl": url,
+		"horizonEndpointUrl": url.Host,
 		"memcachedServers":   fmt.Sprintf("'%s'", memcachedServers),
+		"ServerName":         fmt.Sprintf("%s.%s.svc", horizon.ServiceName, instance.Namespace),
+		"Port":               horizon.HorizonPort,
+		"TLS":                false,
+	}
+
+	// create httpd tls template parameters
+	if instance.Spec.TLS.Enabled() {
+		templateParameters["TLS"] = true
+		templateParameters["Port"] = horizon.HorizonPortTLS
+		templateParameters["SSLCertificateFile"] = fmt.Sprintf("/etc/pki/tls/certs/%s.crt", horizon.ServiceName)
+		templateParameters["SSLCertificateKeyFile"] = fmt.Sprintf("/etc/pki/tls/private/%s.key", horizon.ServiceName)
 	}
 
 	cms := []util.Template{

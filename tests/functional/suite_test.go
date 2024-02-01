@@ -71,6 +71,10 @@ const (
 	SecretName = "test-osp-secret"
 
 	interval = time.Millisecond * 200
+
+	InternalCertSecretName = "horizon-tls-certs"
+
+	CABundleSecretName = "combined-ca-bundle"
 )
 
 func TestAPIs(t *testing.T) {

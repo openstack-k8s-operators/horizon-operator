@@ -1,0 +1,15 @@
+apiVersion: horizon.openstack.org/v1beta1
+kind: Horizon
+metadata:
+  name: horizon
+spec:
+  replicas: 1
+  secret: "osp-secret"
+  tls:
+    # secret holding the tls-ca-bundle.pem CA bundle
+    caBundleSecretName: combined-ca-bundle
+    # secret holding tls.crt and tls.key for the horizon k8s service
+    secretName: cert-horizon-svc
+  customServiceConfig: |
+    DEBUG = True
+    LOGGING['handlers']['console']['level'] = 'DEBUG'

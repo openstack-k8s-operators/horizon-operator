@@ -22,6 +22,12 @@ const (
 	// DatabaseName -
 	DatabaseName = "horizon"
 
-	// HorizonPublicPort -
-	HorizonPublicPort int32 = 80
+	// HorizonPort -
+	HorizonPort int32 = 80
+
+	// HorizonPortTLS -
+	HorizonPortTLS int32 = 443
+
+	// HorizonPortName -
+	HorizonPortName = "horizon"
 )

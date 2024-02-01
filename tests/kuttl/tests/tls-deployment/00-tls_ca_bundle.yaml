@@ -1,0 +1,37 @@
+#
+# External CA created with:
+#
+# apiVersion: cert-manager.io/v1
+# kind: Issuer
+# metadata:
+#   name: rootca-kuttl-public
+#   namespace: openstack
+# spec:
+#   ca:
+#     secretName: rootca-kuttl-public
+
+# apiVersion: cert-manager.io/v1
+# kind: Certificate
+# metadata:
+#   name: rootca-kuttl-public
+#   namespace: openstack
+# spec:
+#   commonName: rootca-kuttl-public
+#   duration: 87600h0m0s
+#   isCA: true
+#   issuerRef:
+#     name: selfsigned-issuer
+#   privateKey:
+#     algorithm: ECDSA
+#     size: 256
+#   secretName: rootca-kuttl-public
+
+apiVersion: v1
+data:
+  tls-ca-bundle.pem: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJmRENDQVNLZ0F3SUJBZ0lRTHd1T212dHFFc2ttU0haZEJvWFN1VEFLQmdncWhrak9QUVFEQWpBZU1Sd3cKR2dZRFZRUURFeE55YjI5MFkyRXRhM1YwZEd3dGNIVmliR2xqTUI0WERUSTBNREV6TVRJek1qRTBORm9YRFRNMApNREV5T0RJek1qRTBORm93SGpFY01Cb0dBMVVFQXhNVGNtOXZkR05oTFd0MWRIUnNMWEIxWW14cFl6QlpNQk1HCkJ5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEEwSUFCT0dCN1hQamN2ZHJCckxqK09RSE1qOG5lSWo2OG1DamJMRWsKWUUrd1FFQ0xSdldFL2NNMGNoQlF6dHJLaUJyUjNWZm9WK2xueTRvR3F3WFJ6RHFPT3RTalFqQkFNQTRHQTFVZApEd0VCL3dRRUF3SUNwREFQQmdOVkhSTUJBZjhFQlRBREFRSC9NQjBHQTFVZERnUVdCQlFyZktlc3BRYTN5U1JwCjZVb0p3eE1TMnZSL0JUQUtCZ2dxaGtqT1BRUURBZ05JQURCRkFpRUE2eGNBWjhxeHl1ZzMwdmlwUzBuYVBOOFgKRWFDYVhsZzJYZzV0cHo3WEdzOENJRU9oZWR0NmQ0L2FSZUhpQlNGR21LMjZlZ0VkaGZJM2I1bFpPdEZZRmRUSAotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+kind: Secret
+metadata:
+  labels:
+    combined-ca-bundle: ""
+  name: combined-ca-bundle
+type: Opaque

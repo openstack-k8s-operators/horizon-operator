@@ -57,7 +57,7 @@ var _ = Describe("Horizon Webhook", func() {
 	When("A Horizon instance is created with container images", func() {
 		BeforeEach(func() {
 			horizonSpec := GetDefaultHorizonSpec()
-			horizonSpec.ContainerImage = "container-image"
+			horizonSpec["containerImage"] = "container-image"
 			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, horizonSpec))
 		})
 

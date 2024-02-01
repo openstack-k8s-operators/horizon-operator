@@ -52,7 +52,7 @@ func getVolumeMounts() []corev1.VolumeMount {
 	return []corev1.VolumeMount{
 		{
 			Name:      "config-data",
-			MountPath: "/var/lib/config-data/",
+			MountPath: "/var/lib/config-data/default/",
 			ReadOnly:  false,
 		},
 		{
