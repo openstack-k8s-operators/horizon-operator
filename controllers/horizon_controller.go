@@ -49,7 +49,6 @@ import (
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -848,30 +847,29 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 	envVars *map[string]env.Setter,
 ) error {
 	Labels := labels.GetLabels(instance, labels.GetGroupLabel(horizon.ServiceName), map[string]string{})
-	//
-	// check if secret already exist
-	//
-	scrt, _, err := oko_secret.GetSecret(ctx, h, horizon.ServiceName, instance.Namespace)
-	if err != nil && !k8s_errors.IsNotFound(err) {
+
+	// Create config hash for everything except this secret and use it as the secret key
+	// to ensure caches as flushed when the config changes
+	key, err := util.ObjectHash(env.MergeEnvs([]corev1.EnvVar{}, *envVars))
+	if err != nil {
 		return err
 	}
-	if k8s_errors.IsNotFound(err) || !validateHorizonSecret(scrt) {
-		r.GetLogger(ctx).Info("Creating Horizon Secret")
-		// Create k8s secret to store Horizon Secret
-		tmpl := []util.Template{
-			{
-				Name:       horizon.ServiceName,
-				Namespace:  instance.Namespace,
-				Type:       util.TemplateTypeNone,
-				CustomData: map[string]string{"horizon-secret": rand.String(10)},
-				Labels:     Labels,
-			},
-		}
 
-		err := oko_secret.EnsureSecrets(ctx, h, instance, tmpl, envVars)
-		if err != nil {
-			return err
-		}
+	r.GetLogger(ctx).Info("Setting Horizon Secret")
+	// Create k8s secret to store Horizon Secret
+	tmpl := []util.Template{
+		{
+			Name:       horizon.ServiceName,
+			Namespace:  instance.Namespace,
+			Type:       util.TemplateTypeNone,
+			CustomData: map[string]string{"horizon-secret": key},
+			Labels:     Labels,
+		},
+	}
+
+	err = oko_secret.EnsureSecrets(ctx, h, instance, tmpl, envVars)
+	if err != nil {
+		return err
 	}
 
 	return nil

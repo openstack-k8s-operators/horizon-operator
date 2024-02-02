@@ -368,6 +368,12 @@ var _ = Describe("Horizon controller", func() {
 			)
 			Expect(originalHash).NotTo(BeEmpty())
 
+			originalSecret := th.GetSecret(types.NamespacedName{
+				Name:      horizon.ServiceName,
+				Namespace: namespace,
+			})
+			Expect(originalSecret.Data).To(HaveKey("horizon-secret"))
+
 			// Change the content of the CA secret
 			th.UpdateSecret(types.NamespacedName{
 				Name:      CABundleSecretName,
@@ -386,6 +392,12 @@ var _ = Describe("Horizon controller", func() {
 				)
 				g.Expect(newHash).NotTo(BeEmpty())
 				g.Expect(newHash).NotTo(Equal(originalHash))
+				newSecret := th.GetSecret(types.NamespacedName{
+					Name:      horizon.ServiceName,
+					Namespace: namespace,
+				})
+				g.Expect(newSecret.Data).To(HaveKey("horizon-secret"))
+				g.Expect(newSecret.Data["horizon-secret"]).NotTo(Equal(originalSecret.Data["horizon-secret"]))
 			}, timeout, interval).Should(Succeed())
 		})
 	})
