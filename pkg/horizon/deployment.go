@@ -45,9 +45,9 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 	}
 
 	livenessProbe := &corev1.Probe{
-		TimeoutSeconds:      15,
-		PeriodSeconds:       5,
-		InitialDelaySeconds: 15,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		InitialDelaySeconds: 10,
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/dashboard/auth/login/?next=/dashboard/",
@@ -56,9 +56,9 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 		},
 	}
 	readinessProbe := &corev1.Probe{
-		TimeoutSeconds:      25,
-		PeriodSeconds:       5,
-		InitialDelaySeconds: 15,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		InitialDelaySeconds: 10,
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/dashboard/auth/login/?next=/dashboard/",
@@ -68,9 +68,10 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 	}
 
 	startupProbe := &corev1.Probe{
-		TimeoutSeconds:      30,
-		PeriodSeconds:       60,
-		InitialDelaySeconds: 60,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		FailureThreshold:    30,
+		InitialDelaySeconds: 10,
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: "/dashboard/auth/login/?next=/dashboard/",
