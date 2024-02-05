@@ -55,11 +55,6 @@ type HorizonSpec struct {
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// Debug - enable debug for different deploy stages. If an init container is used, it runs and the
-	// actual action pod gets started with sleep infinity
-	Debug HorizonDebug `json:"debug,omitempty"`
-
-	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=false
 	// PreserveJobs - do not delete jobs after they finished e.g. to check logs
 	PreserveJobs bool `json:"preserveJobs"`
@@ -101,14 +96,6 @@ type HorizonSpec struct {
 type HorizionOverrideSpec struct {
 	// Override configuration for the Service created to serve traffic to the cluster.
 	Service *service.RoutedOverrideSpec `json:"service,omitempty"`
-}
-
-// HorizonDebug can be used to enable debug in the Horizon service
-type HorizonDebug struct {
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=false
-	// Service enable debug
-	Service bool `json:"service"`
 }
 
 // HorizonStatus defines the observed state of Horizon

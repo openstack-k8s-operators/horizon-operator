@@ -74,8 +74,6 @@ enabled: true
 template:
   containerImage: ""
   customServiceConfig: SESSION_TIMEOUT = 3600
-  debug:
-    service: false
   preserveJobs: false
   replicas: 1
   resources: {}
@@ -103,8 +101,6 @@ enabled: true
 template:
   containerImage: ""
   customServiceConfig: SESSION_TIMEOUT = 3600
-  debug:
-    service: false
   preserveJobs: false
   replicas: 1
   resources: {}
