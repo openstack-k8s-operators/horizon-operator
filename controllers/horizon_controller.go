@@ -60,7 +60,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // GetClient -
@@ -210,13 +209,11 @@ const (
 	caBundleSecretNameField = ".spec.tls.caBundleSecretName"
 )
 
-var (
-	allWatchFields = []string{
-		passwordSecretField,
-		caBundleSecretNameField,
-		tlsField,
-	}
-)
+var allWatchFields = []string{
+	passwordSecretField,
+	caBundleSecretNameField,
+	tlsField,
+}
 
 // SetupWithManager -
 func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -258,7 +255,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	memcachedFn := func(o client.Object) []reconcile.Request {
+	memcachedFn := func(ctx context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all Horizon CRs
@@ -296,17 +293,17 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
-		Watches(&source.Kind{Type: &memcachedv1.Memcached{}},
+		Watches(&memcachedv1.Memcached{},
 			handler.EnqueueRequestsFromMapFunc(memcachedFn)).
 		Watches(
-			&source.Kind{Type: &corev1.Secret{}},
+			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
 		Complete(r)
 }
 
-func (r *HorizonReconciler) findObjectsForSrc(src client.Object) []reconcile.Request {
+func (r *HorizonReconciler) findObjectsForSrc(ctx context.Context, src client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 
 	l := log.FromContext(context.Background()).WithName("Controllers").WithName("Horizon")
@@ -690,7 +687,6 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 
 	// Define a new Deployment object
 	deplDef, err := horizon.Deployment(instance, inputHash, serviceLabels)
-
 	if err != nil {
 		Log.Error(err, "Deployment failed")
 		instance.Status.Conditions.Set(condition.FalseCondition(
