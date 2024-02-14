@@ -27,7 +27,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // HorizonDefaults -
@@ -77,25 +76,25 @@ func (spec *HorizonSpec) Default() {
 var _ webhook.Validator = &Horizon{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Horizon) ValidateCreate() (admission.Warnings, error) {
+func (r *Horizon) ValidateCreate() error {
 	horizonlog.Info("validate create", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object creation.
-	return nil, nil
+	return nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Horizon) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+func (r *Horizon) ValidateUpdate(old runtime.Object) error {
 	horizonlog.Info("validate update", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object update.
-	return nil, nil
+	return nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Horizon) ValidateDelete() (admission.Warnings, error) {
+func (r *Horizon) ValidateDelete() error {
 	horizonlog.Info("validate delete", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object deletion.
-	return nil, nil
+	return nil
 }
