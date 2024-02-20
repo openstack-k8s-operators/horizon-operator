@@ -19,7 +19,7 @@ commands:
       set -x
       RETURN_CODE=0
       PUBLIC_URL=$(oc get -n $NAMESPACE horizon horizon -o jsonpath='{.status.endpoint}')
-      STATUSCODE=$(curl --silent --output /dev/stderr --head --write-out "%{http_code}" "$PUBLIC_URL/dashboard/auth/login/?next=/dashboard/" -k)
+      STATUSCODE=$(oc exec -it deployment/horizon -- curl --silent --output /dev/stderr --head --write-out "%{http_code}" "$PUBLIC_URL/dashboard/auth/login/?next=/dashboard/" -k)
       if test $STATUSCODE -ne 200; then
           RETURN_CODE=1
           echo "${PUBLIC_URL} status code expected is 200 but was ${STATUSCODE}"
