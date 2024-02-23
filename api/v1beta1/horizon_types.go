@@ -35,9 +35,15 @@ const (
 
 // HorizonSpec defines the desired state of Horizon
 type HorizonSpec struct {
+	HorizonSpecCore `json:",inline"`
+
 	// +kubebuilder:validation:Required
 	// horizon Container Image URL
 	ContainerImage string `json:"containerImage"`
+}
+
+// HorizonSpecBase -
+type HorizonSpecCore struct {
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=1
