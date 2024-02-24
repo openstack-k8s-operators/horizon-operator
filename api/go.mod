@@ -12,6 +12,8 @@ require (
 require (
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
+	go.uber.org/goleak v1.3.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a // indirect
 )
 
