@@ -10,8 +10,8 @@ replace github.com/openstack-k8s-operators/horizon-operator/api => ./api
 require (
 	github.com/go-logr/logr v1.4.1
 	github.com/google/uuid v1.6.0
-	github.com/onsi/ginkgo/v2 v2.14.0
-	github.com/onsi/gomega v1.30.0
+	github.com/onsi/ginkgo/v2 v2.15.0
+	github.com/onsi/gomega v1.31.1
 	github.com/openstack-k8s-operators/horizon-operator/api v0.3.1-0.20240214134444-c675e5f69043
 	github.com/openstack-k8s-operators/infra-operator/apis v0.3.1-0.20240219072823-a587b364203f
 	github.com/openstack-k8s-operators/keystone-operator/api v0.3.1-0.20240219094943-9bbb46c9afba
