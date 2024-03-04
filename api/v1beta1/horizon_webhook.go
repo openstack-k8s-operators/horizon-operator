@@ -66,9 +66,16 @@ func (r *Horizon) Default() {
 
 // Default - set defaults for this Horizon spec
 func (spec *HorizonSpec) Default() {
+    // NOTE: only containerImage validations go here
 	if spec.ContainerImage == "" {
 		spec.ContainerImage = horizonDefaults.ContainerImageURL
 	}
+	spec.HorizonSpecCore.Default()
+}
+
+// Default - set defaults for this Horizon spec core (this one gets used by OpenstackControlPlane)
+func (spec *HorizonSpecCore) Default() {
+	// nothing here yet
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
