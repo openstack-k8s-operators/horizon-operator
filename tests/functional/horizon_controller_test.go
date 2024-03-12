@@ -33,7 +33,9 @@ var _ = Describe("Horizon controller", func() {
 			Namespace: horizonName.Namespace,
 		}
 		memcachedSpec = memcachedv1.MemcachedSpec{
-			Replicas: ptr.To[int32](3),
+			MemcachedSpecCore: memcachedv1.MemcachedSpecCore{
+				Replicas: ptr.To[int32](3),
+			},
 		}
 
 		// lib-common uses OPERATOR_TEMPLATES env var to locate the "templates"
@@ -214,7 +216,11 @@ var _ = Describe("Horizon controller", func() {
 			Expect(cm.Data["local_settings.py"]).Should(
 				ContainSubstring("OPENSTACK_KEYSTONE_URL = \"http://keystone-internal.openstack.svc:5000/v3\""))
 			Expect(cm.Data["local_settings.py"]).Should(
-				ContainSubstring("'LOCATION': [ 'memcached-0.memcached:11211', 'memcached-1.memcached:11211', 'memcached-2.memcached:11211' ]"))
+				ContainSubstring(
+					fmt.Sprintf(
+						"'LOCATION': [ 'memcached-0.memcached.%s.svc:11211','memcached-1.memcached.%s.svc:11211','memcached-2.memcached.%s.svc:11211' ]",
+						horizonName.Namespace, horizonName.Namespace, horizonName.Namespace,
+					)))
 		})
 	})
 
