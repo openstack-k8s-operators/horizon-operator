@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -528,7 +527,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	//
 	// Check for required memcached used for caching
 	//
-	memcached, err := r.getHorizonMemcached(ctx, helper, instance)
+	memcached, err := memcachedv1.GetMemcachedByName(ctx, helper, instance.Spec.MemcachedInstance, instance.Namespace)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -774,8 +773,6 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return err
 	}
 
-	memcachedServers := strings.Join(mc.Status.ServerList, "', '")
-
 	url, err := url.Parse(instance.Status.Endpoint)
 	if err != nil {
 		return err
@@ -784,7 +781,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	templateParameters := map[string]interface{}{
 		"keystoneURL":        authURL,
 		"horizonEndpointUrl": url.Host,
-		"memcachedServers":   fmt.Sprintf("'%s'", memcachedServers),
+		"memcachedServers":   mc.GetMemcachedServerListQuotedString(),
 		"ServerName":         fmt.Sprintf("%s.%s.svc", horizon.ServiceName, instance.Namespace),
 		"Port":               horizon.HorizonPort,
 		"TLS":                false,
@@ -871,25 +868,6 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 	}
 
 	return nil
-}
-
-func (r *HorizonReconciler) getHorizonMemcached(
-	ctx context.Context,
-	h *helper.Helper,
-	instance *horizonv1beta1.Horizon,
-) (*memcachedv1.Memcached, error) {
-	memcached := &memcachedv1.Memcached{}
-	err := h.GetClient().Get(
-		ctx,
-		types.NamespacedName{
-			Name:      instance.Spec.MemcachedInstance,
-			Namespace: instance.Namespace,
-		},
-		memcached)
-	if err != nil {
-		return nil, err
-	}
-	return memcached, err
 }
 
 func validateHorizonSecret(secret *corev1.Secret) bool {
