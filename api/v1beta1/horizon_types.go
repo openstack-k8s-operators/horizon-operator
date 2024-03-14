@@ -35,15 +35,38 @@ const (
 
 // HorizonSpec defines the desired state of Horizon
 type HorizonSpec struct {
-	HorizonSpecCore `json:",inline"`
-
 	// +kubebuilder:validation:Required
 	// horizon Container Image URL
 	ContainerImage string `json:"containerImage"`
+
+	HorizonSpecCore `json:",inline"`
 }
 
 // HorizonSpecBase -
 type HorizonSpecCore struct {
+	// +kubebuilder:validation:Optional
+	// NodeSelector to target subset of worker nodes running this service
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// ConfigOverwrite - interface to overwrite default config files like e.g. logging.conf or policy.json.
+	// But can also be used to add additional files. Those get added to the service config dir in /etc/<service> .
+	// TODO: -> implement
+	DefaultConfigOverwrite map[string]string `json:"defaultConfigOverwrite,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// Resources - Compute Resources required by this service (Limits/Requests).
+	// https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// Override, provides the ability to override the generated manifest of several child resources.
+	Override HorizionOverrideSpec `json:"override,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// TLS - Parameters related to the TLS
+	TLS tls.SimpleService `json:"tls,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default=1
@@ -57,31 +80,11 @@ type HorizonSpecCore struct {
 	Secret string `json:"secret"`
 
 	// +kubebuilder:validation:Optional
-	// NodeSelector to target subset of worker nodes running this service
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=false
-	// PreserveJobs - do not delete jobs after they finished e.g. to check logs
-	PreserveJobs bool `json:"preserveJobs"`
-
-	// +kubebuilder:validation:Optional
 	// +kubebuilder:default="# add your customization here"
 	// CustomServiceConfig - customize the service config using this parameter to change service defaults,
 	// or overwrite rendered information using raw OpenStack config format. The content gets added to
 	// to /etc/openstack-dashboard/local_settings.d directory as 9999_custom_settings.py file.
 	CustomServiceConfig string `json:"customServiceConfig"`
-
-	// +kubebuilder:validation:Optional
-	// ConfigOverwrite - interface to overwrite default config files like e.g. logging.conf or policy.json.
-	// But can also be used to add additional files. Those get added to the service config dir in /etc/<service> .
-	// TODO: -> implement
-	DefaultConfigOverwrite map[string]string `json:"defaultConfigOverwrite,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	// Resources - Compute Resources required by this service (Limits/Requests).
-	// https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default=memcached
@@ -89,13 +92,9 @@ type HorizonSpecCore struct {
 	MemcachedInstance string `json:"memcachedInstance"`
 
 	// +kubebuilder:validation:Optional
-	// Override, provides the ability to override the generated manifest of several child resources.
-	Override HorizionOverrideSpec `json:"override,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	// TLS - Parameters related to the TLS
-	TLS tls.SimpleService `json:"tls,omitempty"`
+	// +kubebuilder:default=false
+	// PreserveJobs - do not delete jobs after they finished e.g. to check logs
+	PreserveJobs bool `json:"preserveJobs"`
 }
 
 // HorizionOverrideSpec to override the generated manifest of several child resources.
@@ -106,9 +105,6 @@ type HorizionOverrideSpec struct {
 
 // HorizonStatus defines the observed state of Horizon
 type HorizonStatus struct {
-	// ReadyCount of Horizon instances
-	ReadyCount int32 `json:"readyCount,omitempty"`
-
 	// Map of hashes to track e.g. job status
 	Hash map[string]string `json:"hash,omitempty"`
 
@@ -117,6 +113,9 @@ type HorizonStatus struct {
 
 	// Conditions
 	Conditions condition.Conditions `json:"conditions,omitempty" option:"true"`
+
+	// ReadyCount of Horizon instances
+	ReadyCount int32 `json:"readyCount,omitempty"`
 }
 
 //+kubebuilder:object:root=true
