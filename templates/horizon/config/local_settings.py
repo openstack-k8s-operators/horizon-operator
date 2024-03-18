@@ -95,7 +95,9 @@ SECRET_KEY = secret_key.read_from_file(
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
-        'LOCATION': [ {{.memcachedServers}} ]
+        'LOCATION': [ {{.memcachedServers}} ],
+        # To drop the cached sessions when config changes
+        'KEY_PREFIX': os.environ['CONFIG_HASH']
     },
 }
 
@@ -103,6 +105,7 @@ CACHES = {
 # SESSION_ENGINE to django.contrib.sessions.backends.signed_cookies
 # as shown below:
 #SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 
 
 # Send email to the console by default
