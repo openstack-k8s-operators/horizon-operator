@@ -35,6 +35,7 @@ HORIZON_CONFIG["password_validator"] = {
     "help_text": _(""),
 }
 HORIZON_CONFIG["enforce_password_check"] = True
+POLICY_FILES_PATH = '/etc/openstack-dashboard'
 
 DEBUG = False
 # This setting controls whether or not compression is enabled. Disabling
