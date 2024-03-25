@@ -52,10 +52,23 @@ DEBUG = False
 # with the list of host/domain names that the application can serve.
 # For more information see:
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-#ALLOWED_HOSTS = ["{{ .horizonEndpointUrl }}", ]
-# liveness checks will fail if we restrict this to just the route. We are setting
-# this to enable liveness checks.
-ALLOWED_HOSTS = ["*", ]
+
+# get_pod_ip retrieves the pod's primary interface IP address. This is necessary
+# due to the dynamic IP addressing of pods. The HealthCheck needs to be able to
+# check the specific pod. We can't simply check via the route, since such a check
+# could land on any of the replicas. Instead, we need to explicity check the pod
+# we're currently running on. Therefore, we need to execute this function to
+# retrieve the IP address, which we will then in turn add to the ALLOWED_HOSTS list.
+def get_pod_ip():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("{{ .horizonEndpointUrl }}", 80))
+        return s.getsockname()[0]
+    finally:
+        s.close()
+
+ALLOWED_HOSTS = [get_pod_ip(), "{{ .horizonEndpointUrl }}"]
 
 # Set SSL proxy settings:
 # Pass this header from the proxy after terminating the SSL,
