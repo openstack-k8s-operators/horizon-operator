@@ -15,6 +15,10 @@ limitations under the License.
 
 package horizon
 
+import (
+	"github.com/openstack-k8s-operators/lib-common/modules/storage"
+)
+
 const (
 	// ServiceName -
 	ServiceName = "horizon"
@@ -30,4 +34,14 @@ const (
 
 	// HorizonPortName -
 	HorizonPortName = "horizon"
+
+	// HorizonExtraVolTypeUndefined can be used to label an extraMount which is
+	// not associated to anything in particular
+	HorizonExtraVolTypeUndefined storage.ExtraVolType = "Undefined"
+	// Horizon is the global ServiceType that refers to all the components deployed
+	// by the horizon-operator
+	Horizon storage.PropagationType = "Horizon"
 )
+
+// HorizonPropagation is the  definition of the Horizon propagation service
+var HorizonPropagation = []storage.PropagationType{Horizon}
