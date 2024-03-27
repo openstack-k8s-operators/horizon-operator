@@ -2,10 +2,10 @@ apiVersion: operators.coreos.com/v1beta1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    features.operators.openshift.io/fips-compliant: "true"
     alm-examples: '[]'
     capabilities: Basic Install
     features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "true"
     operatorframework.io/suggested-namespace: openstack
     operators.openshift.io/infrastructure-features: '["disconnected"]'
     operators.operatorframework.io/operator-type: non-standalone
@@ -19,6 +19,10 @@ spec:
       displayName: Horizon
       kind: Horizon
       name: horizons.horizon.openstack.org
+      specDescriptors:
+      - description: TLS - Parameters related to the TLS
+        displayName: TLS
+        path: tls
       version: v1beta1
   description: Horizon Operator
   displayName: Horizon Operator
