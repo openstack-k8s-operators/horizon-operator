@@ -16,14 +16,20 @@ limitations under the License.
 package horizon
 
 import (
+	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
+	"github.com/openstack-k8s-operators/lib-common/modules/storage"
 	corev1 "k8s.io/api/core/v1"
 )
 
-func getVolumes(name string) []corev1.Volume {
+func getVolumes(
+	name string,
+	extraVol []horizonv1.HorizonExtraVolMounts,
+	svc []storage.PropagationType,
+) []corev1.Volume {
 	//	var scriptsVolumeDefaultMode int32 = 0755
 	var config0640AccessMode int32 = 0640
 	var config0600AccessMode int32 = 0600
-	return []corev1.Volume{
+	res := []corev1.Volume{
 		{
 			Name: "config-data",
 			VolumeSource: corev1.VolumeSource{
@@ -45,11 +51,20 @@ func getVolumes(name string) []corev1.Volume {
 			},
 		},
 	}
+	for _, exv := range extraVol {
+		for _, vol := range exv.Propagate(svc) {
+			res = append(res, vol.Volumes...)
+		}
+	}
+	return res
 }
 
 // getVolumeMounts - general VolumeMounts
-func getVolumeMounts() []corev1.VolumeMount {
-	return []corev1.VolumeMount{
+func getVolumeMounts(
+	extraVol []horizonv1.HorizonExtraVolMounts,
+	svc []storage.PropagationType,
+) []corev1.VolumeMount {
+	vm := []corev1.VolumeMount{
 		{
 			Name:      "config-data",
 			MountPath: "/var/lib/config-data/default/",
@@ -67,4 +82,10 @@ func getVolumeMounts() []corev1.VolumeMount {
 			Name:      "horizon-secret-key",
 		},
 	}
+	for _, exv := range extraVol {
+		for _, vol := range exv.Propagate(svc) {
+			vm = append(vm, vol.Mounts...)
+		}
+	}
+	return vm
 }

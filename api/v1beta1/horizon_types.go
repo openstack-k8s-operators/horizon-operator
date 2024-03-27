@@ -23,6 +23,7 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
+	"github.com/openstack-k8s-operators/lib-common/modules/storage"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -95,6 +96,10 @@ type HorizonSpecCore struct {
 	// +kubebuilder:default=false
 	// PreserveJobs - do not delete jobs after they finished e.g. to check logs
 	PreserveJobs bool `json:"preserveJobs"`
+
+	// ExtraMounts containing conf files
+	// +kubebuilder:default={}
+	ExtraMounts []HorizonExtraVolMounts `json:"extraMounts,omitempty"`
 }
 
 // HorizionOverrideSpec to override the generated manifest of several child resources.
@@ -182,4 +187,25 @@ func SetupDefaults() {
 	}
 
 	SetupHorizonDefaults(horizonDefaults)
+}
+
+// HorizonExtraVolMounts exposes additional parameters processed by the horizon-operator
+// and defines the common VolMounts structure provided by the main storage module
+type HorizonExtraVolMounts struct {
+	// +kubebuilder:validation:Optional
+	Name string `json:"name,omitempty"`
+	// +kubebuilder:validation:Optional
+	Region string `json:"region,omitempty"`
+	// +kubebuilder:validation:Required
+	VolMounts []storage.VolMounts `json:"extraVol"`
+}
+
+// Propagate is a function used to filter VolMounts according to the specified
+// PropagationType array
+func (c *HorizonExtraVolMounts) Propagate(svc []storage.PropagationType) []storage.VolMounts {
+	var vl []storage.VolMounts
+	for _, gv := range c.VolMounts {
+		vl = append(vl, gv.Propagate(svc)...)
+	}
+	return vl
 }

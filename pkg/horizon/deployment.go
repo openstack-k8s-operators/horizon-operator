@@ -90,8 +90,8 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 	envVars["CONFIG_HASH"] = env.SetValue(configHash)
 
 	// create Volumes and VolumeMounts
-	volumes := getVolumes(instance.Name)
-	volumeMounts := getVolumeMounts()
+	volumes := getVolumes(instance.Name, instance.Spec.ExtraMounts, HorizonPropagation)
+	volumeMounts := getVolumeMounts(instance.Spec.ExtraMounts, HorizonPropagation)
 
 	// add CA cert if defined
 	if instance.Spec.TLS.CaBundleSecretName != "" {
