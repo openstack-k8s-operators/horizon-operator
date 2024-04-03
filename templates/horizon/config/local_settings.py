@@ -13,6 +13,7 @@
 # ----------------------------------------------------------------------
 
 import os
+import ssl
 
 from django.utils.translation import gettext_lazy as _
 
@@ -111,7 +112,12 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
         'LOCATION': [ {{.memcachedServers}} ],
         # To drop the cached sessions when config changes
-        'KEY_PREFIX': os.environ['CONFIG_HASH']
+        'KEY_PREFIX': os.environ['CONFIG_HASH'],
+        'OPTIONS': {
+{{- if .memcachedTLS }}
+            'tls_context': ssl.create_default_context()
+{{- end }}
+        }
     },
 }
 

@@ -786,6 +786,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		"keystoneURL":        authURL,
 		"horizonEndpointUrl": url.Host,
 		"memcachedServers":   mc.GetMemcachedServerListQuotedString(),
+		"memcachedTLS":       mc.GetMemcachedTLSSupport(),
 		"ServerName":         fmt.Sprintf("%s.%s.svc", horizon.ServiceName, instance.Namespace),
 		"Port":               horizon.HorizonPort,
 		"TLS":                false,
