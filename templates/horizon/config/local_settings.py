@@ -57,17 +57,16 @@ DEBUG = False
 # this to enable liveness checks.
 ALLOWED_HOSTS = ["*", ]
 
-# Set SSL proxy settings:
-# Pass this header from the proxy after terminating the SSL,
-# and don't forget to strip it from the client's request.
-# For more information see:
-# https://docs.djangoproject.com/en/dev/ref/settings/#secure-proxy-ssl-header
-#SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
 
-# If Horizon is being served through SSL, then uncomment the following two
-# settings to better secure the cookies from security exploits
-#CSRF_COOKIE_SECURE = True
-#SESSION_COOKIE_SECURE = True
+{{- if .isPublicHTTPS }}
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+SECURE_HSTS_SECONDS = 31536000
+{{- end }}
 
 LOCAL_PATH = os.path.dirname(os.path.abspath(__file__))
 

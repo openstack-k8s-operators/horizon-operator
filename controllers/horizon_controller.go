@@ -785,6 +785,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		"ServerName":         fmt.Sprintf("%s.%s.svc", horizon.ServiceName, instance.Namespace),
 		"Port":               horizon.HorizonPort,
 		"TLS":                false,
+		"isPublicHTTPS":      url.Scheme == "https",
 	}
 
 	// create httpd tls template parameters
