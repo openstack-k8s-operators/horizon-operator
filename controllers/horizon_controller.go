@@ -178,6 +178,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	)
 
 	instance.Status.Conditions.Init(&cl)
+	instance.Status.ObservedGeneration = instance.Generation
 
 	// If we're not deleting this and the service object doesn't have our finalizer, add it.
 	if instance.DeletionTimestamp.IsZero() && controllerutil.AddFinalizer(instance, helper.GetFinalizer()) || isNewInstance {
@@ -717,7 +718,12 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 		return ctrlResult, nil
 	}
 	instance.Status.ReadyCount = depl.GetDeployment().Status.ReadyReplicas
-	if instance.Status.ReadyCount > 0 {
+	// Mark the Deployment as Ready only if the number of Replicas is equals
+	// to the Deployed instances (ReadyCount), but mark it as True is Replicas
+	// is zero. In addition, make sure the controller sees the last Generation
+	// by comparing it with the ObservedGeneration set in the StateFulSet.
+	if (instance.Status.ReadyCount == *instance.Spec.Replicas) &&
+		(depl.GetDeployment().Generation == depl.GetDeployment().Status.ObservedGeneration) {
 		instance.Status.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
 	} else {
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -728,8 +734,6 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	}
 	// create Deployment - end
 
-	// Update the lastObserved generation before evaluating conditions
-	instance.Status.ObservedGeneration = instance.Generation
 	// We reached the end of the Reconcile, update the Ready condition based on
 	// the sub conditions
 	if instance.Status.Conditions.AllSubConditionIsTrue() {
