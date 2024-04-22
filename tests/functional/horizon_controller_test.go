@@ -322,6 +322,13 @@ var _ = Describe("Horizon controller", func() {
 				Namespace: namespace,
 			}))
 
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.TLSInputReadyCondition,
+				corev1.ConditionTrue,
+			)
+
 			th.SimulateDeploymentReplicaReady(deploymentName)
 
 			th.ExpectCondition(
@@ -364,6 +371,13 @@ var _ = Describe("Horizon controller", func() {
 				Name:      InternalCertSecretName,
 				Namespace: namespace,
 			}))
+
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.TLSInputReadyCondition,
+				corev1.ConditionTrue,
+			)
 
 			th.SimulateDeploymentReplicaReady(deploymentName)
 
