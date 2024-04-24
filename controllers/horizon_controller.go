@@ -302,7 +302,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *HorizonReconciler) findObjectsForSrc(ctx context.Context, src client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 
-	l := log.FromContext(context.Background()).WithName("Controllers").WithName("Horizon")
+	l := log.FromContext(ctx).WithName("Controllers").WithName("Horizon")
 
 	for _, field := range allWatchFields {
 		crList := &horizonv1beta1.HorizonList{}
@@ -310,7 +310,7 @@ func (r *HorizonReconciler) findObjectsForSrc(ctx context.Context, src client.Ob
 			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),
 			Namespace:     src.GetNamespace(),
 		}
-		err := r.Client.List(context.TODO(), crList, listOps)
+		err := r.Client.List(ctx, crList, listOps)
 		if err != nil {
 			return []reconcile.Request{}
 		}
@@ -460,7 +460,7 @@ func (r *HorizonReconciler) reconcileInit(
 	return ctrl.Result{}, nil
 }
 
-func (r *HorizonReconciler) reconcileUpdate(ctx context.Context, instance *horizonv1beta1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
+func (r *HorizonReconciler) reconcileUpdate(ctx context.Context) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info("Reconciling Service update")
 
@@ -471,7 +471,7 @@ func (r *HorizonReconciler) reconcileUpdate(ctx context.Context, instance *horiz
 	return ctrl.Result{}, nil
 }
 
-func (r *HorizonReconciler) reconcileUpgrade(ctx context.Context, instance *horizonv1beta1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
+func (r *HorizonReconciler) reconcileUpgrade(ctx context.Context) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info("Reconciling Service upgrade")
 
@@ -666,13 +666,13 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	}
 
 	// Handle service update
-	ctrlResult, err = r.reconcileUpdate(ctx, instance, helper)
+	ctrlResult, err = r.reconcileUpdate(ctx)
 	if err != nil || (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, err
 	}
 
 	// Handle service upgrade
-	ctrlResult, err = r.reconcileUpgrade(ctx, instance, helper)
+	ctrlResult, err = r.reconcileUpgrade(ctx)
 	if err != nil || (ctrlResult != ctrl.Result{}) {
 		return ctrlResult, err
 	}

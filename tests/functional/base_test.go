@@ -18,7 +18,7 @@ package functional_test
 
 import (
 	"github.com/onsi/gomega"
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega" //revive:disable:dot-imports
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
