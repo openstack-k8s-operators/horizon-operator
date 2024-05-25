@@ -7,7 +7,7 @@ require (
 	github.com/openstack-k8s-operators/lib-common/modules/storage v0.3.0
 	k8s.io/api v0.28.9
 	k8s.io/apimachinery v0.28.9
-	sigs.k8s.io/controller-runtime v0.16.5
+	sigs.k8s.io/controller-runtime v0.16.6
 )
 
 require (
