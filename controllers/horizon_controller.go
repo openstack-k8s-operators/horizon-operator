@@ -365,6 +365,11 @@ func (r *HorizonReconciler) reconcileInit(
 		svcOverride.EmbeddedLabelsAnnotations = &service.EmbeddedLabelsAnnotations{}
 	}
 
+	// Enable HSTS on Route
+	svcOverride.AddAnnotation(map[string]string{
+		"haproxy.router.openshift.io/hsts_header": "max-age=31536000;includeSubDomains;preload",
+	})
+
 	servicePort := corev1.ServicePort{
 		Name:     endpointName,
 		Port:     horizon.HorizonPort,
