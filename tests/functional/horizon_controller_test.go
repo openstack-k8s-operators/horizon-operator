@@ -63,7 +63,7 @@ var _ = Describe("Horizon controller", func() {
 			// it to run
 			Eventually(func() []string {
 				return GetHorizon(horizonName).Finalizers
-			}, timeout, interval).Should(ContainElement("Horizon"))
+			}, timeout, interval).Should(ContainElement("openstack.org/horizon"))
 		})
 
 		It("should have Unknown Conditions initialized", func() {
