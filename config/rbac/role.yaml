@@ -25,6 +25,7 @@ rules:
   - create
   - get
   - list
+  - patch
   - update
   - watch
 - apiGroups:
@@ -92,6 +93,7 @@ rules:
   resources:
   - horizons/finalizers
   verbs:
+  - patch
   - update
 - apiGroups:
   - horizon.openstack.org
@@ -133,6 +135,7 @@ rules:
   - create
   - get
   - list
+  - patch
   - update
   - watch
 - apiGroups:
@@ -143,6 +146,7 @@ rules:
   - create
   - get
   - list
+  - patch
   - update
   - watch
 - apiGroups:
