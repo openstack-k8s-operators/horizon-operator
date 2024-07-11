@@ -29,9 +29,6 @@ spec:
       version: v1beta1
   description: Horizon Operator
   displayName: Horizon Operator
-  icon:
-  - base64data: ""
-    mediatype: ""
   install:
     spec:
       deployments: null
