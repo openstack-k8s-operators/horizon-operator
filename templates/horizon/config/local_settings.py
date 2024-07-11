@@ -71,7 +71,7 @@ def get_pod_ip():
         s.close()
         s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
         s.connect(("{{ .horizonEndpointUrl }}", 80))
-        return s.getsockname()[0]
+        return "[{}]".format(s.getsockname()[0])
     finally:
         s.close()
 
