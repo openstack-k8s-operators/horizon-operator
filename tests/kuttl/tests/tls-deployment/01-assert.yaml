@@ -31,7 +31,7 @@ spec:
                   values:
                   - horizon
               topologyKey: kubernetes.io/hostname
-            weight: 1
+            weight: 100
       containers:
       - livenessProbe:
           httpGet:
