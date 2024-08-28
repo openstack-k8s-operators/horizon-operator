@@ -411,4 +411,33 @@ var _ = Describe("Horizon controller", func() {
 			}, timeout, interval).Should(Succeed())
 		})
 	})
+	When("Horizon CR instance is built with NAD", func() {
+		BeforeEach(func() {
+			nad := th.CreateNetworkAttachmentDefinition(types.NamespacedName{
+				Namespace: namespace,
+				Name:      "internalapi",
+			})
+			DeferCleanup(th.DeleteInstance, nad)
+			rawSpec := map[string]interface{}{
+				"secret":             SecretName,
+				"networkAttachments": []string{"storage"},
+				"memcachedInstance":  "memcached",
+			}
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, rawSpec))
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
+			DeferCleanup(infra.DeleteMemcached, infra.CreateMemcached(namespace, "memcached", memcachedSpec))
+			infra.SimulateMemcachedReady(types.NamespacedName{
+				Name:      "memcached",
+				Namespace: namespace,
+			})
+			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
+			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
+		})
+		It("Check the resulting endpoints of the generated sub-CRs", func() {
+			th.SimulateDeploymentReplicaReady(horizonName)
+			horizon := GetHorizon(horizonName)
+			Expect(horizon.Spec.NetworkAttachments).To(Equal([]string{"storage"}))
+		})
+	})
 })

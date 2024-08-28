@@ -33,7 +33,12 @@ const (
 )
 
 // Deployment creates the k8s deployment structure required to run Horizon
-func Deployment(instance *horizonv1.Horizon, configHash string, labels map[string]string) (*appsv1.Deployment, error) {
+func Deployment(
+	instance *horizonv1.Horizon,
+	configHash string,
+	labels map[string]string,
+	annotations map[string]string,
+) (*appsv1.Deployment, error) {
 	runAsUser := int64(0)
 
 	args := []string{"-c", ServiceCommand}
@@ -124,7 +129,8 @@ func Deployment(instance *horizonv1.Horizon, configHash string, labels map[strin
 			Replicas: instance.Spec.Replicas,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
+					Annotations: annotations,
+					Labels:      labels,
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: instance.RbacResourceName(),
