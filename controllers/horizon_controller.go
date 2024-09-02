@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	networkv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	horizonv1beta1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 	horizon "github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
@@ -35,17 +36,17 @@ import (
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
 	helper "github.com/openstack-k8s-operators/lib-common/modules/common/helper"
 	labels "github.com/openstack-k8s-operators/lib-common/modules/common/labels"
+	nad "github.com/openstack-k8s-operators/lib-common/modules/common/networkattachment"
 	common_rbac "github.com/openstack-k8s-operators/lib-common/modules/common/rbac"
 	oko_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
-	"k8s.io/apimachinery/pkg/fields"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8s_errors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -106,6 +107,8 @@ type HorizonReconciler struct {
 // service account permissions that are needed to grant permission to the above
 // +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
 // +kubebuilder:rbac:groups="",resources=pods,verbs=create;delete;get;list;patch;update;watch
+// +kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
+// service account, role, rolebinding
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -280,6 +283,35 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return nil
 	}
 
+	// Watch for changes to NADs
+	nadFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+		result := []reconcile.Request{}
+
+		// get all Horizon CRs
+		horizonList := &horizonv1beta1.HorizonList{}
+		listOpts := []client.ListOption{
+			client.InNamespace(o.GetNamespace()),
+		}
+		if err := r.Client.List(context.Background(), horizonList, listOpts...); err != nil {
+			logger.Error(err, "Unable to retrieve Horizon CRs %w")
+			return nil
+		}
+		for _, cr := range horizonList.Items {
+			if util.StringInSlice(o.GetName(), cr.Spec.NetworkAttachments) {
+				name := client.ObjectKey{
+					Namespace: cr.GetNamespace(),
+					Name:      cr.GetName(),
+				}
+				logger.Info(fmt.Sprintf("NAD %s is used by Horizon CR %s", o.GetName(), cr.GetName()))
+				result = append(result, reconcile.Request{NamespacedName: name})
+			}
+		}
+		if len(result) > 0 {
+			return result
+		}
+		return nil
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&horizonv1beta1.Horizon{}).
 		Owns(&corev1.Service{}).
@@ -291,6 +323,8 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rbacv1.RoleBinding{}).
 		Watches(&memcachedv1.Memcached{},
 			handler.EnqueueRequestsFromMapFunc(memcachedFn)).
+		Watches(&networkv1.NetworkAttachmentDefinition{},
+			handler.EnqueueRequestsFromMapFunc(nadFn)).
 		Watches(
 			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
@@ -668,6 +702,22 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 		return ctrlResult, err
 	}
 
+	var serviceAnnotations map[string]string
+	// networks to attach to
+	serviceAnnotations, ctrlResult, err = r.ensureNAD(ctx, instance, instance.Spec.NetworkAttachments, helper)
+	if err != nil {
+		instance.Status.Conditions.MarkFalse(
+			condition.NetworkAttachmentsReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.NetworkAttachmentsReadyErrorMessage,
+			err,
+		)
+		return ctrlResult, err
+	}
+
+	instance.Status.Conditions.MarkTrue(condition.NetworkAttachmentsReadyCondition, condition.NetworkAttachmentsReadyMessage)
+
 	// Handle service update
 	ctrlResult, err = r.reconcileUpdate(ctx)
 	if err != nil || (ctrlResult != ctrl.Result{}) {
@@ -685,7 +735,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	//
 
 	// Define a new Deployment object
-	deplDef, err := horizon.Deployment(instance, inputHash, serviceLabels)
+	deplDef, err := horizon.Deployment(instance, inputHash, serviceLabels, serviceAnnotations)
 	if err != nil {
 		Log.Error(err, "Deployment failed")
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -721,6 +771,42 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 		return ctrlResult, nil
 	}
 	instance.Status.ReadyCount = depl.GetDeployment().Status.ReadyReplicas
+
+	networkReady := false
+	var networkAttachmentStatus map[string][]string
+	// verify if network attachment matches expectations
+	if *instance.Spec.Replicas > 0 {
+		networkReady, networkAttachmentStatus, err = nad.VerifyNetworkStatusFromAnnotation(
+			ctx,
+			helper,
+			instance.Spec.NetworkAttachments,
+			serviceLabels,
+			instance.Status.ReadyCount,
+		)
+		if err != nil {
+			err = fmt.Errorf("verifying API NetworkAttachments (%s) %w", instance.Spec.NetworkAttachments, err)
+			instance.Status.Conditions.MarkFalse(
+				condition.NetworkAttachmentsReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.NetworkAttachmentsReadyErrorMessage,
+				err)
+			return ctrl.Result{}, err
+		}
+		instance.Status.NetworkAttachments = networkAttachmentStatus
+		if networkReady {
+			instance.Status.Conditions.MarkTrue(condition.NetworkAttachmentsReadyCondition, condition.NetworkAttachmentsReadyMessage)
+		} else {
+			err := fmt.Errorf("not all pods have interfaces with ips as configured in NetworkAttachments: %s", instance.Spec.NetworkAttachments)
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.NetworkAttachmentsReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.NetworkAttachmentsReadyErrorMessage,
+				err.Error()))
+			return ctrl.Result{}, err
+		}
+	}
 	// Mark the Deployment as Ready only if the number of Replicas is equals
 	// to the Deployed instances (ReadyCount), but mark it as True is Replicas
 	// is zero. In addition, make sure the controller sees the last Generation
@@ -748,7 +834,6 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 }
 
 // generateServiceConfigMaps - create configmaps which hold scripts and service configuration
-// TODO add DefaultConfigOverwrite
 func (r *HorizonReconciler) generateServiceConfigMaps(
 	ctx context.Context,
 	instance *horizonv1beta1.Horizon,
@@ -902,4 +987,49 @@ func configureHorizonRbac(ctx context.Context, helper *helper.Helper, instance *
 		},
 	}
 	return common_rbac.ReconcileRbac(ctx, helper, instance, rbacRules)
+}
+
+// ensureNAD - this function gets NADs based on the string[] passed as input
+// and produces the required Annotation for the Horizon component
+func (r *HorizonReconciler) ensureNAD(
+	ctx context.Context,
+	instance *horizonv1beta1.Horizon,
+	nAttach []string,
+	helper *helper.Helper,
+) (map[string]string, ctrl.Result, error) {
+
+	var serviceAnnotations map[string]string
+	var err error
+	// Iterate over the []networkattachment, get the corresponding NAD and create
+	// the required annotation
+	for _, netAtt := range nAttach {
+		_, err = nad.GetNADWithName(ctx, helper, netAtt, helper.GetBeforeObject().GetNamespace())
+		if err != nil {
+			if k8s_errors.IsNotFound(err) {
+				helper.GetLogger().Info(fmt.Sprintf("network-attachment-definition %s not found", netAtt))
+
+				instance.Status.Conditions.Set(condition.FalseCondition(
+					condition.NetworkAttachmentsReadyCondition,
+					condition.RequestedReason,
+					condition.SeverityInfo,
+					condition.NetworkAttachmentsReadyWaitingMessage,
+					netAtt))
+				return serviceAnnotations, ctrl.Result{RequeueAfter: time.Second * 10}, nil
+			}
+			instance.Status.Conditions.Set(condition.FalseCondition(
+				condition.NetworkAttachmentsReadyCondition,
+				condition.ErrorReason,
+				condition.SeverityWarning,
+				condition.NetworkAttachmentsReadyErrorMessage,
+				err.Error()))
+			return serviceAnnotations, ctrl.Result{RequeueAfter: time.Second * 10}, nil
+		}
+	}
+	// Create NetworkAnnotations
+	serviceAnnotations, err = nad.CreateNetworksAnnotation(helper.GetBeforeObject().GetNamespace(), nAttach)
+	if err != nil {
+		return serviceAnnotations, ctrl.Result{}, fmt.Errorf("failed create network annotation from %s: %w",
+			nAttach, err)
+	}
+	return serviceAnnotations, ctrl.Result{}, err
 }

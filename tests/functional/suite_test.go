@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	networkv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
@@ -97,6 +98,9 @@ var _ = BeforeSuite(func() {
 	memcachedCRDs, err := test.GetCRDDirFromModule(
 		"github.com/openstack-k8s-operators/infra-operator/apis", "../../go.mod", "bases")
 	Expect(err).ShouldNot(HaveOccurred())
+	networkv1CRD, err := test.GetCRDDirFromModule(
+		"github.com/k8snetworkplumbingwg/network-attachment-definition-client", "../../go.mod", "artifacts/networks-crd.yaml")
+	Expect(err).ShouldNot(HaveOccurred())
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
@@ -104,6 +108,11 @@ var _ = BeforeSuite(func() {
 			filepath.Join("..", "..", "config", "crd", "bases"),
 			keystoneCRDs,
 			memcachedCRDs,
+		},
+		CRDInstallOptions: envtest.CRDInstallOptions{
+			Paths: []string{
+				networkv1CRD,
+			},
 		},
 		ErrorIfCRDPathMissing: true,
 		WebhookInstallOptions: envtest.WebhookInstallOptions{
@@ -125,6 +134,8 @@ var _ = BeforeSuite(func() {
 	err = keystonev1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 	err = memcachedv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = networkv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme

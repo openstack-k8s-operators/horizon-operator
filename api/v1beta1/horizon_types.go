@@ -100,6 +100,10 @@ type HorizonSpecCore struct {
 	// ExtraMounts containing conf files
 	// +kubebuilder:default={}
 	ExtraMounts []HorizonExtraVolMounts `json:"extraMounts,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// NetworkAttachments is a list of NetworkAttachment resource names to expose the services to the given network
+	NetworkAttachments []string `json:"networkAttachments,omitempty"`
 }
 
 // HorizionOverrideSpec to override the generated manifest of several child resources.
@@ -127,10 +131,14 @@ type HorizonStatus struct {
 	// then the controller has not processed the latest changes injected by
 	// the opentack-operator in the top-level CR (e.g. the ContainerImage)
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// NetworkAttachments status of the deployment pods
+	NetworkAttachments map[string][]string `json:"networkAttachments,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="NetworkAttachments",type="string",JSONPath=".status.networkAttachments",description="NetworkAttachments"
 //+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[0].status",description="Status"
 //+kubebuilder:printcolumn:name="Message",type="string",JSONPath=".status.conditions[0].message",description="Message"
 
