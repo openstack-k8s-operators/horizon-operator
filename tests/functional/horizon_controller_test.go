@@ -282,8 +282,8 @@ var _ = Describe("Horizon controller", func() {
 				ConditionGetterFunc(HorizonConditionGetter),
 				condition.TLSInputReadyCondition,
 				corev1.ConditionFalse,
-				condition.ErrorReason,
-				fmt.Sprintf("TLSInput error occured in TLS sources Secret %s/combined-ca-bundle not found", namespace),
+				condition.RequestedReason,
+				fmt.Sprintf("TLSInput is missing: %s", CABundleSecretName),
 			)
 			th.ExpectCondition(
 				horizonName,
@@ -303,8 +303,9 @@ var _ = Describe("Horizon controller", func() {
 				ConditionGetterFunc(HorizonConditionGetter),
 				condition.TLSInputReadyCondition,
 				corev1.ConditionFalse,
-				condition.ErrorReason,
-				fmt.Sprintf("TLSInput error occured in TLS sources Secret %s/horizon-tls-certs not found", namespace),
+				condition.RequestedReason,
+				fmt.Sprintf("TLSInput is missing: secrets \"%s in namespace %s\" not found",
+					InternalCertSecretName, namespace),
 			)
 			th.ExpectCondition(
 				horizonName,
