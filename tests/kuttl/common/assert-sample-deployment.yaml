@@ -19,9 +19,14 @@ commands:
       set -x
       RETURN_CODE=0
       PUBLIC_URL=$(oc get -n $NAMESPACE horizon horizon -o jsonpath='{.status.endpoint}')
-      STATUSCODE=$(oc exec -it deployment/horizon -- curl --silent --output /dev/stderr --head --write-out "%{http_code}" "$PUBLIC_URL/dashboard/auth/login/?next=/dashboard/" -k)
-      if test $STATUSCODE -ne 200; then
+      STATUSCODE=$(oc -n $NAMESPACE exec -it deployment/horizon -- curl --silent --output /dev/stderr --head --write-out "%{http_code}" "$PUBLIC_URL/dashboard/auth/login/?next=/dashboard/" -k)
+      if [[ -n "${STATUSCODE}" ]]; then
+          if test $STATUSCODE -ne 200; then
+              RETURN_CODE=1
+              echo "${PUBLIC_URL} status code expected is 200 but was ${STATUSCODE}"
+          fi
+      else
           RETURN_CODE=1
-          echo "${PUBLIC_URL} status code expected is 200 but was ${STATUSCODE}"
+          echo "No status code returned, pls check if horizon is available"
       fi
       exit $RETURN_CODE
