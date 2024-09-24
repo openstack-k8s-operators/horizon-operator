@@ -254,7 +254,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	memcachedFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+	memcachedFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all Horizon CRs
@@ -284,7 +284,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Watch for changes to NADs
-	nadFn := func(ctx context.Context, o client.Object) []reconcile.Request {
+	nadFn := func(_ context.Context, o client.Object) []reconcile.Request {
 		result := []reconcile.Request{}
 
 		// get all Horizon CRs
@@ -1009,7 +1009,6 @@ func (r *HorizonReconciler) ensureNAD(
 	nAttach []string,
 	helper *helper.Helper,
 ) (map[string]string, ctrl.Result, error) {
-
 	var serviceAnnotations map[string]string
 	var err error
 	// Iterate over the []networkattachment, get the corresponding NAD and create
