@@ -1,0 +1,43 @@
+apiVersion: horizon.openstack.org/v1beta1
+kind: Horizon
+metadata:
+  name: horizon
+spec:
+  networkAttachments:
+  - storage
+  replicas: 1
+  secret: "osp-secret"
+  customServiceConfig: |
+    DEBUG = True
+    LOGGING['handlers']['console']['level'] = 'DEBUG'
+status:
+  readyCount: 1
+---
+# Validate multus network is correctly annotated
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+commands:
+  - script: |
+      set -x
+      RETURN_CODE=0
+      while true; do
+          COUNT=$(oc get -n $NAMESPACE po -l service=horizon -o name | wc -l)
+          if [[ "${COUNT}" -eq 1 ]]; then
+              POD=$(oc get -n $NAMESPACE po -l service=horizon -o name)
+              echo "Horizon pod name: ${pod}"
+              break
+          fi
+          echo "Current pod count: ${COUNT}. Waiting for exactly 1 pod..."
+          sleep 5  # Wait for 5 seconds before checking again
+      done
+
+      annotations=$(oc get -n $NAMESPACE $POD -o jsonpath='{.metadata.annotations}')
+
+      # Check if "storage" network exists in the annotations
+      if echo "$annotations" | grep -q '"name":"storage"'; then
+          echo "Storage Multus network exists."
+      else
+          RETURN_CODE=1
+          echo "Storage Multus network does not exist."
+      fi
+      exit $RETURN_CODE
