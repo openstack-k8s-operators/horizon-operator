@@ -413,10 +413,11 @@ var _ = Describe("Horizon controller", func() {
 		})
 	})
 	When("Horizon CR instance is built with NAD", func() {
+		var nad map[string][]string
 		BeforeEach(func() {
 			nad := th.CreateNetworkAttachmentDefinition(types.NamespacedName{
 				Namespace: namespace,
-				Name:      "internalapi",
+				Name:      "storage",
 			})
 			DeferCleanup(th.DeleteInstance, nad)
 			rawSpec := map[string]interface{}{
@@ -434,11 +435,16 @@ var _ = Describe("Horizon controller", func() {
 			})
 			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
 			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
+			th.SimulateDeploymentReadyWithPods(
+				horizonName,
+				map[string][]string{deploymentName.Namespace + "/storage": {"172.18.0.1"}},
+			)
+
 		})
 		It("Check the resulting endpoints of the generated sub-CRs", func() {
-			th.SimulateDeploymentReplicaReady(horizonName)
 			horizon := GetHorizon(horizonName)
 			Expect(horizon.Spec.NetworkAttachments).To(Equal([]string{"storage"}))
+			Expect(nad).To(Equal(horizon.Status.NetworkAttachments))
 		})
 	})
 })
