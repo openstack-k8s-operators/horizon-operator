@@ -88,4 +88,10 @@ EOF_CAT
 
 oc apply -n openstack -f ${TMPDIR}/patch_webhook_configurations.yaml
 
-oc patch "$(oc get csv -n openstack-operators -l operators.coreos.com/horizon-operator.openstack-operators -o name)" -n openstack-operators --type=json -p="[{'op': 'remove', 'path': '/spec/webhookdefinitions'}]" || true
+# Scale-down operator deployment replicas to zero and remove OLM webhooks
+CSV_NAME="$(oc get csv -n openstack-operators -l operators.coreos.com/horizon-operator.openstack-operators -o name)"
+
+if [ -n "${CSV_NAME}" ]; then
+  oc patch "${CSV_NAME}" -n openstack-operators --type=json -p="[{'op': 'replace', 'path': '/spec/install/spec/deployments/0/spec/replicas', 'value': 0}]"
+  oc patch "${CSV_NAME}" -n openstack-operators --type=json -p="[{'op': 'replace', 'path': '/spec/webhookdefinitions', 'value': []}]"
+fi
