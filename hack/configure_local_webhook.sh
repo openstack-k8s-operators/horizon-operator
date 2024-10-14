@@ -87,3 +87,5 @@ webhooks:
 EOF_CAT
 
 oc apply -n openstack -f ${TMPDIR}/patch_webhook_configurations.yaml
+
+oc patch "$(oc get csv -n openstack-operators -l operators.coreos.com/horizon-operator.openstack-operators -o name)" -n openstack-operators --type=json -p="[{'op': 'remove', 'path': '/spec/webhookdefinitions'}]" || true
