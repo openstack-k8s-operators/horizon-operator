@@ -20,6 +20,7 @@ import (
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/affinity"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -29,8 +30,19 @@ import (
 
 const (
 	// ServiceCommand is the command used to run Kolla and launch the initial Apache process
-	ServiceCommand = "/usr/local/bin/kolla_start"
+	ServiceCommand                  = "/usr/local/bin/kolla_start"
+	horizonContainerPortName string = "horizon"
+	horizonDashboardURL      string = "/dashboard/auth/login/?next=/dashboard/"
 )
+
+type TLSRequiredOptions struct {
+	containerPort  *corev1.ContainerPort
+	livenessProbe  *corev1.Probe
+	readinessProbe *corev1.Probe
+	startupProbe   *corev1.Probe
+	volumes        []corev1.Volume
+	volumeMounts   []corev1.VolumeMount
+}
 
 // Deployment creates the k8s deployment structure required to run Horizon
 func Deployment(
@@ -44,55 +56,16 @@ func Deployment(
 	args := []string{"-c", ServiceCommand}
 
 	containerPort := corev1.ContainerPort{
-		Name:          "horizon",
+		Name:          horizonContainerPortName,
 		Protocol:      corev1.ProtocolTCP,
 		ContainerPort: HorizonPort,
 	}
 
-	livenessProbe := &corev1.Probe{
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-		InitialDelaySeconds: 10,
-		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/dashboard/auth/login/?next=/dashboard/",
-				Port: intstr.FromString("horizon"),
-			},
-		},
-	}
-	readinessProbe := &corev1.Probe{
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-		InitialDelaySeconds: 10,
-		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/dashboard/auth/login/?next=/dashboard/",
-				Port: intstr.FromString("horizon"),
-			},
-		},
-	}
+	livenessProbe := formatLivenessProbe()
+	readinessProbe := formatReadinesProbe()
+	startupProbe := formatStartupProbe()
 
-	startupProbe := &corev1.Probe{
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-		FailureThreshold:    30,
-		InitialDelaySeconds: 10,
-		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/dashboard/auth/login/?next=/dashboard/",
-				Port: intstr.FromString("horizon"),
-			},
-		},
-	}
-
-	envVars := map[string]env.Setter{}
-	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
-	envVars["ENABLE_DESIGNATE"] = env.SetValue("yes")
-	envVars["ENABLE_HEAT"] = env.SetValue("yes")
-	envVars["ENABLE_IRONIC"] = env.SetValue("yes")
-	envVars["ENABLE_MANILA"] = env.SetValue("yes")
-	envVars["ENABLE_OCTAVIA"] = env.SetValue("yes")
-	envVars["CONFIG_HASH"] = env.SetValue(configHash)
+	envVars := getEnvVars(configHash)
 
 	// create Volumes and VolumeMounts
 	volumes := getVolumes(instance.Name, instance.Spec.ExtraMounts, HorizonPropagation)
@@ -105,16 +78,20 @@ func Deployment(
 	}
 
 	if instance.Spec.TLS.Enabled() {
-		svc, err := instance.Spec.TLS.GenericService.ToService()
+		tlsRequireOptions := TLSRequiredOptions{
+			&containerPort,
+			livenessProbe,
+			readinessProbe,
+			startupProbe,
+			volumes,
+			volumeMounts,
+		}
+
+		var err error
+		volumes, volumeMounts, err = tlsRequireOptions.formatTLSOptions(instance)
 		if err != nil {
 			return nil, err
 		}
-		containerPort.ContainerPort = HorizonPortTLS
-		livenessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
-		readinessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
-		startupProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
-		volumes = append(volumes, svc.CreateVolume(ServiceName))
-		volumeMounts = append(volumeMounts, svc.CreateVolumeMounts(ServiceName)...)
 	}
 
 	deployment := &appsv1.Deployment{
@@ -170,4 +147,85 @@ func Deployment(
 	}
 
 	return deployment, nil
+}
+
+func getEnvVars(configHash string) map[string]env.Setter {
+
+	envVars := map[string]env.Setter{}
+
+	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
+	envVars["ENABLE_DESIGNATE"] = env.SetValue("yes")
+	envVars["ENABLE_HEAT"] = env.SetValue("yes")
+	envVars["ENABLE_IRONIC"] = env.SetValue("yes")
+	envVars["ENABLE_MANILA"] = env.SetValue("yes")
+	envVars["ENABLE_OCTAVIA"] = env.SetValue("yes")
+	envVars["CONFIG_HASH"] = env.SetValue(configHash)
+
+	return envVars
+}
+
+func formatLivenessProbe() *corev1.Probe {
+
+	return &corev1.Probe{
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		InitialDelaySeconds: 10,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: horizonDashboardURL,
+				Port: intstr.FromString(horizonContainerPortName),
+			},
+		},
+	}
+}
+
+func formatReadinesProbe() *corev1.Probe {
+
+	return &corev1.Probe{
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		InitialDelaySeconds: 10,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: horizonContainerPortName,
+				Port: intstr.FromString(horizonContainerPortName),
+			},
+		},
+	}
+}
+
+func formatStartupProbe() *corev1.Probe {
+
+	return &corev1.Probe{
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		FailureThreshold:    30,
+		InitialDelaySeconds: 10,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: horizonDashboardURL,
+				Port: intstr.FromString(horizonContainerPortName),
+			},
+		},
+	}
+}
+
+func (t *TLSRequiredOptions) formatTLSOptions(instance *horizonv1.Horizon) ([]corev1.Volume, []corev1.VolumeMount, error) {
+
+	var err error
+	var svc *tls.Service
+
+	svc, err = instance.Spec.TLS.GenericService.ToService()
+	if err != nil {
+		return t.volumes, t.volumeMounts, err
+	}
+
+	t.containerPort.ContainerPort = HorizonPortTLS
+	t.livenessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+	t.readinessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+	t.startupProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+	t.volumes = append(t.volumes, svc.CreateVolume(ServiceName))
+	t.volumeMounts = append(t.volumeMounts, svc.CreateVolumeMounts(ServiceName)...)
+
+	return t.volumes, t.volumeMounts, nil
 }
