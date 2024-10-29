@@ -83,7 +83,7 @@ var _ = Describe("Horizon controller", func() {
 			for _, cond := range []condition.Type{
 				condition.MemcachedReadyCondition,
 				condition.ServiceConfigReadyCondition,
-				condition.ExposeServiceReadyCondition,
+				condition.CreateServiceReadyCondition,
 				condition.DeploymentReadyCondition,
 				condition.TLSInputReadyCondition,
 			} {
@@ -125,7 +125,7 @@ var _ = Describe("Horizon controller", func() {
 			th.ExpectCondition(
 				horizonName,
 				ConditionGetterFunc(HorizonConditionGetter),
-				condition.ExposeServiceReadyCondition,
+				condition.CreateServiceReadyCondition,
 				corev1.ConditionUnknown,
 			)
 		})
@@ -164,7 +164,7 @@ var _ = Describe("Horizon controller", func() {
 			th.ExpectCondition(
 				horizonName,
 				ConditionGetterFunc(HorizonConditionGetter),
-				condition.ExposeServiceReadyCondition,
+				condition.CreateServiceReadyCondition,
 				corev1.ConditionUnknown,
 			)
 		})
@@ -200,7 +200,7 @@ var _ = Describe("Horizon controller", func() {
 			th.ExpectCondition(
 				horizonName,
 				ConditionGetterFunc(HorizonConditionGetter),
-				condition.ExposeServiceReadyCondition,
+				condition.CreateServiceReadyCondition,
 				corev1.ConditionTrue,
 			)
 			th.ExpectCondition(
