@@ -53,7 +53,14 @@ func getVolumes(
 	}
 	for _, exv := range extraVol {
 		for _, vol := range exv.Propagate(svc) {
-			res = append(res, vol.Volumes...)
+			for _, v := range vol.Volumes {
+				volumeSource, _ := v.ToCoreVolumeSource()
+				convertedVolume := corev1.Volume{
+					Name:         v.Name,
+					VolumeSource: *volumeSource,
+				}
+				res = append(res, convertedVolume)
+			}
 		}
 	}
 	return res
