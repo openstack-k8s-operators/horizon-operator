@@ -11,7 +11,7 @@ spec:
 status:
   readyCount: 1
 ---
-# Test status code to check dashboard reachability
+# Test status code to check dashboard reachability testing
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
 commands:
