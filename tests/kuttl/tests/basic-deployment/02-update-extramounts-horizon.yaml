@@ -1,0 +1,39 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: |
+      touch mycustompolicy.yaml
+      oc create configmap -n $NAMESPACE horizon-policy --from-file mycustompolicy.yaml
+
+  - script: |
+      oc patch horizon -n $NAMESPACE horizon --type='merge' -p '{
+        "spec": {
+          "extraMounts": [
+            {
+              "name": "v1",
+              "region": "r1",
+              "extraVol": [
+                {
+                  "extraVolType": "Policy",
+                  "mounts": [
+                    {
+                      "mountPath": "/etc/openstack-dashboard/mycustomPolicy.yaml",
+                      "name": "policy",
+                      "readOnly": true,
+                      "subPath": "mycustomPolicy.yaml"
+                    }
+                  ],
+                  "volumes": [
+                    {
+                      "name": "policy",
+                      "configMap": {
+                        "name": "horizon-policy"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }'

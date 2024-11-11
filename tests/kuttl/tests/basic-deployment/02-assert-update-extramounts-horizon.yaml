@@ -1,0 +1,22 @@
+apiVersion: horizon.openstack.org/v1beta1
+kind: Horizon
+metadata:
+  name: horizon
+spec:
+  extraMounts:
+    - extraVol:
+      - extraVolType: Policy
+        mounts:
+        - mountPath: /etc/openstack-dashboard/mycustomPolicy.yaml
+          name: policy
+          readOnly: true
+          subPath: mycustomPolicy.yaml
+        volumes:
+        - name: policy
+      name: v1
+      region: r1
+  replicas: 1
+  secret: "osp-secret"
+  customServiceConfig: |
+    DEBUG = True
+    LOGGING['handlers']['console']['level'] = 'DEBUG'
