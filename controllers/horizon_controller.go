@@ -1014,8 +1014,9 @@ func (r *HorizonReconciler) ensureNAD(
 	var err error
 	// Iterate over the []networkattachment, get the corresponding NAD and create
 	// the required annotation
+	nadList := []networkv1.NetworkAttachmentDefinition{}
 	for _, netAtt := range nAttach {
-		_, err = nad.GetNADWithName(ctx, helper, netAtt, helper.GetBeforeObject().GetNamespace())
+		nad, err := nad.GetNADWithName(ctx, helper, netAtt, helper.GetBeforeObject().GetNamespace())
 		if err != nil {
 			if k8s_errors.IsNotFound(err) {
 				helper.GetLogger().Info(fmt.Sprintf("network-attachment-definition %s not found", netAtt))
@@ -1036,9 +1037,13 @@ func (r *HorizonReconciler) ensureNAD(
 				err.Error()))
 			return serviceAnnotations, ctrl.Result{RequeueAfter: time.Second * 10}, nil
 		}
+
+		if nad != nil {
+			nadList = append(nadList, *nad)
+		}
 	}
 	// Create NetworkAnnotations
-	serviceAnnotations, err = nad.CreateNetworksAnnotation(helper.GetBeforeObject().GetNamespace(), nAttach)
+	serviceAnnotations, err = nad.EnsureNetworksAnnotation(nadList)
 	if err != nil {
 		return serviceAnnotations, ctrl.Result{}, fmt.Errorf("failed create network annotation from %s: %w",
 			nAttach, err)
