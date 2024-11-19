@@ -262,6 +262,88 @@ var _ = Describe("Horizon controller", func() {
 		})
 	})
 
+	When("nodeSelector is set", func() {
+		BeforeEach(func() {
+			spec := GetDefaultHorizonSpec()
+			spec["nodeSelector"] = map[string]interface{}{
+				"foo": "bar",
+			}
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, spec))
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
+			DeferCleanup(infra.DeleteMemcached, infra.CreateMemcached(namespace, "memcached", memcachedSpec))
+			infra.SimulateMemcachedReady(types.NamespacedName{
+				Name:      "memcached",
+				Namespace: namespace,
+			})
+			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
+			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
+			th.SimulateDeploymentReplicaReady(deploymentName)
+		})
+
+		It("sets nodeSelector in resource specs", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(th.GetDeployment(deploymentName).Spec.Template.Spec.NodeSelector).To(Equal(map[string]string{"foo": "bar"}))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("updates nodeSelector in resource specs when changed", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(th.GetDeployment(deploymentName).Spec.Template.Spec.NodeSelector).To(Equal(map[string]string{"foo": "bar"}))
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				horizon := GetHorizon(horizonName)
+				newNodeSelector := map[string]string{
+					"foo2": "bar2",
+				}
+				horizon.Spec.NodeSelector = &newNodeSelector
+				g.Expect(k8sClient.Update(ctx, horizon)).Should(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				th.SimulateDeploymentReplicaReady(deploymentName)
+				g.Expect(th.GetDeployment(deploymentName).Spec.Template.Spec.NodeSelector).To(Equal(map[string]string{"foo2": "bar2"}))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("removes nodeSelector from resource specs when cleared", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(th.GetDeployment(deploymentName).Spec.Template.Spec.NodeSelector).To(Equal(map[string]string{"foo": "bar"}))
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				horizon := GetHorizon(horizonName)
+				emptyNodeSelector := map[string]string{}
+				horizon.Spec.NodeSelector = &emptyNodeSelector
+				g.Expect(k8sClient.Update(ctx, horizon)).Should(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				th.SimulateDeploymentReplicaReady(deploymentName)
+				g.Expect(th.GetDeployment(deploymentName).Spec.Template.Spec.NodeSelector).To(BeNil())
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("removes nodeSelector from resource specs when nilled", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(th.GetDeployment(deploymentName).Spec.Template.Spec.NodeSelector).To(Equal(map[string]string{"foo": "bar"}))
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				horizon := GetHorizon(horizonName)
+				horizon.Spec.NodeSelector = nil
+				g.Expect(k8sClient.Update(ctx, horizon)).Should(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				th.SimulateDeploymentReplicaReady(deploymentName)
+				g.Expect(th.GetDeployment(deploymentName).Spec.Template.Spec.NodeSelector).To(BeNil())
+			}, timeout, interval).Should(Succeed())
+		})
+
+	})
+
 	When("TLS is enabled", func() {
 		BeforeEach(func() {
 			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetTLSHorizonSpec()))
