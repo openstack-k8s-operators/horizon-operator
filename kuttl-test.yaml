@@ -14,7 +14,7 @@
 
 apiVersion: kuttl.dev/v1beta1
 kind: TestSuite
-reportFormat: JSON
+reportFormat: xml
 reportName: kuttl-test-horizon
 namespace: horizon-kuttl-tests
 timeout: 180
