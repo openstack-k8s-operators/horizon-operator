@@ -65,17 +65,17 @@ def get_pod_ip():
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        s.connect(("{{ .horizonEndpointUrl }}", 80))
+        s.connect(("{{ .horizonEndpointHost }}", 80))
         return s.getsockname()[0]
     except socket.gaierror:
         s.close()
         s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        s.connect(("{{ .horizonEndpointUrl }}", 80))
+        s.connect(("{{ .horizonEndpointHost }}", 80))
         return "[{}]".format(s.getsockname()[0])
     finally:
         s.close()
 
-ALLOWED_HOSTS = [get_pod_ip(), "{{ .horizonEndpointUrl }}"]
+ALLOWED_HOSTS = [get_pod_ip(), "{{ .horizonEndpointHost }}"]
 
 USE_X_FORWARDED_HOST = True
 
