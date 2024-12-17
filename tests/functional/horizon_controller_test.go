@@ -299,16 +299,16 @@ var _ = Describe("Horizon controller", func() {
 		It("should set default environment in deployment", func() {
 			// Assert that the watcher deployment is created
 			deployment := th.GetDeployment(deploymentName)
-			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
+			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_WATCHER", Value: "no", ValueFrom: nil}))
-			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
+			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_OCTAVIA", Value: "yes", ValueFrom: nil}))
 		})
 		It("Should have liveness, readiness and startup Probes defined", func() {
 			deployment := th.GetDeployment(deploymentName)
-			Expect(deployment.Spec.Template.Spec.Containers[0].LivenessProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
-			Expect(deployment.Spec.Template.Spec.Containers[0].StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
-			Expect(deployment.Spec.Template.Spec.Containers[0].ReadinessProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
+			Expect(deployment.Spec.Template.Spec.Containers[1].LivenessProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
+			Expect(deployment.Spec.Template.Spec.Containers[1].StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
+			Expect(deployment.Spec.Template.Spec.Containers[1].ReadinessProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
 		})
 	})
 
@@ -451,9 +451,9 @@ var _ = Describe("Horizon controller", func() {
 		It("should set ENABLE_WATCHER to yes in deployment environment", func() {
 			// Assert that the watcher deployment is created
 			deployment := th.GetDeployment(deploymentName)
-			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
+			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_WATCHER", Value: "yes", ValueFrom: nil}))
-			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
+			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_OCTAVIA", Value: "yes", ValueFrom: nil}))
 		})
 	})
@@ -602,13 +602,13 @@ var _ = Describe("Horizon controller", func() {
 			// Get Horizon Deployment
 			dp := th.GetDeployment(deploymentName)
 			// Check the resulting deployment fields
-			Expect(dp.Spec.Template.Spec.Volumes).To(HaveLen(4))
-			Expect(dp.Spec.Template.Spec.Containers).To(HaveLen(1))
+			Expect(dp.Spec.Template.Spec.Volumes).To(HaveLen(5))
+			Expect(dp.Spec.Template.Spec.Containers).To(HaveLen(2))
 			// Get the horizon container
-			container := dp.Spec.Template.Spec.Containers[0]
+			container := dp.Spec.Template.Spec.Containers[1]
 			// Fail if horizon doesn't have the right number of VolumeMounts
 			// entries
-			Expect(container.VolumeMounts).To(HaveLen(6))
+			Expect(container.VolumeMounts).To(HaveLen(7))
 			// Inspect VolumeMounts and make sure we have the Foo MountPath
 			// provided through extraMounts
 			th.AssertVolumeMountPathExists(horizonExtraMountsSecretName,
@@ -783,7 +783,7 @@ var _ = Describe("Horizon controller", func() {
 			th.AssertVolumeExists(CABundleSecretName, d.Spec.Template.Spec.Volumes)
 			th.AssertVolumeExists(InternalCertSecretName, d.Spec.Template.Spec.Volumes)
 
-			svcC := d.Spec.Template.Spec.Containers[0]
+			svcC := d.Spec.Template.Spec.Containers[1]
 
 			// check TLS volume mounts
 			th.AssertVolumeMountPathExists(CABundleSecretName, "", "tls-ca-bundle.pem", svcC.VolumeMounts)
@@ -821,7 +821,7 @@ var _ = Describe("Horizon controller", func() {
 			th.SimulateDeploymentReplicaReady(deploymentName)
 
 			originalHash := GetEnvVarValue(
-				th.GetDeployment(deploymentName).Spec.Template.Spec.Containers[0].Env,
+				th.GetDeployment(deploymentName).Spec.Template.Spec.Containers[1].Env,
 				"CONFIG_HASH",
 				"",
 			)
@@ -839,7 +839,7 @@ var _ = Describe("Horizon controller", func() {
 			// Assert that the deployment is updated
 			Eventually(func(g Gomega) {
 				newHash := GetEnvVarValue(
-					th.GetDeployment(deploymentName).Spec.Template.Spec.Containers[0].Env,
+					th.GetDeployment(deploymentName).Spec.Template.Spec.Containers[1].Env,
 					"CONFIG_HASH",
 					"",
 				)

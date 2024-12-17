@@ -1046,6 +1046,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		"Port":                horizon.HorizonPort,
 		"TLS":                 false,
 		"isPublicHTTPS":       url.Scheme == "https",
+		"LogFile":             horizon.LogFile,
 	}
 
 	// create httpd tls template parameters
