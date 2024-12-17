@@ -96,3 +96,22 @@ func getVolumeMounts(
 	}
 	return vm
 }
+
+// GetLogVolumeMount - Horizon API LogVolumeMount
+func GetLogVolumeMount() corev1.VolumeMount {
+	return corev1.VolumeMount{
+		Name:      logVolume,
+		MountPath: "/var/log/horizon",
+		ReadOnly:  false,
+	}
+}
+
+// GetLogVolume - Horizon API LogVolume
+func GetLogVolume() corev1.Volume {
+	return corev1.Volume{
+		Name: logVolume,
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{Medium: ""},
+		},
+	}
+}
