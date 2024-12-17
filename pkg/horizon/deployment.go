@@ -135,6 +135,22 @@ func Deployment(
 				Spec: corev1.PodSpec{
 					ServiceAccountName: instance.RbacResourceName(),
 					Containers: []corev1.Container{
+						// the first container in a pod is the default selected
+						// by oc log so define the log stream container first.
+						{
+							Name: instance.Name + "-log",
+							Command: []string{
+								"/bin/bash",
+							},
+							Args:  []string{"-c", "tail -n+1 -F " + LogFile},
+							Image: instance.Spec.ContainerImage,
+							SecurityContext: &corev1.SecurityContext{
+								RunAsUser: &runAsUser,
+							},
+							Env:          env.MergeEnvs([]corev1.EnvVar{}, envVars),
+							VolumeMounts: []corev1.VolumeMount{GetLogVolumeMount()},
+							Resources:    instance.Spec.Resources,
+						},
 						{
 							Name: ServiceName,
 							Command: []string{
@@ -146,6 +162,7 @@ func Deployment(
 							},
 							Env:            env.MergeEnvs([]corev1.EnvVar{}, envVars),
 							VolumeMounts:   volumeMounts,
+                                                                []corev1.VolumeMount{GetLogVolumeMount()}...),
 							Resources:      instance.Spec.Resources,
 							ReadinessProbe: readinessProbe,
 							LivenessProbe:  livenessProbe,
@@ -158,6 +175,9 @@ func Deployment(
 			},
 		},
 	}
+	deployment.Spec.Template.Spec.Volumes = append(GetVolumes(
+                instance.Name,
+		instance.Spec.ExtraMounts), GetLogVolume())
 	deployment.Spec.Template.Spec.Affinity = affinity.DistributePods(
 		common.AppSelector,
 		[]string{
