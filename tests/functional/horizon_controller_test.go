@@ -588,7 +588,7 @@ var _ = Describe("Horizon controller", func() {
 			th.AssertVolumeExists(CABundleSecretName, d.Spec.Template.Spec.Volumes)
 			th.AssertVolumeExists(InternalCertSecretName, d.Spec.Template.Spec.Volumes)
 
-			svcC := d.Spec.Template.Spec.Containers[0]
+			svcC := d.Spec.Template.Spec.Containers[1]
 
 			// check TLS volume mounts
 			th.AssertVolumeMountExists(CABundleSecretName, "tls-ca-bundle.pem", svcC.VolumeMounts)
