@@ -101,7 +101,7 @@ func getVolumeMounts(
 func GetLogVolumeMount() corev1.VolumeMount {
 	return corev1.VolumeMount{
 		Name:      logVolume,
-		MountPath: "/var/log/manila",
+		MountPath: "/var/log/horizon",
 		ReadOnly:  false,
 	}
 }
