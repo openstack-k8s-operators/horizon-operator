@@ -907,6 +907,10 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		templateParameters["SSLCertificateKeyFile"] = fmt.Sprintf("/etc/pki/tls/private/%s.key", horizon.ServiceName)
 	}
 
+	templateParameters := map[string]interface{}{
+		"LogFile": horizon.LogFile,
+	}
+
 	cms := []util.Template{
 		// ConfigMap
 		{
