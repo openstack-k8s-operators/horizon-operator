@@ -64,18 +64,26 @@ DEBUG = False
 def get_pod_ip():
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    hostport = (
+        "{{ .horizonEndpointHost }}",
+        {{- if .isPublicHTTPS }}
+        443
+        {{- else }}
+        80
+        {{- end }}
+    )
     try:
-        s.connect(("{{ .horizonEndpointUrl }}", 80))
+        s.connect(hostport)
         return s.getsockname()[0]
     except socket.gaierror:
         s.close()
         s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        s.connect(("{{ .horizonEndpointUrl }}", 80))
+        s.connect(hostport)
         return "[{}]".format(s.getsockname()[0])
     finally:
         s.close()
 
-ALLOWED_HOSTS = [get_pod_ip(), "{{ .horizonEndpointUrl }}"]
+ALLOWED_HOSTS = [get_pod_ip(), "{{ .horizonEndpointHost }}"]
 
 USE_X_FORWARDED_HOST = True
 
