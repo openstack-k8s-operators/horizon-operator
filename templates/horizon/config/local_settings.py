@@ -65,8 +65,8 @@ def get_pod_ip():
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     hostport = (
-        "{{ .horizonEndpointHost }}",
-        {{- if .isPublicHTTPS }}
+        "{{ .HorizonEndpointHost }}",
+        {{- if .IsPublicHTTPS }}
         443
         {{- else }}
         80
@@ -83,11 +83,11 @@ def get_pod_ip():
     finally:
         s.close()
 
-ALLOWED_HOSTS = [get_pod_ip(), "{{ .horizonEndpointHost }}"]
+ALLOWED_HOSTS = [get_pod_ip(), "{{ .HorizonEndpointHost }}"]
 
 USE_X_FORWARDED_HOST = True
 
-{{- if .isPublicHTTPS }}
+{{- if .IsPublicHTTPS }}
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = True
 CSRF_COOKIE_SECURE = True
@@ -130,7 +130,7 @@ def mtls_context():
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
-        'LOCATION': [ {{.memcachedServers}} ],
+        'LOCATION': [ {{.MemcachedServers}} ],
         # To drop the cached sessions when config changes
         'KEY_PREFIX': os.environ['CONFIG_HASH'],
         'OPTIONS': {
@@ -138,8 +138,8 @@ CACHES = {
             "ignore_exc": True,
             "max_pool_size": 4,
             "use_pooling": True,
-{{- if .memcachedTLS }}
-{{- if (index . "memcachedAuthCert") }}
+{{- if .MemcachedTLS }}
+{{- if (index . "MemcachedAuthCert") }}
             "tls_context": mtls_context()
 {{- else }}
             "tls_context": ssl.create_default_context()
@@ -170,7 +170,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 OPENSTACK_HOST = "127.0.0.1"
 #OPENSTACK_KEYSTONE_URL = "http://%s/identity/v3" % OPENSTACK_HOST
 
-OPENSTACK_KEYSTONE_URL = "{{ .keystoneURL }}/v3"
+OPENSTACK_KEYSTONE_URL = "{{ .KeystoneEndpointInternal }}/v3"
 
 # The timezone of the server. This should correspond with the timezone
 # of your entire OpenStack installation, and hopefully be in UTC.

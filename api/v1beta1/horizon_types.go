@@ -118,12 +118,29 @@ type HorizonSpecCore struct {
 	// TopologyRef to apply the Topology defined by the associated CR referenced
 	// by name
 	TopologyRef *topologyv1.TopoRef `json:"topologyRef,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// HttpdCustomization - customize the httpd service
+	HttpdCustomization HttpdCustomization `json:"httpdCustomization,omitempty"`
 }
 
 // HorizionOverrideSpec to override the generated manifest of several child resources.
 type HorizionOverrideSpec struct {
 	// Override configuration for the Service created to serve traffic to the cluster.
 	Service *service.RoutedOverrideSpec `json:"service,omitempty"`
+}
+
+// HttpdCustomization - customize the httpd service
+type HttpdCustomization struct {
+	// +kubebuilder:validation:Optional
+	// CustomConfigSecret - customize the httpd vhost config using this parameter to specify
+	// a secret that contains service config data. The content of each provided snippet gets
+	// rendered as a go template and placed into /etc/httpd/conf/httpd_custom_<key> .
+	// In the default httpd template at the end of the vhost those custom configs get
+	// included using `Include conf/httpd_custom_<endpoint>_*`.
+	// For information on how sections in httpd configuration get merged, check section
+	// "How the sections are merged" in https://httpd.apache.org/docs/current/sections.html#merging
+	CustomConfigSecret *string `json:"customConfigSecret,omitempty"`
 }
 
 // HorizonStatus defines the observed state of Horizon
