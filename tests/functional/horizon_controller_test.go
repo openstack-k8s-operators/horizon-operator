@@ -260,6 +260,77 @@ var _ = Describe("Horizon controller", func() {
 				return GetHorizon(horizonName).Status.ReadyCount
 			}, timeout, interval).Should(Equal(int32(1)))
 		})
+		It("should set default environment in deployment", func() {
+			// Assert that the watcher deployment is created
+			deployment := th.GetDeployment(deploymentName)
+			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
+				To(ContainElement(corev1.EnvVar{Name: "ENABLE_WATCHER", Value: "no", ValueFrom: nil}))
+			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
+				To(ContainElement(corev1.EnvVar{Name: "ENABLE_OCTAVIA", Value: "yes", ValueFrom: nil}))
+		})
+	})
+
+	When("watcher keystone service exists", func() {
+		BeforeEach(func() {
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
+			DeferCleanup(infra.DeleteMemcached, infra.CreateMemcached(namespace, "memcached", memcachedSpec))
+			infra.SimulateMemcachedReady(types.NamespacedName{
+				Name:      "memcached",
+				Namespace: namespace,
+			})
+			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
+			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
+			watcherServiceSpec := map[string]interface{}{
+				"enabled":            true,
+				"passwordSelector":   "WatcherPassword",
+				"secret":             "osp-secret",
+				"serviceDescription": "Watcher Service",
+				"serviceName":        "watcher",
+				"serviceType":        "infra-optim",
+				"serviceUser":        "watcher",
+			}
+			watcherServiceraw := map[string]interface{}{
+				"apiVersion": "keystone.openstack.org/v1beta1",
+				"kind":       "KeystoneService",
+				"metadata": map[string]interface{}{
+					"name":      "watcher",
+					"namespace": namespace,
+				},
+				"spec": watcherServiceSpec,
+			}
+			th.CreateUnstructured(watcherServiceraw)
+			th.SimulateDeploymentReplicaReady(deploymentName)
+		})
+
+		It("should have deployment ready", func() {
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ReadyCondition,
+				corev1.ConditionTrue,
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.DeploymentReadyCondition,
+				corev1.ConditionTrue,
+			)
+		})
+		It("should have ReadyCount set", func() {
+			Eventually(func() int32 {
+				return GetHorizon(horizonName).Status.ReadyCount
+			}, timeout, interval).Should(Equal(int32(1)))
+		})
+		It("should set ENABLE_WATCHER to yes in deployment environment", func() {
+			// Assert that the watcher deployment is created
+			deployment := th.GetDeployment(deploymentName)
+			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
+				To(ContainElement(corev1.EnvVar{Name: "ENABLE_WATCHER", Value: "yes", ValueFrom: nil}))
+			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
+				To(ContainElement(corev1.EnvVar{Name: "ENABLE_OCTAVIA", Value: "yes", ValueFrom: nil}))
+		})
 	})
 
 	When("nodeSelector is set", func() {
