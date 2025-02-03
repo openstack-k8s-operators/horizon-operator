@@ -13,9 +13,10 @@ require (
 	github.com/openstack-k8s-operators/horizon-operator/api v0.3.1-0.20240214134444-c675e5f69043
 	github.com/openstack-k8s-operators/infra-operator/apis v0.5.1-0.20241217184302-c302f3d72ada
 	github.com/openstack-k8s-operators/keystone-operator/api v0.5.1-0.20241217165019-8e243bd36596
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.5.1-0.20241216113837-d172b3ac0f4e
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.5.1-0.20250116145727-01a8948d5dd7
 	github.com/openstack-k8s-operators/lib-common/modules/storage v0.5.1-0.20241216113837-d172b3ac0f4e
 	github.com/openstack-k8s-operators/lib-common/modules/test v0.5.1-0.20241216113837-d172b3ac0f4e
+	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.29.12
 	k8s.io/apimachinery v0.29.12
 	k8s.io/client-go v0.29.12
@@ -73,7 +74,6 @@ require (
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.29.12 // indirect
 	k8s.io/component-base v0.29.12 // indirect
