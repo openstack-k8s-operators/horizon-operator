@@ -38,6 +38,7 @@ func Deployment(
 	configHash string,
 	labels map[string]string,
 	annotations map[string]string,
+	enabledServices map[string]string,
 ) (*appsv1.Deployment, error) {
 	runAsUser := int64(0)
 
@@ -92,6 +93,7 @@ func Deployment(
 	envVars["ENABLE_IRONIC"] = env.SetValue("yes")
 	envVars["ENABLE_MANILA"] = env.SetValue("yes")
 	envVars["ENABLE_OCTAVIA"] = env.SetValue("yes")
+	envVars["ENABLE_WATCHER"] = env.SetValue(enabledServices["watcher"])
 	envVars["CONFIG_HASH"] = env.SetValue(configHash)
 
 	// create Volumes and VolumeMounts
