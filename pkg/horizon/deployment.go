@@ -74,12 +74,6 @@ func Deployment(
 	volumes := getVolumes(instance.Name, instance.Spec.ExtraMounts, HorizonPropagation)
 	volumeMounts := getVolumeMounts(instance.Spec.ExtraMounts, HorizonPropagation)
 
-	// add CA cert if defined
-	if instance.Spec.TLS.CaBundleSecretName != "" {
-		volumes = append(volumes, instance.Spec.TLS.CreateVolume())
-		volumeMounts = append(volumeMounts, instance.Spec.TLS.CreateVolumeMounts(nil)...)
-	}
-
 	if instance.Spec.TLS.Enabled() {
 		tlsRequiredOptions := TLSRequiredOptions{
 			&containerPort,
@@ -204,6 +198,12 @@ func (t *TLSRequiredOptions) formatTLSOptions(instance *horizonv1.Horizon) error
 	svc, err = instance.Spec.TLS.GenericService.ToService()
 	if err != nil {
 		return err
+	}
+
+	// add CA cert if defined
+	if instance.Spec.TLS.CaBundleSecretName != "" {
+		t.volumes = append(t.volumes, instance.Spec.TLS.CreateVolume())
+		t.volumeMounts = append(t.volumeMounts, instance.Spec.TLS.CreateVolumeMounts(nil)...)
 	}
 
 	t.containerPort.ContainerPort = HorizonPortTLS
