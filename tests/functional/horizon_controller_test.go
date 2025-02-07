@@ -24,6 +24,7 @@ var _ = Describe("Horizon controller", func() {
 	var horizonName types.NamespacedName
 	var deploymentName types.NamespacedName
 	var memcachedSpec memcachedv1.MemcachedSpec
+	var horizonTopologies []types.NamespacedName
 
 	BeforeEach(func() {
 		horizonName = types.NamespacedName{
@@ -37,6 +38,16 @@ var _ = Describe("Horizon controller", func() {
 		memcachedSpec = memcachedv1.MemcachedSpec{
 			MemcachedSpecCore: memcachedv1.MemcachedSpecCore{
 				Replicas: ptr.To[int32](3),
+			},
+		}
+		horizonTopologies = []types.NamespacedName{
+			{
+				Namespace: namespace,
+				Name:      fmt.Sprintf("%s-topology", horizonName.Name),
+			},
+			{
+				Namespace: namespace,
+				Name:      fmt.Sprintf("%s-topology-alt", horizonName.Name),
 			},
 		}
 
@@ -330,6 +341,75 @@ var _ = Describe("Horizon controller", func() {
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_WATCHER", Value: "yes", ValueFrom: nil}))
 			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_OCTAVIA", Value: "yes", ValueFrom: nil}))
+		})
+	})
+
+	When("Topology is referenced", func() {
+		BeforeEach(func() {
+			// Build the topology Spec
+			topologySpec := GetSampleTopologySpec()
+			// Create Test Topologies
+			for _, t := range horizonTopologies {
+				CreateTopology(t, topologySpec)
+			}
+			spec := GetDefaultHorizonSpec()
+			spec["topologyRef"] = map[string]interface{}{
+				"name": horizonTopologies[0].Name,
+			}
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, spec))
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
+			DeferCleanup(infra.DeleteMemcached, infra.CreateMemcached(namespace, "memcached", memcachedSpec))
+			infra.SimulateMemcachedReady(types.NamespacedName{
+				Name:      "memcached",
+				Namespace: namespace,
+			})
+			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
+			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
+			th.SimulateDeploymentReplicaReady(deploymentName)
+		})
+
+		It("check topology has been applied", func() {
+			Eventually(func(g Gomega) {
+				horizon := GetHorizon(horizonName)
+				g.Expect(horizon.Status.LastAppliedTopology).To(Equal(horizonTopologies[0].Name))
+			}, timeout, interval).Should(Succeed())
+		})
+		It("sets topology in resource specs", func() {
+			Eventually(func(g Gomega) {
+				g.Expect(th.GetDeployment(deploymentName).Spec.Template.Spec.TopologySpreadConstraints).ToNot(BeNil())
+				g.Expect(th.GetDeployment(deploymentName).Spec.Template.Spec.Affinity).To(BeNil())
+			}, timeout, interval).Should(Succeed())
+		})
+		It("updates topology when the reference changes", func() {
+			Eventually(func(g Gomega) {
+				horizon := GetHorizon(horizonName)
+				horizon.Spec.TopologyRef.Name = horizonTopologies[1].Name
+				g.Expect(k8sClient.Update(ctx, horizon)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				horizon := GetHorizon(horizonName)
+				g.Expect(horizon.Status.LastAppliedTopology).To(Equal(horizonTopologies[1].Name))
+			}, timeout, interval).Should(Succeed())
+		})
+		It("removes topologyRef from the spec", func() {
+			Eventually(func(g Gomega) {
+				horizon := GetHorizon(horizonName)
+				// Remove the TopologyRef from the existing Horizon .Spec
+				horizon.Spec.TopologyRef = nil
+				g.Expect(k8sClient.Update(ctx, horizon)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				horizon := GetHorizon(horizonName)
+				g.Expect(horizon.Status.LastAppliedTopology).Should(BeEmpty())
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				g.Expect(th.GetDeployment(deploymentName).Spec.Template.Spec.TopologySpreadConstraints).To(BeNil())
+				g.Expect(th.GetDeployment(deploymentName).Spec.Template.Spec.Affinity).ToNot(BeNil())
+			}, timeout, interval).Should(Succeed())
 		})
 	})
 

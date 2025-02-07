@@ -28,6 +28,7 @@ import (
 	horizonv1beta1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 	horizon "github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 	"github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
@@ -42,6 +43,7 @@ import (
 	oko_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/topology"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -111,6 +113,7 @@ type HorizonReconciler struct {
 // +kubebuilder:rbac:groups="",resources=pods,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
 // service account, role, rolebinding
+// +kubebuilder:rbac:groups=topology.openstack.org,resources=topologies,verbs=get;list;watch;update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -194,6 +197,12 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		instance.Status.Hash = map[string]string{}
 	}
 
+	// Init Topology condition if there's a reference
+	if instance.Spec.TopologyRef != nil {
+		c := condition.UnknownCondition(condition.TopologyReadyCondition, condition.InitReason, condition.TopologyReadyInitMessage)
+		cl.Set(c)
+	}
+
 	// Handle service delete
 	if !instance.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, instance, helper)
@@ -208,12 +217,14 @@ const (
 	passwordSecretField     = ".spec.secret"
 	tlsField                = ".spec.tls.secretName"
 	caBundleSecretNameField = ".spec.tls.caBundleSecretName"
+	topologyField           = ".spec.topologyRef.Name"
 )
 
 var allWatchFields = []string{
 	passwordSecretField,
 	caBundleSecretNameField,
 	tlsField,
+	topologyField,
 }
 
 var keystoneServicesWatch = []string{
@@ -256,6 +267,18 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return nil
 		}
 		return []string{*cr.Spec.TLS.SecretName}
+	}); err != nil {
+		return err
+	}
+
+	// index topologyField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &horizonv1beta1.Horizon{}, topologyField, func(rawObj client.Object) []string {
+		// Extract the topology name from the spec, if one is provided
+		cr := rawObj.(*horizonv1beta1.Horizon)
+		if cr.Spec.TopologyRef == nil {
+			return nil
+		}
+		return []string{cr.Spec.TopologyRef.Name}
 	}); err != nil {
 		return err
 	}
@@ -368,6 +391,9 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		).
 		Watches(&keystonev1.KeystoneService{},
 			handler.EnqueueRequestsFromMapFunc(keystoneServiceFn)).
+		Watches(&topologyv1.Topology{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }
 
@@ -408,6 +434,19 @@ func (r *HorizonReconciler) findObjectsForSrc(ctx context.Context, src client.Ob
 func (r *HorizonReconciler) reconcileDelete(ctx context.Context, instance *horizonv1beta1.Horizon, helper *helper.Helper) (ctrl.Result, error) {
 	Log := r.GetLogger(ctx)
 	Log.Info("Reconciling Service delete")
+
+	// Remove finalizer on the Topology CR
+	if ctrlResult, err := topology.EnsureDeletedTopologyRef(
+		ctx,
+		helper,
+		&topology.TopoRef{
+			Name:      instance.Status.LastAppliedTopology,
+			Namespace: instance.Namespace,
+		},
+		instance.Name,
+	); err != nil {
+		return ctrlResult, err
+	}
 
 	// Service is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(instance, helper.GetFinalizer())
@@ -797,11 +836,50 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	}
 
 	//
+	// Handle Topology
+	//
+	lastTopologyRef := topology.TopoRef{
+		Name:      instance.Status.LastAppliedTopology,
+		Namespace: instance.Namespace,
+	}
+
+	topology, err := r.ensureHorizonTopology(
+		ctx,
+		helper,
+		instance.Spec.TopologyRef,
+		&lastTopologyRef,
+		instance.Name,
+		horizon.ServiceName,
+	)
+	if err != nil {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.TopologyReadyCondition,
+			condition.ErrorReason,
+			condition.SeverityWarning,
+			condition.TopologyReadyErrorMessage,
+			err.Error()))
+		return ctrl.Result{}, fmt.Errorf("waiting for Topology requirements: %w", err)
+	}
+
+	// If TopologyRef is present and ensureHorizonTopology returned a valid
+	// topology object, set .Status.LastAppliedTopology to the referenced one
+	// and mark the condition as true
+	if instance.Spec.TopologyRef != nil {
+		// update the Status with the last retrieved Topology name
+		instance.Status.LastAppliedTopology = instance.Spec.TopologyRef.Name
+		// update the TopologyRef associated condition
+		instance.Status.Conditions.MarkTrue(condition.TopologyReadyCondition, condition.TopologyReadyMessage)
+	} else {
+		// remove LastAppliedTopology from the .Status
+		instance.Status.LastAppliedTopology = ""
+	}
+
+	//
 	// normal reconcile tasks
 	//
 
 	// Define a new Deployment object
-	deplDef, err := horizon.Deployment(instance, inputHash, serviceLabels, serviceAnnotations, enabledServices)
+	deplDef, err := horizon.Deployment(instance, inputHash, serviceLabels, serviceAnnotations, enabledServices, topology)
 	if err != nil {
 		Log.Error(err, "Deployment failed")
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -1103,4 +1181,62 @@ func (r *HorizonReconciler) ensureNAD(
 			nAttach, err)
 	}
 	return serviceAnnotations, ctrl.Result{}, err
+}
+
+// ensureHorizonTopology - when a Topology CR is referenced, remove the
+// finalizer from a previous referenced Topology (if any), and retrieve the
+// newly referenced topology object
+func (r *HorizonReconciler) ensureHorizonTopology(
+	ctx context.Context,
+	helper *helper.Helper,
+	tpRef *topology.TopoRef,
+	lastAppliedTopology *topology.TopoRef,
+	finalizer string,
+	selector string,
+) (*topologyv1.Topology, error) {
+
+	var podTopology *topologyv1.Topology
+	var err error
+
+	// Remove (if present) the finalizer from a previously referenced topology
+	//
+	// 1. a topology reference is removed (tpRef == nil) from the Horizon
+	//    CR and the finalizer should be deleted from the last applied topology
+	//    (lastAppliedTopology != "")
+	// 2. a topology reference is updated in the Horizon CR (tpRef != nil)
+	//    and the finalizer should be removed from the previously
+	//    referenced topology (tpRef.Name != lastAppliedTopology.Name)
+	if (tpRef == nil && lastAppliedTopology.Name != "") ||
+		(tpRef != nil && tpRef.Name != lastAppliedTopology.Name) {
+		_, err = topology.EnsureDeletedTopologyRef(
+			ctx,
+			helper,
+			lastAppliedTopology,
+			finalizer,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// TopologyRef is passed as input, get the Topology object
+	if tpRef != nil {
+		// no Namespace is provided, default to instance.Namespace
+		if tpRef.Namespace == "" {
+			tpRef.Namespace = helper.GetBeforeObject().GetNamespace()
+		}
+		// Build a defaultLabelSelector (service=horizon)
+		defaultLabelSelector := labels.GetAppLabelSelector(selector)
+		// Retrieve the referenced Topology
+		podTopology, _, err = topology.EnsureTopologyRef(
+			ctx,
+			helper,
+			tpRef,
+			finalizer,
+			&defaultLabelSelector,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return podTopology, nil
 }

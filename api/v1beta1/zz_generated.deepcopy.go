@@ -23,6 +23,7 @@ package v1beta1
 import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/topology"
 	"github.com/openstack-k8s-operators/lib-common/modules/storage"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -199,6 +200,11 @@ func (in *HorizonSpecCore) DeepCopyInto(out *HorizonSpecCore) {
 		in, out := &in.NetworkAttachments, &out.NetworkAttachments
 		*out = make([]string, len(*in))
 		copy(*out, *in)
+	}
+	if in.TopologyRef != nil {
+		in, out := &in.TopologyRef, &out.TopologyRef
+		*out = new(topology.TopoRef)
+		**out = **in
 	}
 }
 
