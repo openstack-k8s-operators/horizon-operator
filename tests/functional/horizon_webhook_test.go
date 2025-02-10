@@ -21,7 +21,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2" //revive:disable:dot-imports
 	. "github.com/onsi/gomega"    //revive:disable:dot-imports
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 )
@@ -67,5 +69,31 @@ var _ = Describe("Horizon Webhook", func() {
 				"container-image",
 			))
 		})
+	})
+
+	It("rejects a wrong TopologyRef on a different namespace", func() {
+		horizonSpec := GetDefaultHorizonSpec()
+		// Inject a topologyRef that points to a different namespace
+		horizonSpec["topologyRef"] = map[string]interface{}{
+			"name":      "foo",
+			"namespace": "bar",
+		}
+		raw := map[string]interface{}{
+			"apiVersion": "horizon.openstack.org/v1beta1",
+			"kind":       "Horizon",
+			"metadata": map[string]interface{}{
+				"name":      "horizon",
+				"namespace": namespace,
+			},
+			"spec": horizonSpec,
+		}
+		unstructuredObj := &unstructured.Unstructured{Object: raw}
+		_, err := controllerutil.CreateOrPatch(
+			th.Ctx, th.K8sClient, unstructuredObj, func() error { return nil })
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(
+			ContainSubstring(
+				"Invalid value: \"namespace\": Customizing namespace field is not supported"),
+		)
 	})
 })

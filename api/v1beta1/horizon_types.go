@@ -21,6 +21,7 @@ import (
 
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/topology"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	"github.com/openstack-k8s-operators/lib-common/modules/storage"
@@ -104,6 +105,11 @@ type HorizonSpecCore struct {
 	// +kubebuilder:validation:Optional
 	// NetworkAttachments is a list of NetworkAttachment resource names to expose the services to the given network
 	NetworkAttachments []string `json:"networkAttachments,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// TopologyRef to apply the Topology defined by the associated CR referenced
+	// by name
+	TopologyRef *topology.TopoRef `json:"topologyRef,omitempty"`
 }
 
 // HorizionOverrideSpec to override the generated manifest of several child resources.
@@ -134,6 +140,9 @@ type HorizonStatus struct {
 
 	// NetworkAttachments status of the deployment pods
 	NetworkAttachments map[string][]string `json:"networkAttachments,omitempty"`
+
+	// LastAppliedTopology - the last applied Topology
+	LastAppliedTopology string `json:"lastAppliedTopology,omitempty"`
 }
 
 //+kubebuilder:object:root=true
