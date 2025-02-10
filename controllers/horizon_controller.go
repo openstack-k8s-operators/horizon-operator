@@ -43,7 +43,6 @@ import (
 	oko_secret "github.com/openstack-k8s-operators/lib-common/modules/common/secret"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
-	"github.com/openstack-k8s-operators/lib-common/modules/common/topology"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -436,10 +435,10 @@ func (r *HorizonReconciler) reconcileDelete(ctx context.Context, instance *horiz
 	Log.Info("Reconciling Service delete")
 
 	// Remove finalizer on the Topology CR
-	if ctrlResult, err := topology.EnsureDeletedTopologyRef(
+	if ctrlResult, err := topologyv1.EnsureDeletedTopologyRef(
 		ctx,
 		helper,
-		&topology.TopoRef{
+		&topologyv1.TopoRef{
 			Name:      instance.Status.LastAppliedTopology,
 			Namespace: instance.Namespace,
 		},
@@ -838,7 +837,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	//
 	// Handle Topology
 	//
-	lastTopologyRef := topology.TopoRef{
+	lastTopologyRef := topologyv1.TopoRef{
 		Name:      instance.Status.LastAppliedTopology,
 		Namespace: instance.Namespace,
 	}
@@ -1189,8 +1188,8 @@ func (r *HorizonReconciler) ensureNAD(
 func (r *HorizonReconciler) ensureHorizonTopology(
 	ctx context.Context,
 	helper *helper.Helper,
-	tpRef *topology.TopoRef,
-	lastAppliedTopology *topology.TopoRef,
+	tpRef *topologyv1.TopoRef,
+	lastAppliedTopology *topologyv1.TopoRef,
 	finalizer string,
 	selector string,
 ) (*topologyv1.Topology, error) {
@@ -1208,7 +1207,7 @@ func (r *HorizonReconciler) ensureHorizonTopology(
 	//    referenced topology (tpRef.Name != lastAppliedTopology.Name)
 	if (tpRef == nil && lastAppliedTopology.Name != "") ||
 		(tpRef != nil && tpRef.Name != lastAppliedTopology.Name) {
-		_, err = topology.EnsureDeletedTopologyRef(
+		_, err = topologyv1.EnsureDeletedTopologyRef(
 			ctx,
 			helper,
 			lastAppliedTopology,
@@ -1227,7 +1226,7 @@ func (r *HorizonReconciler) ensureHorizonTopology(
 		// Build a defaultLabelSelector (service=horizon)
 		defaultLabelSelector := labels.GetAppLabelSelector(selector)
 		// Retrieve the referenced Topology
-		podTopology, _, err = topology.EnsureTopologyRef(
+		podTopology, _, err = topologyv1.EnsureTopologyRef(
 			ctx,
 			helper,
 			tpRef,
