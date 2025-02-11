@@ -30,7 +30,9 @@ import (
 
 const (
 	// ServiceCommand is the command used to run Kolla and launch the initial Apache process
-	ServiceCommand = "/usr/local/bin/kolla_start"
+	ServiceCommand           = "/usr/local/bin/kolla_start"
+	horizonDashboardURL      = "/dashboard/auth/login/?next=/dashboard/"
+	horizonContainerPortName = "horizon"
 )
 
 // Deployment creates the k8s deployment structure required to run Horizon
@@ -47,45 +49,9 @@ func Deployment(
 	args := []string{"-c", ServiceCommand}
 
 	containerPort := corev1.ContainerPort{
-		Name:          "horizon",
+		Name:          horizonContainerPortName,
 		Protocol:      corev1.ProtocolTCP,
 		ContainerPort: HorizonPort,
-	}
-
-	livenessProbe := &corev1.Probe{
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-		InitialDelaySeconds: 10,
-		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/dashboard/auth/login/?next=/dashboard/",
-				Port: intstr.FromString("horizon"),
-			},
-		},
-	}
-	readinessProbe := &corev1.Probe{
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-		InitialDelaySeconds: 10,
-		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/dashboard/auth/login/?next=/dashboard/",
-				Port: intstr.FromString("horizon"),
-			},
-		},
-	}
-
-	startupProbe := &corev1.Probe{
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-		FailureThreshold:    30,
-		InitialDelaySeconds: 10,
-		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/dashboard/auth/login/?next=/dashboard/",
-				Port: intstr.FromString("horizon"),
-			},
-		},
 	}
 
 	envVars := map[string]env.Setter{}
@@ -107,6 +73,10 @@ func Deployment(
 		volumes = append(volumes, instance.Spec.TLS.CreateVolume())
 		volumeMounts = append(volumeMounts, instance.Spec.TLS.CreateVolumeMounts(nil)...)
 	}
+
+	readinessProbe := formatReadinessProbe()
+	livenessProbe := formatLivenessProbe()
+	startupProbe := formatStartupProbe()
 
 	if instance.Spec.TLS.Enabled() {
 		svc, err := instance.Spec.TLS.GenericService.ToService()
@@ -192,4 +162,50 @@ func Deployment(
 	}
 
 	return deployment, nil
+}
+
+func formatLivenessProbe() *corev1.Probe {
+
+	return &corev1.Probe{
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		InitialDelaySeconds: 10,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: horizonDashboardURL,
+				Port: intstr.FromString(horizonContainerPortName),
+			},
+		},
+	}
+}
+
+func formatReadinessProbe() *corev1.Probe {
+
+	return &corev1.Probe{
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		InitialDelaySeconds: 10,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: horizonDashboardURL,
+				Port: intstr.FromString(horizonContainerPortName),
+			},
+		},
+	}
+}
+
+func formatStartupProbe() *corev1.Probe {
+
+	return &corev1.Probe{
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		FailureThreshold:    30,
+		InitialDelaySeconds: 10,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: horizonDashboardURL,
+				Port: intstr.FromString(horizonContainerPortName),
+			},
+		},
+	}
 }
