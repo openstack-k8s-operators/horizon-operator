@@ -279,6 +279,12 @@ var _ = Describe("Horizon controller", func() {
 			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_OCTAVIA", Value: "yes", ValueFrom: nil}))
 		})
+		It("Should have liveness, readiness and startup Probes defined", func() {
+			deployment := th.GetDeployment(deploymentName)
+			Expect(deployment.Spec.Template.Spec.Containers[0].LivenessProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
+			Expect(deployment.Spec.Template.Spec.Containers[0].StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
+			Expect(deployment.Spec.Template.Spec.Containers[0].ReadinessProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
+		})
 	})
 
 	When("watcher keystone service exists", func() {
