@@ -127,6 +127,14 @@ rules:
   - list
   - watch
 - apiGroups:
+  - keystone.openstack.org
+  resources:
+  - keystoneservices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - memcached.openstack.org
   resources:
   - memcacheds
@@ -164,3 +172,12 @@ rules:
   - securitycontextconstraints
   verbs:
   - use
+- apiGroups:
+  - topology.openstack.org
+  resources:
+  - topologies
+  verbs:
+  - get
+  - list
+  - update
+  - watch

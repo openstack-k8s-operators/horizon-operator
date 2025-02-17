@@ -40,6 +40,7 @@ import (
 
 	networkv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 
 	horizonv1beta1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
@@ -59,6 +60,7 @@ func init() {
 	utilruntime.Must(horizonv1beta1.AddToScheme(scheme))
 	utilruntime.Must(keystonev1.AddToScheme(scheme))
 	utilruntime.Must(memcachedv1.AddToScheme(scheme))
+	utilruntime.Must(topologyv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

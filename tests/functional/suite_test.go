@@ -47,6 +47,7 @@ import (
 
 	"github.com/openstack-k8s-operators/horizon-operator/controllers"
 	infra_test "github.com/openstack-k8s-operators/infra-operator/apis/test/helpers"
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	keystone_test "github.com/openstack-k8s-operators/keystone-operator/api/test/helpers"
 	common_test "github.com/openstack-k8s-operators/lib-common/modules/common/test/helpers"
 	"github.com/openstack-k8s-operators/lib-common/modules/test"
@@ -136,6 +137,8 @@ var _ = BeforeSuite(func() {
 	err = memcachedv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 	err = networkv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = topologyv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme

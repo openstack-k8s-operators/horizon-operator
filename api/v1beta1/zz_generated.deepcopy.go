@@ -21,6 +21,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	topologyv1beta1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	"github.com/openstack-k8s-operators/lib-common/modules/storage"
@@ -199,6 +200,11 @@ func (in *HorizonSpecCore) DeepCopyInto(out *HorizonSpecCore) {
 		in, out := &in.NetworkAttachments, &out.NetworkAttachments
 		*out = make([]string, len(*in))
 		copy(*out, *in)
+	}
+	if in.TopologyRef != nil {
+		in, out := &in.TopologyRef, &out.TopologyRef
+		*out = new(topologyv1beta1.TopoRef)
+		**out = **in
 	}
 }
 

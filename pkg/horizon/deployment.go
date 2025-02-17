@@ -17,6 +17,7 @@ package horizon
 
 import (
 	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/affinity"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
@@ -29,7 +30,9 @@ import (
 
 const (
 	// ServiceCommand is the command used to run Kolla and launch the initial Apache process
-	ServiceCommand = "/usr/local/bin/kolla_start"
+	ServiceCommand           = "/usr/local/bin/kolla_start"
+	horizonDashboardURL      = "/dashboard/auth/login/?next=/dashboard/"
+	horizonContainerPortName = "horizon"
 )
 
 // Deployment creates the k8s deployment structure required to run Horizon
@@ -38,51 +41,17 @@ func Deployment(
 	configHash string,
 	labels map[string]string,
 	annotations map[string]string,
+	enabledServices map[string]string,
+	topology *topologyv1.Topology,
 ) (*appsv1.Deployment, error) {
 	runAsUser := int64(0)
 
 	args := []string{"-c", ServiceCommand}
 
 	containerPort := corev1.ContainerPort{
-		Name:          "horizon",
+		Name:          horizonContainerPortName,
 		Protocol:      corev1.ProtocolTCP,
 		ContainerPort: HorizonPort,
-	}
-
-	livenessProbe := &corev1.Probe{
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-		InitialDelaySeconds: 10,
-		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/dashboard/auth/login/?next=/dashboard/",
-				Port: intstr.FromString("horizon"),
-			},
-		},
-	}
-	readinessProbe := &corev1.Probe{
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-		InitialDelaySeconds: 10,
-		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/dashboard/auth/login/?next=/dashboard/",
-				Port: intstr.FromString("horizon"),
-			},
-		},
-	}
-
-	startupProbe := &corev1.Probe{
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-		FailureThreshold:    30,
-		InitialDelaySeconds: 10,
-		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/dashboard/auth/login/?next=/dashboard/",
-				Port: intstr.FromString("horizon"),
-			},
-		},
 	}
 
 	envVars := map[string]env.Setter{}
@@ -92,6 +61,7 @@ func Deployment(
 	envVars["ENABLE_IRONIC"] = env.SetValue("yes")
 	envVars["ENABLE_MANILA"] = env.SetValue("yes")
 	envVars["ENABLE_OCTAVIA"] = env.SetValue("yes")
+	envVars["ENABLE_WATCHER"] = env.SetValue(enabledServices["watcher"])
 	envVars["CONFIG_HASH"] = env.SetValue(configHash)
 
 	// create Volumes and VolumeMounts
@@ -103,6 +73,10 @@ func Deployment(
 		volumes = append(volumes, instance.Spec.TLS.CreateVolume())
 		volumeMounts = append(volumeMounts, instance.Spec.TLS.CreateVolumeMounts(nil)...)
 	}
+
+	readinessProbe := formatReadinessProbe()
+	livenessProbe := formatLivenessProbe()
+	startupProbe := formatStartupProbe()
 
 	if instance.Spec.TLS.Enabled() {
 		svc, err := instance.Spec.TLS.GenericService.ToService()
@@ -176,8 +150,8 @@ func Deployment(
 	}
 	deployment.Spec.Template.Spec.Volumes = getVolumes(instance.Name, instance.Spec.ExtraMounts, HorizonPropagation)
 	/*
-         * +++owen - when looking at how manila did this - we see care taken with a GetVolumes that handles two pods of the same service?
-         *           manila-operator/pkg/manilaapi/deployment.go
+   * +++owen - when looking at how manila did this - we see care taken with a GetVolumes that handles two pods of the same service?
+   *           manila-operator/pkg/manilaapi/deployment.go
 	 *           ~/manila-operator/pkg/manilaapi/volumes.go
 	deployment.Spec.Template.Spec.Volumes = append(GetVolumes(
 		manila.GetOwningManilaName(instance),
@@ -200,5 +174,75 @@ func Deployment(
 		deployment.Spec.Template.Spec.NodeSelector = *instance.Spec.NodeSelector
 	}
 
+	if topology != nil {
+		// Get the Topology .Spec
+		ts := topology.Spec
+		// Process TopologySpreadConstraints if defined in the referenced Topology
+		if ts.TopologySpreadConstraints != nil {
+			deployment.Spec.Template.Spec.TopologySpreadConstraints = *topology.Spec.TopologySpreadConstraints
+		}
+		// Process Affinity if defined in the referenced Topology
+		if ts.Affinity != nil {
+			deployment.Spec.Template.Spec.Affinity = ts.Affinity
+		}
+	} else {
+		// If possible two pods of the same service should not
+		// run on the same worker node. If this is not possible
+		// the get still created on the same worker node.
+		deployment.Spec.Template.Spec.Affinity = affinity.DistributePods(
+			common.AppSelector,
+			[]string{
+				ServiceName,
+			},
+			corev1.LabelHostname,
+		)
+	}
+
 	return deployment, nil
+}
+
+func formatLivenessProbe() *corev1.Probe {
+
+	return &corev1.Probe{
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		InitialDelaySeconds: 10,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: horizonDashboardURL,
+				Port: intstr.FromString(horizonContainerPortName),
+			},
+		},
+	}
+}
+
+func formatReadinessProbe() *corev1.Probe {
+
+	return &corev1.Probe{
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		InitialDelaySeconds: 10,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: horizonDashboardURL,
+				Port: intstr.FromString(horizonContainerPortName),
+			},
+		},
+	}
+}
+
+func formatStartupProbe() *corev1.Probe {
+
+	return &corev1.Probe{
+		TimeoutSeconds:      5,
+		PeriodSeconds:       10,
+		FailureThreshold:    30,
+		InitialDelaySeconds: 10,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: horizonDashboardURL,
+				Port: intstr.FromString(horizonContainerPortName),
+			},
+		},
+	}
 }
