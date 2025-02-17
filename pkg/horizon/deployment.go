@@ -162,7 +162,6 @@ func Deployment(
 							},
 							Env:            env.MergeEnvs([]corev1.EnvVar{}, envVars),
 							VolumeMounts:   volumeMounts,
-                                                                []corev1.VolumeMount{GetLogVolumeMount()}...),
 							Resources:      instance.Spec.Resources,
 							ReadinessProbe: readinessProbe,
 							LivenessProbe:  livenessProbe,
