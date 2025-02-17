@@ -897,6 +897,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		"Port":                horizon.HorizonPort,
 		"TLS":                 false,
 		"isPublicHTTPS":       url.Scheme == "https",
+		"LogFile":             horizon.LogFile,
 	}
 
 	// create httpd tls template parameters
@@ -905,10 +906,6 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		templateParameters["Port"] = horizon.HorizonPortTLS
 		templateParameters["SSLCertificateFile"] = fmt.Sprintf("/etc/pki/tls/certs/%s.crt", horizon.ServiceName)
 		templateParameters["SSLCertificateKeyFile"] = fmt.Sprintf("/etc/pki/tls/private/%s.key", horizon.ServiceName)
-	}
-
-	templateParameters := map[string]interface{}{
-		"LogFile": horizon.LogFile,
 	}
 
 	cms := []util.Template{

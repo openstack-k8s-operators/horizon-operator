@@ -174,9 +174,20 @@ func Deployment(
 			},
 		},
 	}
+	deployment.Spec.Template.Spec.Volumes = getVolumes(instance.Name, instance.Spec.ExtraMounts, HorizonPropagation)
+	/*
+         * +++owen - when looking at how manila did this - we see care taken with a GetVolumes that handles two pods of the same service?
+         *           manila-operator/pkg/manilaapi/deployment.go
+	 *           ~/manila-operator/pkg/manilaapi/volumes.go
 	deployment.Spec.Template.Spec.Volumes = append(GetVolumes(
-                instance.Name,
+		manila.GetOwningManilaName(instance),
+		instance.Name,
 		instance.Spec.ExtraMounts), GetLogVolume())
+	*/
+
+	// If possible two pods of the same service should not
+	// run on the same worker node. If this is not possible
+	// the get still created on the same worker node.
 	deployment.Spec.Template.Spec.Affinity = affinity.DistributePods(
 		common.AppSelector,
 		[]string{
@@ -184,6 +195,7 @@ func Deployment(
 		},
 		corev1.LabelHostname,
 	)
+
 	if instance.Spec.NodeSelector != nil {
 		deployment.Spec.Template.Spec.NodeSelector = *instance.Spec.NodeSelector
 	}
