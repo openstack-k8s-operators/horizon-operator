@@ -372,7 +372,7 @@ var _ = Describe("Horizon controller", func() {
 		It("check topology has been applied", func() {
 			Eventually(func(g Gomega) {
 				horizon := GetHorizon(horizonName)
-				g.Expect(horizon.Status.LastAppliedTopology).To(Equal(horizonTopologies[0].Name))
+				g.Expect(horizon.Status.LastAppliedTopology.Name).To(Equal(horizonTopologies[0].Name))
 			}, timeout, interval).Should(Succeed())
 		})
 		It("sets topology in resource specs", func() {
@@ -390,7 +390,7 @@ var _ = Describe("Horizon controller", func() {
 
 			Eventually(func(g Gomega) {
 				horizon := GetHorizon(horizonName)
-				g.Expect(horizon.Status.LastAppliedTopology).To(Equal(horizonTopologies[1].Name))
+				g.Expect(horizon.Status.LastAppliedTopology.Name).To(Equal(horizonTopologies[1].Name))
 			}, timeout, interval).Should(Succeed())
 		})
 		It("removes topologyRef from the spec", func() {
@@ -403,7 +403,7 @@ var _ = Describe("Horizon controller", func() {
 
 			Eventually(func(g Gomega) {
 				horizon := GetHorizon(horizonName)
-				g.Expect(horizon.Status.LastAppliedTopology).Should(BeEmpty())
+				g.Expect(horizon.Status.LastAppliedTopology).Should(BeNil())
 			}, timeout, interval).Should(Succeed())
 
 			Eventually(func(g Gomega) {
