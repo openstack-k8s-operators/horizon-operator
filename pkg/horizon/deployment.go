@@ -44,7 +44,9 @@ func Deployment(
 	enabledServices map[string]string,
 	topology *topologyv1.Topology,
 ) (*appsv1.Deployment, error) {
-	runAsUser := int64(0)
+
+	var runAsNonRoot bool = true
+	var runAsUserGroup int64 = 8443
 
 	args := []string{"-c", ServiceCommand}
 
@@ -116,7 +118,9 @@ func Deployment(
 							Args:  args,
 							Image: instance.Spec.ContainerImage,
 							SecurityContext: &corev1.SecurityContext{
-								RunAsUser: &runAsUser,
+								RunAsUser:    &runAsUserGroup,
+								RunAsNonRoot: &runAsNonRoot,
+								RunAsGroup:   &runAsUserGroup,
 							},
 							Env:            env.MergeEnvs([]corev1.EnvVar{}, envVars),
 							VolumeMounts:   volumeMounts,
