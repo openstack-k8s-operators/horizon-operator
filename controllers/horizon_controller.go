@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"slices"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -98,6 +99,7 @@ type HorizonReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete;
 //+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneapis,verbs=get;list;watch;
 //+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneendpoints,verbs=get;list;watch;
+//+kubebuilder:rbac:groups=keystone.openstack.org,resources=keystoneservices,verbs=get;list;watch;
 //+kubebuilder:rbac:groups=memcached.openstack.org,resources=memcacheds,verbs=get;list;watch;
 
 // service account, role, rolebinding
@@ -214,6 +216,10 @@ var allWatchFields = []string{
 	tlsField,
 }
 
+var keystoneServicesWatch = []string{
+	"watcher",
+}
+
 // SetupWithManager -
 func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	logger := mgr.GetLogger()
@@ -312,6 +318,36 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return nil
 	}
 
+	// Watch for changes to Keystone Services
+	keystoneServiceFn := func(_ context.Context, o client.Object) []reconcile.Request {
+		result := []reconcile.Request{}
+
+		// get all Horizon CRs
+		horizonList := &horizonv1beta1.HorizonList{}
+		listOpts := []client.ListOption{
+			client.InNamespace(o.GetNamespace()),
+		}
+		if err := r.Client.List(context.Background(), horizonList, listOpts...); err != nil {
+			logger.Error(err, "Unable to retrieve Horizon CRs %w")
+			return nil
+		}
+		if slices.Contains(keystoneServicesWatch, o.GetName()) {
+			for _, cr := range horizonList.Items {
+				logger.Info(fmt.Sprintf("Keystone Service %s is used by Horizon CR %s", o.GetName(), cr.GetName()))
+				name := client.ObjectKey{
+					Namespace: cr.GetNamespace(),
+					Name:      cr.GetName(),
+				}
+				result = append(result, reconcile.Request{NamespacedName: name})
+			}
+		}
+
+		if len(result) > 0 {
+			return result
+		}
+		return nil
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&horizonv1beta1.Horizon{}).
 		Owns(&corev1.Service{}).
@@ -330,6 +366,8 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSrc),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
+		Watches(&keystonev1.KeystoneService{},
+			handler.EnqueueRequestsFromMapFunc(keystoneServiceFn)).
 		Complete(r)
 }
 
@@ -700,6 +738,21 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 
 	// Create ConfigMaps and Secrets - end
 
+	// Check if keystone service exists for watcher in the same namespace
+	enabledServices := make(map[string]string)
+	for _, service := range keystoneServicesWatch {
+		keystoneService, err := keystonev1.GetKeystoneServiceWithName(ctx, helper, service, instance.Namespace)
+		if err != nil && !k8s_errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
+		enabledServices[service] = "no"
+		if keystoneService != nil {
+			enabledServices[service] = "yes"
+		}
+	}
+	//
+
+	//
 	//
 	// TODO check when/if Init, Update, or Upgrade should/could be skipped
 	//
@@ -748,7 +801,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	//
 
 	// Define a new Deployment object
-	deplDef, err := horizon.Deployment(instance, inputHash, serviceLabels, serviceAnnotations)
+	deplDef, err := horizon.Deployment(instance, inputHash, serviceLabels, serviceAnnotations, enabledServices)
 	if err != nil {
 		Log.Error(err, "Deployment failed")
 		instance.Status.Conditions.Set(condition.FalseCondition(
