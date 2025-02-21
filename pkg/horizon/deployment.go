@@ -109,6 +109,22 @@ func Deployment(
 				Spec: corev1.PodSpec{
 					ServiceAccountName: instance.RbacResourceName(),
 					Containers: []corev1.Container{
+						// the first container in a pod is the default selected
+						// by oc log so define the log stream container first.
+						{
+							Name: instance.Name + "-log",
+							Command: []string{
+								"/bin/bash",
+							},
+							Args:  []string{"-c", "tail -n+1 -F " + LogFile},
+							Image: instance.Spec.ContainerImage,
+							SecurityContext: &corev1.SecurityContext{
+								RunAsUser: &runAsUser,
+							},
+							Env:          env.MergeEnvs([]corev1.EnvVar{}, envVars),
+							VolumeMounts: []corev1.VolumeMount{GetLogVolumeMount()},
+							Resources:    instance.Spec.Resources,
+						},
 						{
 							Name: ServiceName,
 							Command: []string{
@@ -132,6 +148,27 @@ func Deployment(
 			},
 		},
 	}
+	deployment.Spec.Template.Spec.Volumes = getVolumes(instance.Name, instance.Spec.ExtraMounts, HorizonPropagation)
+	/*
+   * +++owen - when looking at how manila did this - we see care taken with a GetVolumes that handles two pods of the same service?
+   *           manila-operator/pkg/manilaapi/deployment.go
+	 *           ~/manila-operator/pkg/manilaapi/volumes.go
+	deployment.Spec.Template.Spec.Volumes = append(GetVolumes(
+		manila.GetOwningManilaName(instance),
+		instance.Name,
+		instance.Spec.ExtraMounts), GetLogVolume())
+	*/
+
+	// If possible two pods of the same service should not
+	// run on the same worker node. If this is not possible
+	// the get still created on the same worker node.
+	deployment.Spec.Template.Spec.Affinity = affinity.DistributePods(
+		common.AppSelector,
+		[]string{
+			ServiceName,
+		},
+		corev1.LabelHostname,
+	)
 
 	if instance.Spec.NodeSelector != nil {
 		deployment.Spec.Template.Spec.NodeSelector = *instance.Spec.NodeSelector
