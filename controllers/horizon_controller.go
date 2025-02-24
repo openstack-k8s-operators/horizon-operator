@@ -1036,8 +1036,8 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	if instance.Spec.TLS.Enabled() {
 		templateParameters["TLS"] = true
 		templateParameters["Port"] = horizon.HorizonPortTLS
-		templateParameters["SSLCertificateFile"] = fmt.Sprintf("/etc/pki/tls/certs/%s.crt", horizon.ServiceName)
-		templateParameters["SSLCertificateKeyFile"] = fmt.Sprintf("/etc/pki/tls/private/%s.key", horizon.ServiceName)
+		templateParameters["SSLCertificateFile"] = fmt.Sprintf("/var/lib/config-data/tls/certs/%s.crt", horizon.ServiceName)
+		templateParameters["SSLCertificateKeyFile"] = fmt.Sprintf("/var/lib/config-data/tls/private/%s.key", horizon.ServiceName)
 	}
 
 	cms := []util.Template{

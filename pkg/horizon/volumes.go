@@ -74,7 +74,26 @@ func getVolumeMounts(
 	vm := []corev1.VolumeMount{
 		{
 			Name:      "config-data",
-			MountPath: "/var/lib/config-data/default/",
+			MountPath: "/etc/httpd/conf/httpd.conf",
+			SubPath:   "httpd.conf",
+			ReadOnly:  false,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/httpd/conf.d/ssl.conf",
+			SubPath:   "ssl.conf",
+			ReadOnly:  false,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/openstack-dashboard/local_settings",
+			SubPath:   "local_settings.py",
+			ReadOnly:  false,
+		},
+		{
+			Name:      "config-data",
+			MountPath: "/etc/openstack-dashboard/local_settings.d/9999_custom_settings.py",
+			SubPath:   "9999_custom_settings.py",
 			ReadOnly:  false,
 		},
 		{
@@ -84,7 +103,7 @@ func getVolumeMounts(
 			ReadOnly:  true,
 		},
 		{
-			MountPath: "/run/openstack-dashboard/.secrets",
+			MountPath: "/etc/openstack-dashboard/.horizon_secret",
 			ReadOnly:  true,
 			Name:      "horizon-secret-key",
 		},
