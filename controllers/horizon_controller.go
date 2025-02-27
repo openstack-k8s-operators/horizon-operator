@@ -845,7 +845,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	}
 
 	// Build a defaultLabelSelector (service=horizon)
-	defaultLabelSelector := labels.GetAppLabelSelector(horizon.ServiceName)
+	defaultLabelSelector := labels.GetLabelSelector(serviceLabels)
 	topology, err := topologyv1.EnsureServiceTopology(
 		ctx,
 		helper,
