@@ -13,7 +13,7 @@ require (
 	github.com/openstack-k8s-operators/horizon-operator/api v0.3.1-0.20240214134444-c675e5f69043
 	github.com/openstack-k8s-operators/infra-operator/apis v0.5.1-0.20250218115938-ae95bdfefded
 	github.com/openstack-k8s-operators/keystone-operator/api v0.5.1-0.20250220113356-66f9a1c66db4
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.5.1-0.20250220094812-174a6a440f37
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.5.1-0.20250227072032-4046ee8c6a91
 	github.com/openstack-k8s-operators/lib-common/modules/storage v0.5.1-0.20250220094812-174a6a440f37
 	github.com/openstack-k8s-operators/lib-common/modules/test v0.5.1-0.20250220094812-174a6a440f37
 	k8s.io/api v0.29.14
