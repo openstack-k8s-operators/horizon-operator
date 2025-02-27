@@ -30,7 +30,7 @@ import (
 
 const (
 	// ServiceCommand is the command used to run Kolla and launch the initial Apache process
-	ServiceCommand           = "/usr/local/bin/kolla_start"
+	ServiceCommand           = "/usr/sbin/httpd"
 	horizonDashboardURL      = "/dashboard/auth/login/?next=/dashboard/"
 	horizonContainerPortName = "horizon"
 )
@@ -44,9 +44,11 @@ func Deployment(
 	enabledServices map[string]string,
 	topology *topologyv1.Topology,
 ) (*appsv1.Deployment, error) {
-	runAsUser := int64(0)
 
-	args := []string{"-c", ServiceCommand}
+	var runAsNonRoot bool = false
+	var runAsUserGroup int64 = 8443
+
+	args := []string{"-DFOREGROUND"}
 
 	containerPort := corev1.ContainerPort{
 		Name:          horizonContainerPortName,
@@ -110,13 +112,14 @@ func Deployment(
 					ServiceAccountName: instance.RbacResourceName(),
 					Containers: []corev1.Container{
 						{
-							Name: ServiceName,
-							Command: []string{
-								"/bin/bash"},
-							Args:  args,
-							Image: instance.Spec.ContainerImage,
+							Name:    ServiceName,
+							Command: []string{ServiceCommand},
+							Args:    args,
+							Image:   instance.Spec.ContainerImage,
 							SecurityContext: &corev1.SecurityContext{
-								RunAsUser: &runAsUser,
+								RunAsUser:    &runAsUserGroup,
+								RunAsNonRoot: &runAsNonRoot,
+								RunAsGroup:   &runAsUserGroup,
 							},
 							Env:            env.MergeEnvs([]corev1.EnvVar{}, envVars),
 							VolumeMounts:   volumeMounts,
