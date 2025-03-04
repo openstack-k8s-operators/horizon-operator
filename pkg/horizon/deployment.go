@@ -21,6 +21,7 @@ import (
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/affinity"
 	env "github.com/openstack-k8s-operators/lib-common/modules/common/env"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -34,6 +35,15 @@ const (
 	horizonDashboardURL      = "/dashboard/auth/login/?next=/dashboard/"
 	horizonContainerPortName = "horizon"
 )
+
+type TLSRequiredOptions struct {
+	containerPort  *corev1.ContainerPort
+	livenessProbe  *corev1.Probe
+	readinessProbe *corev1.Probe
+	startupProbe   *corev1.Probe
+	volumes        []corev1.Volume
+	volumeMounts   []corev1.VolumeMount
+}
 
 // Deployment creates the k8s deployment structure required to run Horizon
 func Deployment(
@@ -54,41 +64,35 @@ func Deployment(
 		ContainerPort: HorizonPort,
 	}
 
-	envVars := map[string]env.Setter{}
-	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
-	envVars["ENABLE_DESIGNATE"] = env.SetValue("yes")
-	envVars["ENABLE_HEAT"] = env.SetValue("yes")
-	envVars["ENABLE_IRONIC"] = env.SetValue("yes")
-	envVars["ENABLE_MANILA"] = env.SetValue("yes")
-	envVars["ENABLE_OCTAVIA"] = env.SetValue("yes")
-	envVars["ENABLE_WATCHER"] = env.SetValue(enabledServices["watcher"])
-	envVars["CONFIG_HASH"] = env.SetValue(configHash)
+	livenessProbe := formatProbes()
+	readinessProbe := formatProbes()
+	startupProbe := formatProbes()
+
+	envVars := getEnvVars(configHash, enabledServices)
 
 	// create Volumes and VolumeMounts
 	volumes := getVolumes(instance.Name, instance.Spec.ExtraMounts, HorizonPropagation)
 	volumeMounts := getVolumeMounts(instance.Spec.ExtraMounts, HorizonPropagation)
 
-	// add CA cert if defined
-	if instance.Spec.TLS.CaBundleSecretName != "" {
-		volumes = append(volumes, instance.Spec.TLS.CreateVolume())
-		volumeMounts = append(volumeMounts, instance.Spec.TLS.CreateVolumeMounts(nil)...)
-	}
-
-	readinessProbe := formatReadinessProbe()
-	livenessProbe := formatLivenessProbe()
-	startupProbe := formatStartupProbe()
-
 	if instance.Spec.TLS.Enabled() {
-		svc, err := instance.Spec.TLS.GenericService.ToService()
+		tlsRequiredOptions := TLSRequiredOptions{
+			&containerPort,
+			livenessProbe,
+			readinessProbe,
+			startupProbe,
+			volumes,
+			volumeMounts,
+		}
+
+		err := tlsRequiredOptions.formatTLSOptions(instance)
 		if err != nil {
 			return nil, err
 		}
-		containerPort.ContainerPort = HorizonPortTLS
-		livenessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
-		readinessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
-		startupProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
-		volumes = append(volumes, svc.CreateVolume(ServiceName))
-		volumeMounts = append(volumeMounts, svc.CreateVolumeMounts(ServiceName)...)
+		volumes, volumeMounts = tlsRequiredOptions.volumes, tlsRequiredOptions.volumeMounts
+		livenessProbe = tlsRequiredOptions.livenessProbe
+		readinessProbe = tlsRequiredOptions.readinessProbe
+		startupProbe = tlsRequiredOptions.startupProbe
+		containerPort = *tlsRequiredOptions.containerPort
 	}
 
 	deployment := &appsv1.Deployment{
@@ -155,7 +159,23 @@ func Deployment(
 	return deployment, nil
 }
 
-func formatLivenessProbe() *corev1.Probe {
+func getEnvVars(configHash string, enabledServices map[string]string) map[string]env.Setter {
+
+	envVars := map[string]env.Setter{}
+
+	envVars["KOLLA_CONFIG_STRATEGY"] = env.SetValue("COPY_ALWAYS")
+	envVars["ENABLE_DESIGNATE"] = env.SetValue("yes")
+	envVars["ENABLE_HEAT"] = env.SetValue("yes")
+	envVars["ENABLE_IRONIC"] = env.SetValue("yes")
+	envVars["ENABLE_MANILA"] = env.SetValue("yes")
+	envVars["ENABLE_OCTAVIA"] = env.SetValue("yes")
+	envVars["ENABLE_WATCHER"] = env.SetValue(enabledServices["watcher"])
+	envVars["CONFIG_HASH"] = env.SetValue(configHash)
+
+	return envVars
+}
+
+func formatProbes() *corev1.Probe {
 
 	return &corev1.Probe{
 		TimeoutSeconds:      5,
@@ -170,33 +190,28 @@ func formatLivenessProbe() *corev1.Probe {
 	}
 }
 
-func formatReadinessProbe() *corev1.Probe {
+func (t *TLSRequiredOptions) formatTLSOptions(instance *horizonv1.Horizon) error {
 
-	return &corev1.Probe{
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-		InitialDelaySeconds: 10,
-		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: horizonDashboardURL,
-				Port: intstr.FromString(horizonContainerPortName),
-			},
-		},
+	var err error
+	var svc *tls.Service
+
+	svc, err = instance.Spec.TLS.GenericService.ToService()
+	if err != nil {
+		return err
 	}
-}
 
-func formatStartupProbe() *corev1.Probe {
-
-	return &corev1.Probe{
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
-		FailureThreshold:    30,
-		InitialDelaySeconds: 10,
-		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: horizonDashboardURL,
-				Port: intstr.FromString(horizonContainerPortName),
-			},
-		},
+	// add CA cert if defined
+	if instance.Spec.TLS.CaBundleSecretName != "" {
+		t.volumes = append(t.volumes, instance.Spec.TLS.CreateVolume())
+		t.volumeMounts = append(t.volumeMounts, instance.Spec.TLS.CreateVolumeMounts(nil)...)
 	}
+
+	t.containerPort.ContainerPort = HorizonPortTLS
+	t.livenessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+	t.readinessProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+	t.startupProbe.HTTPGet.Scheme = corev1.URISchemeHTTPS
+	t.volumes = append(t.volumes, svc.CreateVolume(ServiceName))
+	t.volumeMounts = append(t.volumeMounts, svc.CreateVolumeMounts(ServiceName)...)
+
+	return nil
 }
