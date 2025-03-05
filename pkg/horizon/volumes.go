@@ -92,7 +92,7 @@ func getVolumeMounts(
 		},
 	}
 	// append scripts volumeMount
-	vm = append(vm, getScriptVolumeMount())
+	vm = append(vm, getScriptVolumeMount()...)
 	for _, exv := range extraVol {
 		for _, vol := range exv.Propagate(svc) {
 			vm = append(vm, vol.Mounts...)
@@ -102,11 +102,19 @@ func getVolumeMounts(
 }
 
 // getScriptVolumeMount -
-func getScriptVolumeMount() corev1.VolumeMount {
-	return corev1.VolumeMount{
-		Name:      "scripts",
-		MountPath: "/usr/local/bin/container-scripts",
-		ReadOnly:  true,
+func getScriptVolumeMount() []corev1.VolumeMount {
+	return []corev1.VolumeMount{
+		{
+			Name:      "scripts",
+			MountPath: "/usr/local/bin/container-scripts",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "scripts",
+			MountPath: "/usr/local/bin/kolla_theme_setup",
+			ReadOnly:  true,
+			SubPath:   "kolla_theme_setup",
+		},
 	}
 }
 

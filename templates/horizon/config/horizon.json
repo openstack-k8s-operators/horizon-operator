@@ -49,12 +49,6 @@
             "perm": "0600",
             "optional": true,
             "merge": true
-        },
-        {
-            "source": "/usr/local/bin/container-scripts/kolla_httpd_setup",
-            "dest": "/usr/local/bin/kolla_httpd_setup",
-            "owner": "root:root",
-            "perm": "0755"
         }
     ],
     "permissions": [

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -x
+
+SRC_CUSTOM_THEME_DIR=${1:-/etc/openstack-dashboard/theme}
+TARGET_THEME_DIR=${2:-/usr/share/openstack-dashboard/openstack_dashboard/themes}
+TAR_OPTS="-xzvf"
+
+function unpack_theme {
+  local theme="$1"
+  if [[ "$theme" == *.tar.gz ]]; then
+      echo "Unpacking theme ..."
+      tar "${TAR_OPTS}" "${SRC_CUSTOM_THEME_DIR}/${theme}" -C "${TARGET_THEME_DIR}"
+  else
+      echo "$theme is not valid, ignoring ..."
+  fi
+}
+
+if [[ -d "${SRC_CUSTOM_THEME_DIR}" ]]; then
+    THEMES=$(ls "$SRC_CUSTOM_THEME_DIR")
+    while read -r theme; do
+        echo "Processing theme $theme ..."
+        unpack_theme "$theme"
+    done <<< "${THEMES}"
+fi
