@@ -49,6 +49,12 @@
             "perm": "0600",
             "optional": true,
             "merge": true
+        },
+        {
+            "source": "/usr/local/bin/container-scripts/kolla_httpd_setup",
+            "dest": "/usr/local/bin/kolla_httpd_setup",
+            "owner": "root:root",
+            "perm": "0755"
         }
     ],
     "permissions": [
@@ -59,6 +65,11 @@
         },
         {
             "path": "/etc/openstack-dashboard",
+            "owner": "apache:apache",
+            "recurse": true
+        },
+        {
+            "path": "/usr/share/openstack-dashboard/openstack_dashboard/themes",
             "owner": "apache:apache",
             "recurse": true
         }
