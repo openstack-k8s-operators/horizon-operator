@@ -31,7 +31,7 @@ import (
 
 const (
 	// ServiceCommand is the command used to run Kolla and launch the initial Apache process
-	ServiceCommand           = "/usr/local/bin/kolla_start"
+	ServiceCommand           = "/usr/local/bin/kolla_theme_setup && /usr/local/bin/kolla_start"
 	horizonDashboardURL      = "/dashboard/auth/login/?next=/dashboard/"
 	horizonContainerPortName = "horizon"
 )
