@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -x
+
+SRC_CUSTOM_THEME_DIR=${1:-/etc/openstack-dashboard/theme}
+TARGET_THEME_DIR=${2:-/usr/share/openstack-dashboard/openstack_dashboard/themes}
+THEME_PACK=${3:-rcue.tar.gz}
+TAR_OPTS="-xzvf"
+
+function unpack_theme {
+  echo "Unpacking theme ..."
+  tar "${TAR_OPTS}" "${SRC_CUSTOM_THEME_DIR}/${THEME_PACK}" -C "${TARGET_THEME_DIR}"
+
+}
+
+function assert_custom_theme_exists {
+  echo "Checking custom theme ..."
+  if [ -z "$(ls -A "${SRC_CUSTOM_THEME_DIR}/${THEME_PACK}")" ]; then
+    echo "No custom theme detected ..."
+    exit 0
+  fi
+}
+
+assert_custom_theme_exists
+
+if [[ "${UNPACK_THEME,,}" == "true" ]]; then
+    unpack_theme
+fi
