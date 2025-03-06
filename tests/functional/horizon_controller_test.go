@@ -274,9 +274,9 @@ var _ = Describe("Horizon controller", func() {
 		It("should set default environment in deployment", func() {
 			// Assert that the watcher deployment is created
 			deployment := th.GetDeployment(deploymentName)
-			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
+			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_WATCHER", Value: "no", ValueFrom: nil}))
-			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
+			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_OCTAVIA", Value: "yes", ValueFrom: nil}))
 		})
 		It("Should have liveness, readiness and startup Probes defined", func() {
@@ -343,9 +343,9 @@ var _ = Describe("Horizon controller", func() {
 		It("should set ENABLE_WATCHER to yes in deployment environment", func() {
 			// Assert that the watcher deployment is created
 			deployment := th.GetDeployment(deploymentName)
-			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
+			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_WATCHER", Value: "yes", ValueFrom: nil}))
-			Expect(deployment.Spec.Template.Spec.Containers[0].Env).
+			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_OCTAVIA", Value: "yes", ValueFrom: nil}))
 		})
 	})
