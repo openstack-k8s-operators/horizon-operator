@@ -69,6 +69,8 @@ spec:
         - mountPath: /run/openstack-dashboard/.secrets
           name: horizon-secret-key
           readOnly: true
+        - mountPath: /var/log/horizon
+          name: logs
         - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
           name: combined-ca-bundle
           readOnly: true
@@ -90,6 +92,8 @@ spec:
         secret:
           defaultMode: 384
           secretName: horizon
+      - emptyDir: {}
+        name: logs
       - name: combined-ca-bundle
         secret:
           defaultMode: 292
