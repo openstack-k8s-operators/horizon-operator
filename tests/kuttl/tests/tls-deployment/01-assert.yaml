@@ -33,6 +33,15 @@ spec:
               topologyKey: kubernetes.io/hostname
             weight: 100
       containers:
+      - args:
+        - -c
+        - tail -n+1 -F /var/log/horizon/horizon.log
+        command:
+        - /bin/bash
+        name: horizon-log
+        volumeMounts:
+        - mountPath: /var/log/horizon
+          name: logs
       - livenessProbe:
           httpGet:
             port: horizon
