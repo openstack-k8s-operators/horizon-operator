@@ -76,6 +76,8 @@ spec:
           name: scripts
           readOnly: true
           subPath: kolla_theme_setup
+        - mountPath: /var/log/horizon
+          name: logs
         - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
           name: combined-ca-bundle
           readOnly: true
@@ -101,6 +103,8 @@ spec:
           defaultMode: 493
           name: horizon-scripts
         name: scripts
+      - emptyDir: {}
+        name: logs
       - name: combined-ca-bundle
         secret:
           defaultMode: 292
