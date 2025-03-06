@@ -121,6 +121,7 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ginkgo ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) --trace --cover  --coverprofile cover.out --covermode=atomic --coverpkg=../../pkg/horizon,../../controllers,../../api/v1beta1 ${PROC_CMD} $(GINKGO_ARGS) ./tests/...
 
+
 ##@ Build
 
 .PHONY: build
