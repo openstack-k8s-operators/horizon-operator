@@ -239,7 +239,7 @@ func (c *HorizonExtraVolMounts) Propagate(svc []storage.PropagationType) []stora
 		if strings.Contains(strings.ToLower(extraMountType), HorizonThemeExtraVolType) {
 			// Ignore an invalid path that does not match with
 			// HorizonCustomThemeMountPath
-			if ok := c.ValidateThemePath(gv.Mounts); ok {
+			if ok := c.ValidateThemeExtraMountPath(gv.Mounts); ok {
 				vl = append(vl, gv.Propagate(svc)...)
 			}
 		} else {
@@ -249,13 +249,14 @@ func (c *HorizonExtraVolMounts) Propagate(svc []storage.PropagationType) []stora
 	return vl
 }
 
-// ValidateThemePath -
-func (c *HorizonExtraVolMounts) ValidateThemePath(volMount []corev1.VolumeMount) bool {
+// ValidateThemeExtraMountPath -
+func (c *HorizonExtraVolMounts) ValidateThemeExtraMountPath(volMount []corev1.VolumeMount) bool {
 	for _, m := range volMount {
-		if strings.Contains(strings.ToLower(m.MountPath), HorizonCustomThemeMountPath) ||
-			strings.Contains(strings.ToLower(m.MountPath), HorizonCustomThemeSetting) {
-				return true
+		// if at least one entry is not valid, ignore the extraMount
+		if !strings.Contains(m.MountPath, HorizonCustomThemeMountPath) &&
+			!strings.Contains(m.MountPath, HorizonCustomThemeSetting) {
+				return false
 		}
 	}
-	return false
+	return true
 }

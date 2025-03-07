@@ -12,7 +12,7 @@ function unpack_theme {
       echo "Unpacking theme ..."
       tar "${TAR_OPTS}" "${SRC_CUSTOM_THEME_DIR}/${theme}" -C "${TARGET_THEME_DIR}"
   else
-      echo "$theme is not valid, ignoring ..."
+      echo "$theme does not end in tar.gz, ignoring ..."
   fi
 }
 

@@ -1,0 +1,12 @@
+resources:
+- ../base/openstack
+
+patches:
+- path: custom_theme.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+- files:
+  - ./_11_custom_theme.py
+  - ./custom.tar.gz
+  name: horizon-theme

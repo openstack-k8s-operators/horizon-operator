@@ -63,6 +63,10 @@ spec:
         - mountPath: /usr/local/bin/container-scripts
           name: scripts
           readOnly: true
+        - mountPath: /usr/local/bin/kolla_theme_setup
+          name: scripts
+          readOnly: true
+          subPath: kolla_theme_setup
         - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
           name: combined-ca-bundle
           readOnly: true

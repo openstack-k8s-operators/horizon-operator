@@ -1,0 +1,32 @@
+# The following CR assumes that a configMap is created starting from
+# a local tarball containing the theme
+#
+# oc create cm horizon-theme --from-file=_11_custom_theme.py --from-file=$HOME/custom.tar.gz
+#
+# Sample using Ceph as a glance backend
+# Requires a running Ceph cluster and its `/etc/ceph` files in secret `ceph-conf-files`
+# This can be achieved with the `ceph` target of `install_yamls`
+apiVersion: core.openstack.org/v1beta1
+kind: OpenStackControlPlane
+metadata:
+  name: openstack
+spec:
+  horizon:
+    enabled: true
+    template:
+      extraMounts:
+        - extraVol:
+          - extraVolType: HorizonTheme
+            mounts:
+            - mountPath: /etc/openstack-dashboard/local_settings.d/_11_custom_theme.py
+              name: horizon-theme
+              readOnly: true
+              subPath: _11_custom_theme.py
+            - mountPath: /etc/openstack-dashboard/theme/custom.tar.gz
+              name: horizon-theme
+              readOnly: true
+              subPath: custom.tar.gz
+            volumes:
+            - configMap:
+                name: horizon-theme
+              name: horizon-theme
