@@ -31,7 +31,7 @@ import (
 
 const (
 	// ServiceCommand is the command used to run Kolla and launch the initial Apache process
-	ServiceCommand           = "/usr/local/bin/kolla_start"
+	ServiceCommand           = "/usr/local/bin/kolla_theme_setup && /usr/local/bin/kolla_start"
 	horizonDashboardURL      = "/dashboard/auth/login/?next=/dashboard/"
 	horizonContainerPortName = "horizon"
 )
@@ -171,6 +171,7 @@ func getEnvVars(configHash string, enabledServices map[string]string) map[string
 	envVars["ENABLE_OCTAVIA"] = env.SetValue("yes")
 	envVars["ENABLE_WATCHER"] = env.SetValue(enabledServices["watcher"])
 	envVars["CONFIG_HASH"] = env.SetValue(configHash)
+	envVars["UNPACK_THEME"] = env.SetValue("true")
 
 	return envVars
 }

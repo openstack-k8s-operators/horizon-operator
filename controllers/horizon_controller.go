@@ -1053,6 +1053,14 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 			Labels:        cmLabels,
 		},
 	}
+	// Append scripts
+	cms = append(cms, util.Template{
+		Name:         instance.Name + "-scripts",
+		Namespace:    instance.Namespace,
+		Type:         util.TemplateTypeScripts,
+		InstanceType: instance.Kind,
+		Labels:       cmLabels,
+	})
 	return configmap.EnsureConfigMaps(ctx, h, instance, cms, envVars)
 }
 
