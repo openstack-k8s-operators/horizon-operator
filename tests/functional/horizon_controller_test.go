@@ -378,6 +378,7 @@ var _ = Describe("Horizon controller", func() {
 		It("check topology has been applied", func() {
 			Eventually(func(g Gomega) {
 				horizon := GetHorizon(horizonName)
+				g.Expect(horizon.Status.LastAppliedTopology).ToNot(BeNil())
 				g.Expect(horizon.Status.LastAppliedTopology.Name).To(Equal(horizonTopologies[0].Name))
 			}, timeout, interval).Should(Succeed())
 		})
@@ -396,6 +397,7 @@ var _ = Describe("Horizon controller", func() {
 
 			Eventually(func(g Gomega) {
 				horizon := GetHorizon(horizonName)
+				g.Expect(horizon.Status.LastAppliedTopology).ToNot(BeNil())
 				g.Expect(horizon.Status.LastAppliedTopology.Name).To(Equal(horizonTopologies[1].Name))
 			}, timeout, interval).Should(Succeed())
 		})
