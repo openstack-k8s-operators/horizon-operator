@@ -33,6 +33,16 @@ spec:
               topologyKey: kubernetes.io/hostname
             weight: 100
       containers:
+      - args:
+        - -c
+        - tail -n+1 -F /var/log/horizon/horizon.log
+        command:
+        - /bin/bash
+        name: horizon-log
+        volumeMounts:
+        - mountPath: /var/log/horizon
+          name: logs
+          readOnly: true
       - livenessProbe:
           httpGet:
             port: horizon
@@ -60,6 +70,8 @@ spec:
         - mountPath: /run/openstack-dashboard/.secrets
           name: horizon-secret-key
           readOnly: true
+        - mountPath: /var/log/horizon
+          name: logs
         - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
           name: combined-ca-bundle
           readOnly: true
@@ -81,6 +93,8 @@ spec:
         secret:
           defaultMode: 384
           secretName: horizon
+      - emptyDir: {}
+        name: logs
       - name: combined-ca-bundle
         secret:
           defaultMode: 292

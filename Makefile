@@ -59,6 +59,10 @@ ENVTEST_K8S_VERSION = 1.29
 # Set minimum Go version
 GOTOOLCHAIN_VERSION ?= go1.21.0
 
+PROCS ?=$(shell expr $(shell nproc --ignore 2) / 4)
+# PROC_CMD = --procs ${PROCS}
+PROC_CMD =
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -115,7 +119,8 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate fmt vet envtest ginkgo ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) --trace --cover --coverpkg=../../pkg/horizon,../../controllers,../../api/v1beta1 --coverprofile cover.out --covermode=atomic ${PROC_CMD} $(GINKGO_ARGS) ./tests/... ./pkg/horizon/...
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) --trace --cover  --coverprofile cover.out --covermode=atomic --coverpkg=../../pkg/horizon,../../controllers,../../api/v1beta1 ${PROC_CMD} $(GINKGO_ARGS) ./tests/...
+
 
 ##@ Build
 
