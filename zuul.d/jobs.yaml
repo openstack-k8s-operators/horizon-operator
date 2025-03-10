@@ -1,0 +1,19 @@
+---
+- job:
+    name: horizon-operator-kuttl
+    parent: cifmw-base-multinode-kuttl
+    attempts: 1
+    required-projects:
+      - github.com/openstack-k8s-operators/horizon-operator
+    irrelevant-files:
+      - .*/*.md
+      - ^\..*$
+      - ^LICENSE$
+      - ^OWNERS$
+      - ^OWNERS_ALIASES$
+      - ^PROJECT$
+      - ^README.md$
+      - tests?\/functional
+    vars:
+      cifmw_kuttl_tests_operator_list:
+        - horizon
