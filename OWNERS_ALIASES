@@ -7,6 +7,10 @@ aliases:
   - viroel
   horizon-approvers:
   - bshephar
+  - ashu-011
+  - deshipu
+  - mcgonago
+  - fmount
   openstack-approvers:
   - abays
   - dprince
