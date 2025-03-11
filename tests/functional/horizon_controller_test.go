@@ -281,9 +281,9 @@ var _ = Describe("Horizon controller", func() {
 		})
 		It("Should have liveness, readiness and startup Probes defined", func() {
 			deployment := th.GetDeployment(deploymentName)
-			Expect(deployment.Spec.Template.Spec.Containers[0].LivenessProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
-			Expect(deployment.Spec.Template.Spec.Containers[0].StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
-			Expect(deployment.Spec.Template.Spec.Containers[0].ReadinessProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
+			Expect(deployment.Spec.Template.Spec.Containers[1].LivenessProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
+			Expect(deployment.Spec.Template.Spec.Containers[1].StartupProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
+			Expect(deployment.Spec.Template.Spec.Containers[1].ReadinessProbe.ProbeHandler.HTTPGet.Path).To(Equal("/dashboard/auth/login/?next=/dashboard/"))
 		})
 	})
 
