@@ -91,6 +91,10 @@ spec:
           name: horizon-tls-certs
           readOnly: true
           subPath: tls.key
+      securityContext: {}
+      serviceAccount: horizon-horizon
+      serviceAccountName: horizon-horizon
+      terminationGracePeriodSeconds: 30
       volumes:
       - configMap:
           defaultMode: 416
