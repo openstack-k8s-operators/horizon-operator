@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"fmt"
+	"strings"
 
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
@@ -33,6 +34,12 @@ import (
 const (
 	// ContainerImage - default fall-back container image for Horizon if associated env var not provided
 	ContainerImage = "quay.io/podified-antelope-centos9/openstack-horizon:current-podified"
+	// HorizonCustomThemeMountPath -
+	HorizonCustomThemeMountPath = "/etc/openstack-dashboard/theme"
+	// HorizonCustomThemeSetting -
+	HorizonCustomThemeSetting = "/etc/openstack-dashboard/local_settings.d"
+	// HorizonThemeExtraVolType -
+	HorizonThemeExtraVolType = "theme"
 )
 
 // HorizonSpec defines the desired state of Horizon
@@ -228,7 +235,28 @@ type HorizonExtraVolMounts struct {
 func (c *HorizonExtraVolMounts) Propagate(svc []storage.PropagationType) []storage.VolMounts {
 	var vl []storage.VolMounts
 	for _, gv := range c.VolMounts {
-		vl = append(vl, gv.Propagate(svc)...)
+		var extraMountType string = fmt.Sprintf("%s", string(gv.ExtraVolType))
+		if strings.Contains(strings.ToLower(extraMountType), HorizonThemeExtraVolType) {
+			// Ignore an invalid path that does not match with
+			// HorizonCustomThemeMountPath
+			if ok := c.ValidateThemeExtraMountPath(gv.Mounts); ok {
+				vl = append(vl, gv.Propagate(svc)...)
+			}
+		} else {
+			vl = append(vl, gv.Propagate(svc)...)
+		}
 	}
 	return vl
+}
+
+// ValidateThemeExtraMountPath -
+func (c *HorizonExtraVolMounts) ValidateThemeExtraMountPath(volMount []corev1.VolumeMount) bool {
+	for _, m := range volMount {
+		// if at least one entry is not valid, ignore the extraMount
+		if !strings.Contains(m.MountPath, HorizonCustomThemeMountPath) &&
+			!strings.Contains(m.MountPath, HorizonCustomThemeSetting) {
+				return false
+		}
+	}
+	return true
 }

@@ -51,6 +51,8 @@ func getVolumes(
 			},
 		},
 	}
+	// append scripts volume
+	res = append(res, getScriptVolume())
 	for _, exv := range extraVol {
 		for _, vol := range exv.Propagate(svc) {
 			for _, v := range vol.Volumes {
@@ -89,10 +91,45 @@ func getVolumeMounts(
 			Name:      "horizon-secret-key",
 		},
 	}
+	// append scripts volumeMount
+	vm = append(vm, getScriptVolumeMount()...)
 	for _, exv := range extraVol {
 		for _, vol := range exv.Propagate(svc) {
 			vm = append(vm, vol.Mounts...)
 		}
 	}
 	return vm
+}
+
+// getScriptVolumeMount -
+func getScriptVolumeMount() []corev1.VolumeMount {
+	return []corev1.VolumeMount{
+		{
+			Name:      "scripts",
+			MountPath: "/usr/local/bin/container-scripts",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "scripts",
+			MountPath: "/usr/local/bin/kolla_theme_setup",
+			ReadOnly:  true,
+			SubPath:   "kolla_theme_setup",
+		},
+	}
+}
+
+// getScriptVolume -
+func getScriptVolume() corev1.Volume {
+	var scriptsVolumeDefaultMode int32 = 0755
+	return corev1.Volume{
+		Name: "scripts",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				DefaultMode: &scriptsVolumeDefaultMode,
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: ServiceName + "-scripts",
+				},
+			},
+		},
+	}
 }
