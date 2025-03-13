@@ -61,6 +61,11 @@
             "path": "/etc/openstack-dashboard",
             "owner": "apache:apache",
             "recurse": true
+        },
+        {
+            "path": "/usr/share/openstack-dashboard/openstack_dashboard/themes",
+            "owner": "apache:apache",
+            "recurse": true
         }
     ]
 }
