@@ -42,7 +42,6 @@ spec:
         volumeMounts:
         - mountPath: /var/log/horizon
           name: logs
-          readOnly: true
       - livenessProbe:
           httpGet:
             port: horizon
