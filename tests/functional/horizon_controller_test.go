@@ -142,6 +142,30 @@ var _ = Describe("Horizon controller", func() {
 		})
 	})
 
+	When("No secret is provided", func() {
+		BeforeEach(func() {
+			horizonSpec := GetDefaultHorizonSpec()
+			horizonSpec["secret"] = ""
+
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, horizonSpec))
+		})
+
+		It("Should set the inputReady condition to false", func() {
+
+			var missingDependenciesReason condition.Reason = "missing dependencies"
+			var missingDependenciesMessage = "missing openstack secret"
+
+			th.ExpectConditionWithDetails(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.InputReadyCondition,
+				corev1.ConditionFalse,
+				missingDependenciesReason,
+				missingDependenciesMessage,
+			)
+		})
+	})
+
 	When("Memcached instance is available", func() {
 		BeforeEach(func() {
 			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
