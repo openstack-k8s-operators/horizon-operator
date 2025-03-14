@@ -611,11 +611,15 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	// We can't reconcile without a valid OpenStack secret. Exit early here and update the status.conditions to
 	// inform users of the issue.
 	if instance.Spec.Secret == "" {
+
+		var missingDependenciesReason condition.Reason = "missing dependencies"
+		var missingDependenciesMessage = "missing openstack secret"
+
 		instance.Status.Conditions.Set(condition.FalseCondition(
 			condition.InputReadyCondition,
-			condition.RequestedReason,
+			missingDependenciesReason,
 			condition.SeverityInfo,
-			condition.InputReadyWaitingMessage))
+			missingDependenciesMessage))
 
 		return ctrl.Result{}, fmt.Errorf("no openstack secret has been provided. Unable to reconcile")
 	}
