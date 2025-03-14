@@ -607,6 +607,19 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	//
 	// check for required OpenStack secret holding passwords for service/admin user and add hash to the vars map
 	//
+
+	// We can't reconcile without a valid OpenStack secret. Exit early here and update the status.conditions to
+	// inform users of the issue.
+	if instance.Spec.Secret == "" {
+		instance.Status.Conditions.Set(condition.FalseCondition(
+			condition.InputReadyCondition,
+			condition.RequestedReason,
+			condition.SeverityInfo,
+			condition.InputReadyWaitingMessage))
+
+		return ctrl.Result{}, fmt.Errorf("no openstack secret has been provided. Unable to reconcile")
+	}
+
 	ospSecret, hash, err := oko_secret.GetSecret(ctx, helper, instance.Spec.Secret, instance.Namespace)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
