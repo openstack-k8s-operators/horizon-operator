@@ -29,7 +29,7 @@ LOGIN_REDIRECT_URL = '/dashboard/'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 OPENSTACK_ENDPOINT_TYPE = "internalURL"
 OPENSTACK_API_VERSIONS = {
-  'identity': 3,
+    'identity': 3,
 }
 HORIZON_CONFIG["password_validator"] = {
     "regex": '',
@@ -42,13 +42,13 @@ DEBUG = False
 # This setting controls whether or not compression is enabled. Disabling
 # compression makes Horizon considerably slower, but makes it much easier
 # to debug JS and CSS changes
-#COMPRESS_ENABLED = not DEBUG
+# COMPRESS_ENABLED = not DEBUG
 
 # This setting controls whether compression happens on the fly, or offline
 # with `python manage.py compress`
 # See https://django-compressor.readthedocs.io/en/latest/usage/#offline-compression
 # for more information
-#COMPRESS_OFFLINE = not DEBUG
+# COMPRESS_OFFLINE = not DEBUG
 
 # If horizon is running in production (DEBUG is False), set this
 # with the list of host/domain names that the application can serve.
@@ -61,16 +61,18 @@ DEBUG = False
 # could land on any of the replicas. Instead, we need to explicity check the pod
 # we're currently running on. Therefore, we need to execute this function to
 # retrieve the IP address, which we will then in turn add to the ALLOWED_HOSTS list.
+
+
 def get_pod_ip():
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     hostport = (
         "{{ .horizonEndpointHost }}",
-        {{- if .isPublicHTTPS }}
+        {{- if .isPublicHTTPS}}
         443
         {{- else }}
         80
-        {{- end }}
+        {{- end}}
     )
     try:
         s.connect(hostport)
@@ -83,18 +85,19 @@ def get_pod_ip():
     finally:
         s.close()
 
+
 ALLOWED_HOSTS = [get_pod_ip(), "{{ .horizonEndpointHost }}"]
 
 USE_X_FORWARDED_HOST = True
 
-{{- if .isPublicHTTPS }}
+{{- if .isPublicHTTPS}}
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 SECURE_HSTS_SECONDS = 31536000
-{{- end }}
+{{- end}}
 
 LOCAL_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -107,7 +110,7 @@ LOCAL_PATH = os.path.dirname(os.path.abspath(__file__))
 # (usually behind a load-balancer). Either you have to make sure that a session
 # gets all requests routed to the same dashboard instance or you set the same
 # SECRET_KEY for all of them.
-#SECRET_KEY = secret_key.generate_or_read_from_file(
+# SECRET_KEY = secret_key.generate_or_read_from_file(
 #    os.path.join(LOCAL_PATH, '.secret_key_store'))
 
 SECRET_KEY = secret_key.read_from_file(
@@ -126,9 +129,9 @@ CACHES = {
         # To drop the cached sessions when config changes
         'KEY_PREFIX': os.environ['CONFIG_HASH'],
         'OPTIONS': {
-{{- if .memcachedTLS }}
+            {{- if .memcachedTLS}}
             'tls_context': ssl.create_default_context()
-{{- end }}
+            {{- end}}
         }
     },
 }
@@ -136,23 +139,23 @@ CACHES = {
 # If you use ``tox -e runserver`` for developments,then configure
 # SESSION_ENGINE to django.contrib.sessions.backends.signed_cookies
 # as shown below:
-#SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+# SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 
 
 # Send email to the console by default
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # Or send them to /dev/null
-#EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
+# EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
 
 # Configure these for your outgoing email host
-#EMAIL_HOST = 'smtp.my-company.com'
-#EMAIL_PORT = 25
-#EMAIL_HOST_USER = 'djangomail'
-#EMAIL_HOST_PASSWORD = 'top-secret!'
+# EMAIL_HOST = 'smtp.my-company.com'
+# EMAIL_PORT = 25
+# EMAIL_HOST_USER = 'djangomail'
+# EMAIL_HOST_PASSWORD = 'top-secret!'
 
 OPENSTACK_HOST = "127.0.0.1"
-#OPENSTACK_KEYSTONE_URL = "http://%s/identity/v3" % OPENSTACK_HOST
+# OPENSTACK_KEYSTONE_URL = "http://%s/identity/v3" % OPENSTACK_HOST
 
 OPENSTACK_KEYSTONE_URL = "{{ .keystoneURL }}/v3"
 
@@ -163,11 +166,11 @@ TIME_ZONE = "UTC"
 # Change this patch to the appropriate list of tuples containing
 # a key, label and static directory containing two files:
 # _variables.scss and _styles.scss
-#AVAILABLE_THEMES = [
+# AVAILABLE_THEMES = [
 #    ('default', 'Default', 'themes/default'),
 #    ('material', 'Material', 'themes/material'),
 #    ('example', 'Example', 'themes/example'),
-#]
+# ]
 
 LOGGING = {
     'version': 1,
@@ -416,3 +419,21 @@ SECURITY_GROUP_RULES = {
         'to_port': '3389',
     },
 }
+
+# The Apache user will ultimately be responsible for writing log files.
+# Accordingly, we need to ensure the log directory is accessible to the
+# Apache user which by default uses the UID and GID 48.
+horizonDefaultLogDir = "/var/log/horizon"
+apacheId = 48
+
+
+# Ensure permissions for log files created under the Horizon log
+# directory.
+def setLogDirPermissions(logDir: str, apacheId: int):
+
+    for root, _, files in os.walk(logDir):
+        for file in files:
+            os.chown(os.path.join(root, file), apacheId, apacheId)
+
+
+setLogDirPermissions(horizonDefaultLogDir, apacheId)
