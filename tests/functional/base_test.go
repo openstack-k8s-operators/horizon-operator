@@ -17,7 +17,6 @@ limitations under the License.
 package functional_test
 
 import (
-	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega" //revive:disable:dot-imports
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -26,7 +25,9 @@ import (
 
 	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
 	horizon "github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
+	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func CreateHorizon(name types.NamespacedName, spec map[string]interface{}) client.Object {
@@ -61,7 +62,7 @@ func GetTLSHorizonSpec() map[string]interface{} {
 
 func GetHorizon(name types.NamespacedName) *horizonv1.Horizon {
 	instance := &horizonv1.Horizon{}
-	gomega.Eventually(func(g gomega.Gomega) error {
+	Eventually(func(g Gomega) error {
 		g.Expect(k8sClient.Get(ctx, name, instance)).Should(Succeed())
 		return nil
 	}, timeout, interval).Should(Succeed())
@@ -88,7 +89,7 @@ func HorizonConditionGetter(name types.NamespacedName) condition.Conditions {
 // want to avoid by default
 // 2. Usually a topologySpreadConstraints is used to take care about
 // multi AZ, which is not applicable in this context
-func GetSampleTopologySpec() map[string]interface{} {
+func GetSampleTopologySpec(label string) (map[string]interface{}, []corev1.TopologySpreadConstraint) {
 	// Build the topology Spec
 	topologySpec := map[string]interface{}{
 		"topologySpreadConstraints": []map[string]interface{}{
@@ -98,17 +99,35 @@ func GetSampleTopologySpec() map[string]interface{} {
 				"whenUnsatisfiable": "ScheduleAnyway",
 				"labelSelector": map[string]interface{}{
 					"matchLabels": map[string]interface{}{
-						"service": horizon.ServiceName,
+						"service":   horizon.ServiceName,
+						"component": label,
 					},
 				},
 			},
 		},
 	}
-	return topologySpec
+	// Build the topologyObj representation
+	topologySpecObj := []corev1.TopologySpreadConstraint{
+		{
+			MaxSkew:           1,
+			TopologyKey:       corev1.LabelHostname,
+			WhenUnsatisfiable: corev1.ScheduleAnyway,
+			LabelSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"service":   horizon.ServiceName,
+					"component": label,
+				},
+			},
+		},
+	}
+	return topologySpec, topologySpecObj
 }
 
 // CreateTopology - Creates a Topology CR based on the spec passed as input
-func CreateTopology(topology types.NamespacedName, spec map[string]interface{}) client.Object {
+func CreateTopology(
+	topology types.NamespacedName,
+	spec map[string]interface{},
+) (client.Object, topologyv1.TopoRef) {
 	raw := map[string]interface{}{
 		"apiVersion": "topology.openstack.org/v1beta1",
 		"kind":       "Topology",
@@ -118,5 +137,20 @@ func CreateTopology(topology types.NamespacedName, spec map[string]interface{}) 
 		},
 		"spec": spec,
 	}
-	return th.CreateUnstructured(raw)
+	// other than creating the topology based on the raw spec, we return the
+	// TopoRef that can be referenced
+	topologyRef := topologyv1.TopoRef{
+		Name:      topology.Name,
+		Namespace: topology.Namespace,
+	}
+	return th.CreateUnstructured(raw), topologyRef
+}
+
+// GetTopology - Returns the referenced Topology
+func GetTopology(name types.NamespacedName) *topologyv1.Topology {
+	instance := &topologyv1.Topology{}
+	Eventually(func(g Gomega) {
+		g.Expect(k8sClient.Get(ctx, name, instance)).Should(Succeed())
+	}, timeout, interval).Should(Succeed())
+	return instance
 }
