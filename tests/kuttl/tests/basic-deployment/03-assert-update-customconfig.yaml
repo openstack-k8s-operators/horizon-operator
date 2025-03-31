@@ -1,0 +1,155 @@
+apiVersion: horizon.openstack.org/v1beta1
+kind: Horizon
+metadata:
+  name: horizon
+spec:
+  replicas: 1
+  secret: "osp-secret"
+  customServiceConfig: |
+        # ANSSI
+        OPERATION_LOG_ENABLE = True
+        OPERATION_LOG_OTIONS = {
+          'mask_fields' : ['password', 'secret'],
+          'target_methods' : ['POST', 'GET', 'PUT', 'DELETE'],
+          'format' : ("[%(domain_name)s] [%(domain_id)s] [%(project_name)s]"
+          " [%(project_id)s] [%(user_name)s] [%(user_id)s] [%(request_scheme)s]"
+          " [%(referer_url)s] [%(request_url)s] [%(message)s] [%(method)s]"
+          " [%(http_status)s] [%(param)s]"),
+        }
+        LOGGING = {
+            'version': 1,
+            'disable_existing_loggers': False,
+            'formatters': {
+                'console': {
+                    'format': '%(levelname)s %(name)s %(message)s'
+                },
+                'verbose': {
+                    'format': '%(asctime)s %(process)d %(levelname)s %(name)s '
+                              '%(message)s'
+                },
+                'operation': {
+                    # The format of "%(message)s" is defined by
+                    # OPERATION_LOG_OPTIONS['format']
+                    'format': '%(message)s'
+                },
+            },
+            'handlers': {
+                'null': {
+                    'level': 'DEBUG',
+                    'class': 'logging.NullHandler',
+                },
+                'console': {
+                    # Set the level to "DEBUG" for verbose output logging.
+                    'level': 'DEBUG' if DEBUG else 'INFO',
+                    'class': 'logging.StreamHandler',
+                    'formatter': 'console',
+                },
+                'operation': {
+                  'level': 'INFO',
+                  'class': 'logging.FileHandler',
+                  'filename': '/var/log/horizon/operation.log',
+                  'formatter': 'verbose',
+                },
+            },
+            'loggers': {
+                'horizon': {
+                    'handlers': ['console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'horizon.operation_log': {
+                    'handlers': ['operation'],
+                    'level': 'INFO',
+                    'propagate': False,
+                },
+                'openstack_dashboard': {
+                    'handlers': ['console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'novaclient': {
+                    'handlers': ['console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'cinderclient': {
+                    'handlers': ['console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'keystoneauth': {
+                    'handlers': ['console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'keystoneclient': {
+                    'handlers': ['console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'glanceclient': {
+                    'handlers': ['console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'neutronclient': {
+                    'handlers': ['console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'swiftclient': {
+                    'handlers': ['console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'oslo_policy': {
+                    'handlers': ['console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'openstack_auth': {
+                    'handlers': ['console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                'django': {
+                    'handlers': ['console'],
+                    'level': 'DEBUG',
+                    'propagate': False,
+                },
+                # VariableDoesNotExist error in the debug level from django.template
+                # is VERY noisy and it is output even for valid cases,
+                # so set the default log level of django.template to INFO.
+                'django.template': {
+                    'handlers': ['console'],
+                    'level': 'INFO',
+                    'propagate': False,
+                },
+                # Logging from django.db.backends is VERY verbose, send to null
+                # by default.
+                'django.db.backends': {
+                    'handlers': ['null'],
+                    'propagate': False,
+                },
+                'requests': {
+                    'handlers': ['null'],
+                    'propagate': False,
+                },
+                'urllib3': {
+                    'handlers': ['null'],
+                    'propagate': False,
+                },
+                'chardet.charsetprober': {
+                    'handlers': ['null'],
+                    'propagate': False,
+                },
+                'iso8601': {
+                    'handlers': ['null'],
+                    'propagate': False,
+                },
+                'scss': {
+                    'handlers': ['null'],
+                    'propagate': False,
+                },
+            },
+        }
