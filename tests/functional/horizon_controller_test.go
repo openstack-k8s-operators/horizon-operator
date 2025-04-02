@@ -475,7 +475,7 @@ var _ = Describe("Horizon controller", func() {
 			for _, t := range horizonTopologies {
 				// Build the topology Spec
 				topologySpec, _ := GetSampleTopologySpec(t.Name)
-				CreateTopology(t, topologySpec)
+				infra.CreateTopology(t, topologySpec)
 			}
 			spec := GetDefaultHorizonSpec()
 			spec["topologyRef"] = map[string]interface{}{
@@ -496,7 +496,7 @@ var _ = Describe("Horizon controller", func() {
 
 		It("check topology has been applied", func() {
 			Eventually(func(g Gomega) {
-				tp := GetTopology(types.NamespacedName{
+				tp := infra.GetTopology(types.NamespacedName{
 					Name:      topologyRef.Name,
 					Namespace: topologyRef.Namespace,
 				})
@@ -525,7 +525,7 @@ var _ = Describe("Horizon controller", func() {
 			}, timeout, interval).Should(Succeed())
 
 			Eventually(func(g Gomega) {
-				tp := GetTopology(types.NamespacedName{
+				tp := infra.GetTopology(types.NamespacedName{
 					Name:      topologyRefAlt.Name,
 					Namespace: topologyRefAlt.Namespace,
 				})
@@ -537,7 +537,7 @@ var _ = Describe("Horizon controller", func() {
 				g.Expect(finalizers).To(ContainElement(
 					fmt.Sprintf("openstack.org/horizon-%s", horizonName.Name)))
 				// Verify the previous referenced topology has no finalizer
-				tp = GetTopology(types.NamespacedName{
+				tp = infra.GetTopology(types.NamespacedName{
 					Name:      topologyRef.Name,
 					Namespace: topologyRef.Namespace,
 				})
@@ -566,7 +566,7 @@ var _ = Describe("Horizon controller", func() {
 			// Verify the existing topologies have no finalizer anymore
 			Eventually(func(g Gomega) {
 				for _, topology := range horizonTopologies {
-					tp := GetTopology(types.NamespacedName{
+					tp := infra.GetTopology(types.NamespacedName{
 						Name:      topology.Name,
 						Namespace: topology.Namespace,
 					})
