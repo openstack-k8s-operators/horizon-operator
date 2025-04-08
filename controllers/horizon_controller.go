@@ -934,7 +934,10 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 			condition.DeploymentReadyRunningMessage))
 		return ctrlResult, nil
 	}
-	instance.Status.ReadyCount = depl.GetDeployment().Status.ReadyReplicas
+	deploy := depl.GetDeployment()
+	if deploy.Generation == deploy.Status.ObservedGeneration {
+		instance.Status.ReadyCount = deploy.Status.ReadyReplicas
+	}
 
 	networkReady := false
 	var networkAttachmentStatus map[string][]string
@@ -972,11 +975,12 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 		}
 	}
 	// Mark the Deployment as Ready only if the number of Replicas is equals
-	// to the Deployed instances (ReadyCount), but mark it as True is Replicas
-	// is zero. In addition, make sure the controller sees the last Generation
-	// by comparing it with the ObservedGeneration set in the StateFulSet.
-	if (instance.Status.ReadyCount == *instance.Spec.Replicas) &&
-		(depl.GetDeployment().Generation == depl.GetDeployment().Status.ObservedGeneration) {
+	// to the Deployed instances (ReadyCount), and the the Status.Replicas
+	// match Status.ReadyReplicas. If a deployment update is in progress,
+	// Replicas > ReadyReplicas.
+	// In addition, make sure the controller sees the last Generation
+	// by comparing it with the ObservedGeneration.
+	if deployment.IsReady(deploy) {
 		instance.Status.Conditions.MarkTrue(condition.DeploymentReadyCondition, condition.DeploymentReadyMessage)
 	} else {
 		instance.Status.Conditions.Set(condition.FalseCondition(
