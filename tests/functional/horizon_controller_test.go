@@ -287,6 +287,89 @@ var _ = Describe("Horizon controller", func() {
 		})
 	})
 
+	When("Deployment rollout is progressing", func() {
+		BeforeEach(func() {
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
+			DeferCleanup(infra.DeleteMemcached, infra.CreateMemcached(namespace, "memcached", memcachedSpec))
+			infra.SimulateMemcachedReady(types.NamespacedName{
+				Name:      "memcached",
+				Namespace: namespace,
+			})
+			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
+			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
+			th.SimulateDeploymentProgressing(deploymentName)
+		})
+
+		It("shows the deployment progressing in DeploymentReadyCondition", func() {
+			th.ExpectConditionWithDetails(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.DeploymentReadyCondition,
+				corev1.ConditionFalse,
+				condition.RequestedReason,
+				condition.DeploymentReadyRunningMessage,
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ReadyCondition,
+				corev1.ConditionFalse,
+			)
+		})
+
+		It("still shows the deployment progressing in DeploymentReadyCondition when rollout hits ProgressDeadlineExceeded", func() {
+			th.SimulateDeploymentProgressDeadlineExceeded(deploymentName)
+			th.ExpectConditionWithDetails(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.DeploymentReadyCondition,
+				corev1.ConditionFalse,
+				condition.RequestedReason,
+				condition.DeploymentReadyRunningMessage,
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ReadyCondition,
+				corev1.ConditionFalse,
+			)
+		})
+
+		It("reaches Ready when deployment rollout finished", func() {
+			th.ExpectConditionWithDetails(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.DeploymentReadyCondition,
+				corev1.ConditionFalse,
+				condition.RequestedReason,
+				condition.DeploymentReadyRunningMessage,
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ReadyCondition,
+				corev1.ConditionFalse,
+			)
+
+			th.SimulateDeploymentReplicaReady(deploymentName)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.DeploymentReadyCondition,
+				corev1.ConditionTrue,
+			)
+
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ReadyCondition,
+				corev1.ConditionTrue,
+			)
+		})
+	})
+
 	When("watcher keystone service exists", func() {
 		BeforeEach(func() {
 			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
