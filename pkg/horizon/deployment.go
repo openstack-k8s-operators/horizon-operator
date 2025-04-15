@@ -36,6 +36,7 @@ const (
 	horizonContainerPortName = "horizon"
 )
 
+// TLSRequiredOptions -
 type TLSRequiredOptions struct {
 	containerPort  *corev1.ContainerPort
 	livenessProbe  *corev1.Probe
@@ -54,7 +55,6 @@ func Deployment(
 	enabledServices map[string]string,
 	topology *topologyv1.Topology,
 ) (*appsv1.Deployment, error) {
-	runAsUser := int64(0)
 
 	args := []string{"-c", ServiceCommand}
 
@@ -117,18 +117,16 @@ func Deployment(
 							Name: ServiceName,
 							Command: []string{
 								"/bin/bash"},
-							Args:  args,
-							Image: instance.Spec.ContainerImage,
-							SecurityContext: &corev1.SecurityContext{
-								RunAsUser: &runAsUser,
-							},
-							Env:            env.MergeEnvs([]corev1.EnvVar{}, envVars),
-							VolumeMounts:   volumeMounts,
-							Resources:      instance.Spec.Resources,
-							ReadinessProbe: readinessProbe,
-							LivenessProbe:  livenessProbe,
-							StartupProbe:   startupProbe,
-							Ports:          []corev1.ContainerPort{containerPort},
+							Args:            args,
+							Image:           instance.Spec.ContainerImage,
+							SecurityContext: HttpdSecurityContext(),
+							Env:             env.MergeEnvs([]corev1.EnvVar{}, envVars),
+							VolumeMounts:    volumeMounts,
+							Resources:       instance.Spec.Resources,
+							ReadinessProbe:  readinessProbe,
+							LivenessProbe:   livenessProbe,
+							StartupProbe:    startupProbe,
+							Ports:           []corev1.ContainerPort{containerPort},
 						},
 					},
 					Volumes: volumes,

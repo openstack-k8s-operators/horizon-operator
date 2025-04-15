@@ -26,11 +26,17 @@ const (
 	// DatabaseName -
 	DatabaseName = "horizon"
 
-	// HorizonPort -
-	HorizonPort int32 = 80
+	// HorizonSvcPort - It maps the Svc (80) to the Container Port (8080)
+	HorizonSvcPort int32 = 80
+
+	// HorizonPort - used by httpd inside the Horizon container
+	HorizonPort int32 = 8080
+
+	// HorizonSvcPortTLS - It maps the Svc (443) to the Container Port (8443)
+	HorizonSvcPortTLS int32 = 443
 
 	// HorizonPortTLS -
-	HorizonPortTLS int32 = 443
+	HorizonPortTLS int32 = 8443
 
 	// HorizonPortName -
 	HorizonPortName = "horizon"
@@ -38,9 +44,17 @@ const (
 	// HorizonExtraVolTypeUndefined can be used to label an extraMount which is
 	// not associated to anything in particular
 	HorizonExtraVolTypeUndefined storage.ExtraVolType = "Undefined"
+
 	// Horizon is the global ServiceType that refers to all the components deployed
 	// by the horizon-operator
 	Horizon storage.PropagationType = "Horizon"
+
+	// ApacheUID - apache uid inside the horizon container
+	ApacheUID int64 = 48
+
+	// KollaUID - assigned as additional group, is required by the bootstrap process
+	// https://github.com/openstack/kolla/blob/master/kolla/common/users.py
+	KollaUID int64 = 42400
 )
 
 // HorizonPropagation is the  definition of the Horizon propagation service
