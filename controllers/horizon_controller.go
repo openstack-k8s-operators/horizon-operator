@@ -852,22 +852,13 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	//
 	// Handle Topology
 	//
-	lastAppliedTopologyName := ""
-	if instance.Status.LastAppliedTopology != nil {
-		lastAppliedTopologyName = instance.Status.LastAppliedTopology.Name
-	}
-	lastTopologyRef := topologyv1.TopoRef{
-		Name:      lastAppliedTopologyName,
-		Namespace: instance.Namespace,
-	}
-
 	// Build a defaultLabelSelector (service=horizon)
 	defaultLabelSelector := labels.GetLabelSelector(serviceLabels)
 	topology, err := topologyv1.EnsureServiceTopology(
 		ctx,
 		helper,
 		instance.Spec.TopologyRef,
-		&lastTopologyRef,
+		instance.Status.LastAppliedTopology,
 		instance.Name,
 		defaultLabelSelector,
 	)
