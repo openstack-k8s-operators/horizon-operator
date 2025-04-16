@@ -215,7 +215,7 @@ func (t *TLSRequiredOptions) formatTLSOptions(instance *horizonv1.Horizon) error
 	var err error
 	var svc *tls.Service
 
-	svc, err = instance.Spec.TLS.GenericService.ToService()
+	svc, err = instance.Spec.TLS.ToService()
 	if err != nil {
 		return err
 	}

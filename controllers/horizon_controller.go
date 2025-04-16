@@ -14,10 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controllers implements the horizon-operator Kubernetes controllers.
 package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"slices"
@@ -63,6 +65,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+// Static errors for horizon controller
+var (
+	ErrNoOpenstackSecret       = errors.New("no openstack secret has been provided")
+	ErrNetworkAttachmentConfig = errors.New("not all pods have interfaces with ips as configured in NetworkAttachments")
 )
 
 // GetClient -
@@ -130,7 +138,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 
 	// Fetch the Horizon instance
 	instance := &horizonv1beta1.Horizon{}
-	err := r.Client.Get(ctx, req.NamespacedName, instance)
+	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if k8s_errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -224,7 +232,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 const (
 	passwordSecretField     = ".spec.secret"
 	tlsField                = ".spec.tls.secretName"
-	caBundleSecretNameField = ".spec.tls.caBundleSecretName"
+	caBundleSecretNameField = ".spec.tls.caBundleSecretName" // #nosec G101
 	topologyField           = ".spec.topologyRef.Name"
 )
 
@@ -299,7 +307,7 @@ func (r *HorizonReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(context.Background(), horizons, listOpts...); err != nil {
+		if err := r.List(context.Background(), horizons, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve Horizon CRs %w")
 			return nil
 		}
@@ -329,7 +337,7 @@ func (r *HorizonReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(context.Background(), horizonList, listOpts...); err != nil {
+		if err := r.List(context.Background(), horizonList, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve Horizon CRs %w")
 			return nil
 		}
@@ -358,7 +366,7 @@ func (r *HorizonReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		listOpts := []client.ListOption{
 			client.InNamespace(o.GetNamespace()),
 		}
-		if err := r.Client.List(context.Background(), horizonList, listOpts...); err != nil {
+		if err := r.List(context.Background(), horizonList, listOpts...); err != nil {
 			Log.Error(err, "Unable to retrieve Horizon CRs %w")
 			return nil
 		}
@@ -419,7 +427,7 @@ func (r *HorizonReconciler) findObjectsForSrc(ctx context.Context, src client.Ob
 			FieldSelector: fields.OneTermEqualSelector(field, src.GetName()),
 			Namespace:     src.GetNamespace(),
 		}
-		err := r.Client.List(ctx, crList, listOps)
+		err := r.List(ctx, crList, listOps)
 		if err != nil {
 			Log.Error(err, fmt.Sprintf("listing %s for field: %s - %s", crList.GroupVersionKind().Kind, field, src.GetNamespace()))
 			return requests
@@ -451,7 +459,7 @@ func (r *HorizonReconciler) findObjectForSrc(ctx context.Context, src client.Obj
 	listOps := &client.ListOptions{
 		Namespace: src.GetNamespace(),
 	}
-	err := r.Client.List(ctx, crList, listOps)
+	err := r.List(ctx, crList, listOps)
 	if err != nil {
 		Log.Error(err, fmt.Sprintf("listing %s for namespace: %s", crList.GroupVersionKind().Kind, src.GetNamespace()))
 		return requests
@@ -663,9 +671,9 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 			condition.InputReadyCondition,
 			missingDependenciesReason,
 			condition.SeverityInfo,
-			missingDependenciesMessage))
+			"%s", missingDependenciesMessage))
 
-		return ctrl.Result{}, fmt.Errorf("no openstack secret has been provided. Unable to reconcile")
+		return ctrl.Result{}, fmt.Errorf("%w: Unable to reconcile", ErrNoOpenstackSecret)
 	}
 
 	ospSecret, hash, err := oko_secret.GetSecret(ctx, helper, instance.Spec.Secret, instance.Namespace)
@@ -748,7 +756,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 					condition.TLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
-					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, instance.Spec.TLS.CaBundleSecretName)))
+					condition.TLSInputReadyWaitingMessage, instance.Spec.TLS.CaBundleSecretName))
 				return ctrl.Result{}, nil
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -774,7 +782,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 					condition.TLSInputReadyCondition,
 					condition.RequestedReason,
 					condition.SeverityInfo,
-					fmt.Sprintf(condition.TLSInputReadyWaitingMessage, err.Error())))
+					condition.TLSInputReadyWaitingMessage, err.Error()))
 				return ctrl.Result{}, nil
 			}
 			instance.Status.Conditions.Set(condition.FalseCondition(
@@ -999,7 +1007,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 		if networkReady {
 			instance.Status.Conditions.MarkTrue(condition.NetworkAttachmentsReadyCondition, condition.NetworkAttachmentsReadyMessage)
 		} else {
-			err := fmt.Errorf("not all pods have interfaces with ips as configured in NetworkAttachments: %s", instance.Spec.NetworkAttachments)
+			err := fmt.Errorf("%w: %s", ErrNetworkAttachmentConfig, instance.Spec.NetworkAttachments)
 			instance.Status.Conditions.Set(condition.FalseCondition(
 				condition.NetworkAttachmentsReadyCondition,
 				condition.ErrorReason,
