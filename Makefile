@@ -57,7 +57,7 @@ IMG ?= $(DEFAULT_IMG)
 ENVTEST_K8S_VERSION = 1.29
 
 # Set minimum Go version
-GOTOOLCHAIN_VERSION ?= go1.21.0
+GOTOOLCHAIN_VERSION ?= go1.24.0
 
 PROCS ?=$(shell expr $(shell nproc --ignore 2) / 4)
 # PROC_CMD = --procs ${PROCS}
