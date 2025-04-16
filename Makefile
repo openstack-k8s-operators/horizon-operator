@@ -57,7 +57,7 @@ IMG ?= $(DEFAULT_IMG)
 ENVTEST_K8S_VERSION = 1.29
 
 # Set minimum Go version
-GOTOOLCHAIN_VERSION ?= go1.21.0
+GOTOOLCHAIN_VERSION ?= go1.22.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
