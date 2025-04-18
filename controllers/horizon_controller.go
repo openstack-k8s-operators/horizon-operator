@@ -51,6 +51,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/ptr"
@@ -79,7 +80,7 @@ func (r *HorizonReconciler) GetScheme() *runtime.Scheme {
 	return r.Scheme
 }
 
-// GetLog returns a logger object with a prefix of "controller.name" and additional controller context fields
+// GetLogger - returns a logger object with a prefix of "controller.name" and additional controller context fields
 func (r *HorizonReconciler) GetLogger(ctx context.Context) logr.Logger {
 	return log.FromContext(ctx).WithName("Controllers").WithName("Horizon")
 }
@@ -475,12 +476,14 @@ func (r *HorizonReconciler) reconcileInit(
 	}
 
 	servicePort := corev1.ServicePort{
-		Name:     endpointName,
-		Port:     horizon.HorizonPort,
-		Protocol: corev1.ProtocolTCP,
+		Name:       endpointName,
+		Port:       horizon.HorizonSvcPort,
+		TargetPort: intstr.FromInt32(horizon.HorizonPort),
+		Protocol:   corev1.ProtocolTCP,
 	}
 	if instance.Spec.TLS.Enabled() {
-		servicePort.Port = horizon.HorizonPortTLS
+		servicePort.Port = horizon.HorizonSvcPortTLS
+		servicePort.TargetPort = intstr.FromInt32(horizon.HorizonPortTLS)
 	}
 
 	// Create the service

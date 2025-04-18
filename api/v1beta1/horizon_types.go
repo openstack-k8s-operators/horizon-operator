@@ -52,7 +52,7 @@ type HorizonSpec struct {
 	HorizonSpecCore `json:",inline"`
 }
 
-// HorizonSpecBase -
+// HorizonSpecCore -
 type HorizonSpecCore struct {
 	// +kubebuilder:validation:Optional
 	// NodeSelector to target subset of worker nodes running this service

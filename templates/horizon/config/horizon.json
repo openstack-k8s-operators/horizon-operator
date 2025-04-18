@@ -4,54 +4,69 @@
         {
             "source": "/var/lib/config-data/default/httpd.conf",
             "dest": "/etc/httpd/conf/httpd.conf",
-            "merge": false,
-            "preserve_properties": true,
+            "owner": "apache:apache",
             "perm": "0644"
         },
         {
             "source": "/var/lib/config-data/default/ssl.conf",
             "dest": "/etc/httpd/conf.d/ssl.conf",
-            "merge": false,
-            "preserve_properties": true,
+            "optional": true,
+            "owner": "apache:apache",
             "perm": "0644"
         },
         {
             "source": "/run/openstack-dashboard/.secrets/horizon-secret",
             "dest": "/etc/openstack-dashboard/.horizon-secret",
-            "merge": false,
-            "preserve_properties": true,
+            "owner": "apache:apache",
             "perm": "0600"
         },
         {
             "source": "/var/lib/config-data/default/local_settings.py",
             "dest": "/etc/openstack-dashboard/local_settings",
-            "merge": false,
-            "preserve_properties": true
+            "owner": "apache:apache",
+            "perm": "0644",
+            "merge": true
         },
         {
             "source": "/var/lib/config-data/default/9999_custom_settings.py",
             "dest": "/etc/openstack-dashboard/local_settings.d/9999_custom_settings.py",
-            "merge": false,
-            "preserve_properties": true
+            "owner": "apache:apache",
+            "perm": "0644",
+            "merge": true
         },
         {
             "source": "/var/lib/config-data/tls/certs/*",
             "dest": "/etc/pki/tls/certs/",
-            "owner": "root",
+            "owner": "apache:apache",
             "perm": "0640",
-            "optional": true,
-            "merge": true
+            "merge": true,
+            "optional": true
         },
         {
             "source": "/var/lib/config-data/tls/private/*",
             "dest": "/etc/pki/tls/private/",
-            "owner": "root",
-            "perm": "0600",
+            "owner": "apache:apache",
+            "perm": "0640",
             "optional": true,
             "merge": true
         }
     ],
     "permissions": [
+        {
+            "path": "/var/lib/kolla",
+            "owner": "apache:apache",
+            "recurse": true
+        },
+        {
+            "path": "/etc/httpd/run",
+            "owner": "apache:apache",
+            "recurse": true
+        },
+        {
+            "path": "/etc/httpd/logs",
+            "owner": "apache:apache",
+            "recurse": true
+        },
         {
             "path": "/var/log/horizon",
             "owner": "apache:apache",

@@ -39,7 +39,7 @@ spec:
             scheme: HTTPS
         name: horizon
         ports:
-        - containerPort: 443
+        - containerPort: 8443
           name: horizon
           protocol: TCP
         readinessProbe:
