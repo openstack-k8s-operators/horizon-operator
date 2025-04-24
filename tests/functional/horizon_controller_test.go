@@ -577,6 +577,45 @@ var _ = Describe("Horizon controller", func() {
 		})
 	})
 
+	When("extraMounts are passed", func() {
+		var horizonExtraMountsSecretName, horizonExtraMountsPath string
+		BeforeEach(func() {
+			spec := GetDefaultHorizonSpec()
+			horizonExtraMountsPath = "/var/log/foo"
+			horizonExtraMountsSecretName = "foo"
+			spec["extraMounts"] = GetExtraMounts(horizonExtraMountsSecretName, horizonExtraMountsPath)
+
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, spec))
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
+			DeferCleanup(infra.DeleteMemcached, infra.CreateMemcached(namespace, "memcached", memcachedSpec))
+			infra.SimulateMemcachedReady(types.NamespacedName{
+				Name:      "memcached",
+				Namespace: namespace,
+			})
+			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
+			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
+			th.SimulateDeploymentReplicaReady(deploymentName)
+		})
+
+		It("Check extraMounts of the resulting Deployment", func() {
+			// Get Horizon Deployment
+			dp := th.GetDeployment(deploymentName)
+			// Check the resulting deployment fields
+			Expect(dp.Spec.Template.Spec.Volumes).To(HaveLen(4))
+			Expect(dp.Spec.Template.Spec.Containers).To(HaveLen(1))
+			// Get the horizon container
+			container := dp.Spec.Template.Spec.Containers[0]
+			// Fail if horizon doesn't have the right number of VolumeMounts
+			// entries
+			Expect(container.VolumeMounts).To(HaveLen(6))
+			// Inspect VolumeMounts and make sure we have the Foo MountPath
+			// provided through extraMounts
+			th.AssertVolumeMountPathExists(horizonExtraMountsSecretName,
+				horizonExtraMountsPath, "", container.VolumeMounts)
+		})
+	})
+
 	When("nodeSelector is set", func() {
 		BeforeEach(func() {
 			spec := GetDefaultHorizonSpec()
@@ -747,9 +786,9 @@ var _ = Describe("Horizon controller", func() {
 			svcC := d.Spec.Template.Spec.Containers[0]
 
 			// check TLS volume mounts
-			th.AssertVolumeMountExists(CABundleSecretName, "tls-ca-bundle.pem", svcC.VolumeMounts)
-			th.AssertVolumeMountExists(InternalCertSecretName, "tls.key", svcC.VolumeMounts)
-			th.AssertVolumeMountExists(InternalCertSecretName, "tls.crt", svcC.VolumeMounts)
+			th.AssertVolumeMountPathExists(CABundleSecretName, "", "tls-ca-bundle.pem", svcC.VolumeMounts)
+			th.AssertVolumeMountPathExists(InternalCertSecretName, "", "tls.key", svcC.VolumeMounts)
+			th.AssertVolumeMountPathExists(InternalCertSecretName, "", "tls.crt", svcC.VolumeMounts)
 
 			// check port and scheme for the container/probes
 			Expect(svcC.Ports[0].ContainerPort).To(Equal(horizon.HorizonPortTLS))
