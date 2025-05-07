@@ -71,8 +71,8 @@ func Deployment(
 	envVars := getEnvVars(configHash, enabledServices)
 
 	// create Volumes and VolumeMounts
-	volumes := getVolumes(instance.Name, instance.Spec.ExtraMounts, HorizonPropagation)
-	volumeMounts := getVolumeMounts(instance.Spec.ExtraMounts, HorizonPropagation)
+	volumes := append(getVolumes(instance.Name, instance.Spec.ExtraMounts, HorizonPropagation), GetLogVolume())
+	volumeMounts := append(getVolumeMounts(instance.Spec.ExtraMounts, HorizonPropagation), GetLogVolumeMount())
 
 	if instance.Spec.TLS.Enabled() {
 		tlsRequiredOptions := TLSRequiredOptions{
@@ -113,6 +113,20 @@ func Deployment(
 				Spec: corev1.PodSpec{
 					ServiceAccountName: instance.RbacResourceName(),
 					Containers: []corev1.Container{
+						// the first container in a pod is the default selected
+						// by oc log so define the log stream container first.
+						{
+							Name: instance.Name + "-log",
+							Command: []string{
+								"/bin/bash",
+							},
+							Args:            []string{"-c", "tail -n+1 -F " + LogFile},
+							Image:           instance.Spec.ContainerImage,
+							SecurityContext: HttpdSecurityContext(),
+							Env:             env.MergeEnvs([]corev1.EnvVar{}, envVars),
+							VolumeMounts:    []corev1.VolumeMount{GetLogVolumeMount()},
+							Resources:       instance.Spec.Resources,
+						},
 						{
 							Name: ServiceName,
 							Command: []string{
@@ -134,7 +148,6 @@ func Deployment(
 			},
 		},
 	}
-
 	if instance.Spec.NodeSelector != nil {
 		deployment.Spec.Template.Spec.NodeSelector = *instance.Spec.NodeSelector
 	}
