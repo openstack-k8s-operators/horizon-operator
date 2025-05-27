@@ -126,6 +126,8 @@ type HorizonReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, _err error) {
+	Log := r.GetLogger(ctx)
+
 	// Fetch the Horizon instance
 	instance := &horizonv1beta1.Horizon{}
 	err := r.Client.Get(ctx, req.NamespacedName, instance)
@@ -141,7 +143,7 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		r.Client,
 		r.Kclient,
 		r.Scheme,
-		r.GetLogger(ctx),
+		Log,
 	)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -160,6 +162,11 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 
 	// Always patch the instance status when exiting this function so we can persist any changes.
 	defer func() {
+		// Don't update the status, if reconciler Panics
+		if r := recover(); r != nil {
+			Log.Info(fmt.Sprintf("panic during reconcile %v\n", r))
+			panic(r)
+		}
 		condition.RestoreLastTransitionTimes(
 			&instance.Status.Conditions, savedConditions)
 		if instance.Status.Conditions.IsUnknown(condition.ReadyCondition) {
