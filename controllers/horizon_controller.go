@@ -900,7 +900,7 @@ func (r *HorizonReconciler) reconcileNormal(ctx context.Context, instance *horiz
 	//
 
 	// Define a new Deployment object
-	deplDef, err := horizon.Deployment(instance, inputHash, serviceLabels, serviceAnnotations, enabledServices, topology)
+	deplDef, err := horizon.Deployment(instance, inputHash, serviceLabels, serviceAnnotations, enabledServices, topology, memcached)
 	if err != nil {
 		Log.Error(err, "Deployment failed")
 		instance.Status.Conditions.Set(condition.FalseCondition(
@@ -1062,6 +1062,14 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		templateParameters["Port"] = horizon.HorizonPortTLS
 		templateParameters["SSLCertificateFile"] = fmt.Sprintf("/etc/pki/tls/certs/%s.crt", horizon.ServiceName)
 		templateParameters["SSLCertificateKeyFile"] = fmt.Sprintf("/etc/pki/tls/private/%s.key", horizon.ServiceName)
+	}
+
+	// Set Memcached MTLS parameters if required
+	if mc.GetMemcachedMTLSSecret() != "" {
+		templateParameters["memcachedMTLS"] = true
+		templateParameters["memcachedAuthCa"] = fmt.Sprint(memcachedv1.CaMountPath())
+		templateParameters["memcachedAuthCert"] = fmt.Sprint(memcachedv1.CertMountPath())
+		templateParameters["memcachedAuthKey"] = fmt.Sprint(memcachedv1.KeyMountPath())
 	}
 
 	cms := []util.Template{
