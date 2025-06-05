@@ -207,6 +207,8 @@ var _ = Describe("Horizon controller", func() {
 	})
 
 	When("keystoneAPI instance is available", func() {
+		var keystoneAPIName types.NamespacedName
+
 		BeforeEach(func() {
 			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
 			DeferCleanup(
@@ -216,8 +218,8 @@ var _ = Describe("Horizon controller", func() {
 				Name:      "memcached",
 				Namespace: namespace,
 			})
-			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
-			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
+			keystoneAPIName = keystone.CreateKeystoneAPI(namespace)
+			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPIName)
 		})
 
 		It("should have service config ready and expose service ready", func() {
@@ -259,6 +261,25 @@ var _ = Describe("Horizon controller", func() {
 						"'LOCATION': [ 'memcached-0.memcached.%s.svc:11211','memcached-1.memcached.%s.svc:11211','memcached-2.memcached.%s.svc:11211' ]",
 						horizonName.Namespace, horizonName.Namespace, horizonName.Namespace,
 					)))
+		})
+
+		It("updates the KeystoneAuthURL if keystone internal endpoint changes", func() {
+			newInternalEndpoint := "https://keystone-internal"
+
+			keystone.UpdateKeystoneAPIEndpoint(keystoneAPIName, "internal", newInternalEndpoint)
+			logger.Info("Reconfigured")
+
+			Eventually(func(g Gomega) {
+				cm := th.GetConfigMap(types.NamespacedName{
+					Namespace: horizonName.Namespace,
+					Name:      horizonName.Name + "-config-data",
+				})
+				g.Expect(cm).ShouldNot(BeNil())
+
+				conf := string(cm.Data["local_settings.py"])
+				g.Expect(string(conf)).Should(
+					ContainSubstring("OPENSTACK_KEYSTONE_URL = \"%s/v3\"", newInternalEndpoint))
+			}, timeout, interval).Should(Succeed())
 		})
 	})
 
