@@ -17,6 +17,7 @@ package horizon
 
 import (
 	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
+	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	common "github.com/openstack-k8s-operators/lib-common/modules/common"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/affinity"
@@ -54,6 +55,7 @@ func Deployment(
 	annotations map[string]string,
 	enabledServices map[string]string,
 	topology *topologyv1.Topology,
+	memcached *memcachedv1.Memcached,
 ) (*appsv1.Deployment, error) {
 
 	args := []string{"-c", ServiceCommand}
@@ -93,6 +95,12 @@ func Deployment(
 		readinessProbe = tlsRequiredOptions.readinessProbe
 		startupProbe = tlsRequiredOptions.startupProbe
 		containerPort = *tlsRequiredOptions.containerPort
+	}
+
+	// add MTLS cert if defined
+	if memcached.GetMemcachedMTLSSecret() != "" {
+		volumes = append(volumes, memcached.CreateMTLSVolume())
+		volumeMounts = append(volumeMounts, memcached.CreateMTLSVolumeMounts(nil, nil)...)
 	}
 
 	deployment := &appsv1.Deployment{
