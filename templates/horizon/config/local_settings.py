@@ -119,6 +119,14 @@ SECRET_KEY = secret_key.read_from_file(
 # memcached set CACHES to something like below.
 # For more information, see
 # https://docs.djangoproject.com/en/1.11/topics/http/sessions/.
+{{- if (index . "memcachedAuthCert") }}
+# mtls_context is a helper function returning the tls_context needed for mtls auth
+# against memcached if this is enabled
+def mtls_context():
+    tls_context = ssl.create_default_context(cafile='{{ .memcachedAuthCa }}')
+    tls_context.load_cert_chain('{{ .memcachedAuthCert }}', '{{ .memcachedAuthKey }}')
+    return tls_context
+{{- end }}
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
@@ -131,7 +139,11 @@ CACHES = {
             "max_pool_size": 4,
             "use_pooling": True,
 {{- if .memcachedTLS }}
-            'tls_context': ssl.create_default_context()
+{{- if (index . "memcachedAuthCert") }}
+            "tls_context": mtls_context()
+{{- else }}
+            "tls_context": ssl.create_default_context()
+{{- end }}
 {{- end }}
         }
     },
