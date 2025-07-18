@@ -101,6 +101,7 @@ func getVolumeMounts(
 	return vm
 }
 
+// +++owen - DNM - make temp change to kickstart jobs
 // getScriptVolumeMount -
 func getScriptVolumeMount() []corev1.VolumeMount {
 	return []corev1.VolumeMount{
