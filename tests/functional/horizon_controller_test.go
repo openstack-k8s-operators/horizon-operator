@@ -17,6 +17,7 @@ import (
 	"github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
+	"github.com/openstack-k8s-operators/lib-common/modules/common"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 )
 
@@ -902,6 +903,61 @@ var _ = Describe("Horizon controller", func() {
 			horizon := GetHorizon(horizonName)
 			Expect(horizon.Spec.NetworkAttachments).To(Equal([]string{"storage"}))
 			Expect(nad).To(Equal(horizon.Status.NetworkAttachments))
+		})
+	})
+
+	When("A Horizon is created with HttpdCustomization.CustomConfigSecret", func() {
+		BeforeEach(func() {
+			customServiceConfigSecretName := types.NamespacedName{Name: "foo", Namespace: namespace}
+			customConfig := []byte(`CustomParam "foo"
+CustomKeystoneEndpointInternal "{{ .KeystoneEndpointInternal }}"`)
+			th.CreateSecret(
+				customServiceConfigSecretName,
+				map[string][]byte{
+					"bar.conf": customConfig,
+				},
+			)
+
+			rawSpec := map[string]interface{}{
+				"secret":            SecretName,
+				"memcachedInstance": "memcached",
+				"httpdCustomization": map[string]interface{}{
+					"customConfigSecret": customServiceConfigSecretName.Name,
+				},
+			}
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, rawSpec))
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
+			DeferCleanup(infra.DeleteMemcached, infra.CreateMemcached(namespace, "memcached", memcachedSpec))
+			infra.SimulateMemcachedReady(types.NamespacedName{
+				Name:      "memcached",
+				Namespace: namespace,
+			})
+			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
+			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
+			th.SimulateDeploymentReadyWithPods(
+				horizonName,
+				map[string][]string{},
+			)
+
+		})
+		It("it renders the custom template and adds it to the config-data secret", func() {
+			cm := th.GetConfigMap(types.NamespacedName{
+				Namespace: horizonName.Namespace,
+				Name:      horizonName.Name + "-config-data",
+			})
+
+			Expect(cm).ShouldNot(BeNil())
+			Expect(cm.Data).Should(HaveKey(common.TemplateParameters))
+			configData := string(cm.Data[common.TemplateParameters])
+			keystoneInternalURL := "http://keystone-internal.openstack.svc:5000"
+			Expect(configData).Should(ContainSubstring(fmt.Sprintf("KeystoneEndpointInternal: %s", keystoneInternalURL)))
+
+			Expect(cm.Data).Should(HaveKey("httpd_custom_bar.conf"))
+			configData = string(cm.Data["httpd_custom_bar.conf"])
+			Expect(configData).Should(ContainSubstring("CustomParam \"foo\""))
+			Expect(configData).Should(ContainSubstring(fmt.Sprintf("CustomKeystoneEndpointInternal \"%s\"", keystoneInternalURL)))
+
 		})
 	})
 })

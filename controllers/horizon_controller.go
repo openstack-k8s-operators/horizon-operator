@@ -44,6 +44,7 @@ import (
 	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
 	"github.com/openstack-k8s-operators/lib-common/modules/common/tls"
 	util "github.com/openstack-k8s-operators/lib-common/modules/common/util"
+	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -222,10 +223,11 @@ func (r *HorizonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 
 // fields to index to reconcile when change
 const (
-	passwordSecretField     = ".spec.secret"
-	tlsField                = ".spec.tls.secretName"
-	caBundleSecretNameField = ".spec.tls.caBundleSecretName"
-	topologyField           = ".spec.topologyRef.Name"
+	passwordSecretField                 = ".spec.secret"
+	tlsField                            = ".spec.tls.secretName"
+	caBundleSecretNameField             = ".spec.tls.caBundleSecretName"
+	topologyField                       = ".spec.topologyRef.Name"
+	httpdCustomServiceConfigSecretField = ".spec.httpdCustomization.customServiceConfigSecret"
 )
 
 var allWatchFields = []string{
@@ -233,6 +235,7 @@ var allWatchFields = []string{
 	caBundleSecretNameField,
 	tlsField,
 	topologyField,
+	httpdCustomServiceConfigSecretField,
 }
 
 var keystoneServicesWatch = []string{
@@ -287,6 +290,18 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return nil
 		}
 		return []string{cr.Spec.TopologyRef.Name}
+	}); err != nil {
+		return err
+	}
+
+	// index httpdOverrideSecretField
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &horizonv1beta1.Horizon{}, httpdCustomServiceConfigSecretField, func(rawObj client.Object) []string {
+		// Extract the secret name from the spec, if one is provided
+		cr := rawObj.(*horizonv1beta1.Horizon)
+		if cr.Spec.HttpdCustomization.CustomConfigSecret == nil {
+			return nil
+		}
+		return []string{*cr.Spec.HttpdCustomization.CustomConfigSecret}
 	}); err != nil {
 		return err
 	}
@@ -1077,17 +1092,25 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return err
 	}
 
+	httpdOverrideSecret := &corev1.Secret{}
+	if instance.Spec.HttpdCustomization.CustomConfigSecret != nil && *instance.Spec.HttpdCustomization.CustomConfigSecret != "" {
+		httpdOverrideSecret, _, err = oko_secret.GetSecret(ctx, h, *instance.Spec.HttpdCustomization.CustomConfigSecret, instance.Namespace)
+		if err != nil {
+			return err
+		}
+	}
+
 	templateParameters := map[string]interface{}{
-		"keystoneURL":         authURL,
-		"horizonEndpoint":     instance.Status.Endpoint,
-		"horizonEndpointHost": url.Host,
-		"memcachedServers":    mc.GetMemcachedServerListQuotedString(),
-		"memcachedTLS":        mc.GetMemcachedTLSSupport(),
-		"ServerName":          fmt.Sprintf("%s.%s.svc", horizon.ServiceName, instance.Namespace),
-		"Port":                horizon.HorizonPort,
-		"TLS":                 false,
-		"isPublicHTTPS":       url.Scheme == "https",
-		"LogFile":             horizon.LogFile,
+		"KeystoneEndpointInternal": authURL,
+		"HorizonEndpoint":          instance.Status.Endpoint,
+		"HorizonEndpointHost":      url.Host,
+		"MemcachedServers":         mc.GetMemcachedServerListQuotedString(),
+		"MemcachedTLS":             mc.GetMemcachedTLSSupport(),
+		"ServerName":               fmt.Sprintf("%s.%s.svc", horizon.ServiceName, instance.Namespace),
+		"Port":                     horizon.HorizonPort,
+		"TLS":                      false,
+		"IsPublicHTTPS":            url.Scheme == "https",
+		"LogFile":                  horizon.LogFile,
 	}
 
 	// create httpd tls template parameters
@@ -1100,22 +1123,42 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 
 	// Set Memcached MTLS parameters if required
 	if mc.GetMemcachedMTLSSecret() != "" {
-		templateParameters["memcachedMTLS"] = true
-		templateParameters["memcachedAuthCa"] = fmt.Sprint(memcachedv1.CaMountPath())
-		templateParameters["memcachedAuthCert"] = fmt.Sprint(memcachedv1.CertMountPath())
-		templateParameters["memcachedAuthKey"] = fmt.Sprint(memcachedv1.KeyMountPath())
+		templateParameters["MemcachedMTLS"] = true
+		templateParameters["MemcachedAuthCert"] = fmt.Sprint(memcachedv1.CertMountPath())
+		templateParameters["MemcachedAuthKey"] = fmt.Sprint(memcachedv1.KeyMountPath())
+		templateParameters["MemcachedAuthCa"] = fmt.Sprint(memcachedv1.CaMountPath())
 	}
+
+	// httpd overrides
+	customTemplates := map[string]string{}
+	templateParameters["Override"] = false
+	if len(httpdOverrideSecret.Data) > 0 {
+		templateParameters["Override"] = true
+		for key, data := range httpdOverrideSecret.Data {
+			if len(data) > 0 {
+				customTemplates["httpd_custom_"+key] = string(data)
+			}
+		}
+	}
+
+	// Marshal the templateParameters map to YAML
+	yamlData, err := yaml.Marshal(templateParameters)
+	if err != nil {
+		return fmt.Errorf("Error marshalling to YAML: %w", err)
+	}
+	customData[common.TemplateParameters] = string(yamlData)
 
 	cms := []util.Template{
 		// ConfigMap
 		{
-			Name:          fmt.Sprintf("%s-config-data", instance.Name),
-			Namespace:     instance.Namespace,
-			Type:          util.TemplateTypeConfig,
-			InstanceType:  instance.Kind,
-			CustomData:    customData,
-			ConfigOptions: templateParameters,
-			Labels:        cmLabels,
+			Name:           fmt.Sprintf("%s-config-data", instance.Name),
+			Namespace:      instance.Namespace,
+			Type:           util.TemplateTypeConfig,
+			InstanceType:   instance.Kind,
+			CustomData:     customData,
+			ConfigOptions:  templateParameters,
+			StringTemplate: customTemplates,
+			Labels:         cmLabels,
 		},
 	}
 	// Append scripts

@@ -51,20 +51,35 @@
             "merge": true
         },
         {
-          "source": "/var/lib/config-data/mtls/certs/*",
-          "dest": "/etc/pki/tls/certs/",
-          "owner": "apache:apache",
-          "perm": "0640",
-          "optional": true,
-          "merge": true
+            "source": "/var/lib/config-data/mtls/certs/*",
+            "dest": "/etc/pki/tls/certs/",
+            "owner": "apache:apache",
+            "perm": "0640",
+            "optional": true,
+            "merge": true
         },
         {
-          "source": "/var/lib/config-data/mtls/private/*",
-          "dest": "/etc/pki/tls/private/",
-          "owner": "apache:apache",
-          "perm": "0600",
-          "optional": true,
-          "merge": true
+            "source": "/var/lib/config-data/mtls/private/*",
+            "dest": "/etc/pki/tls/private/",
+            "owner": "apache:apache",
+            "perm": "0600",
+            "optional": true,
+            "merge": true
+        },
+        {
+            "source": "/var/lib/config-data/tls/private/*",
+            "dest": "/etc/pki/tls/private/",
+            "owner": "apache:apache",
+            "perm": "0600",
+            "optional": true,
+            "merge": true
+        },
+        {
+            "source": "/var/lib/config-data/default/httpd_custom_*",
+            "dest": "/etc/httpd/conf/",
+            "owner": "apache",
+            "perm": "0444",
+            "optional": true
         }
     ],
     "permissions": [
