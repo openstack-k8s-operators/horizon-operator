@@ -62,9 +62,6 @@ const (
 	// logVolume -
 	logVolume = "logs"
 
-	//LimitRequestBody -
-	LimitRequestBody = "10737418240"
-
 	DefaultsConfigFileName = "00-config.conf"
 	// ServiceConfigFileName - Represents service config generated in the operator
 	ServiceConfigFileName = "01-config.conf"
