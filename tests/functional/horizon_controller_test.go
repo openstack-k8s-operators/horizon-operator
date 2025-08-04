@@ -899,9 +899,11 @@ var _ = Describe("Horizon controller", func() {
 
 		})
 		It("Check the resulting endpoints of the generated sub-CRs", func() {
-			horizon := GetHorizon(horizonName)
-			Expect(horizon.Spec.NetworkAttachments).To(Equal([]string{"storage"}))
-			Expect(nad).To(Equal(horizon.Status.NetworkAttachments))
+			Eventually(func(g Gomega) {
+				horizon := GetHorizon(horizonName)
+				g.Expect(horizon.Spec.NetworkAttachments).To(Equal([]string{"storage"}))
+				g.Expect(nad).To(Equal(horizon.Status.NetworkAttachments))
+			}, timeout, interval).Should(Succeed())
 		})
 	})
 })
