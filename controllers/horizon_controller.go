@@ -240,8 +240,8 @@ var keystoneServicesWatch = []string{
 }
 
 // SetupWithManager -
-func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	logger := mgr.GetLogger()
+func (r *HorizonReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+	Log := r.GetLogger(ctx)
 
 	// index passwordSecretField
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &horizonv1beta1.Horizon{}, passwordSecretField, func(rawObj client.Object) []string {
@@ -300,7 +300,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			client.InNamespace(o.GetNamespace()),
 		}
 		if err := r.Client.List(context.Background(), horizons, listOpts...); err != nil {
-			logger.Error(err, "Unable to retrieve Horizon CRs %w")
+			Log.Error(err, "Unable to retrieve Horizon CRs %w")
 			return nil
 		}
 
@@ -310,7 +310,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					Namespace: o.GetNamespace(),
 					Name:      cr.Name,
 				}
-				logger.Info(fmt.Sprintf("Memcached %s is used by Horizon CR %s", o.GetName(), cr.Name))
+				Log.Info(fmt.Sprintf("Memcached %s is used by Horizon CR %s", o.GetName(), cr.Name))
 				result = append(result, reconcile.Request{NamespacedName: name})
 			}
 		}
@@ -330,7 +330,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			client.InNamespace(o.GetNamespace()),
 		}
 		if err := r.Client.List(context.Background(), horizonList, listOpts...); err != nil {
-			logger.Error(err, "Unable to retrieve Horizon CRs %w")
+			Log.Error(err, "Unable to retrieve Horizon CRs %w")
 			return nil
 		}
 		for _, cr := range horizonList.Items {
@@ -339,7 +339,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					Namespace: cr.GetNamespace(),
 					Name:      cr.GetName(),
 				}
-				logger.Info(fmt.Sprintf("NAD %s is used by Horizon CR %s", o.GetName(), cr.GetName()))
+				Log.Info(fmt.Sprintf("NAD %s is used by Horizon CR %s", o.GetName(), cr.GetName()))
 				result = append(result, reconcile.Request{NamespacedName: name})
 			}
 		}
@@ -359,12 +359,12 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			client.InNamespace(o.GetNamespace()),
 		}
 		if err := r.Client.List(context.Background(), horizonList, listOpts...); err != nil {
-			logger.Error(err, "Unable to retrieve Horizon CRs %w")
+			Log.Error(err, "Unable to retrieve Horizon CRs %w")
 			return nil
 		}
 		if slices.Contains(keystoneServicesWatch, o.GetName()) {
 			for _, cr := range horizonList.Items {
-				logger.Info(fmt.Sprintf("Keystone Service %s is used by Horizon CR %s", o.GetName(), cr.GetName()))
+				Log.Info(fmt.Sprintf("Keystone Service %s is used by Horizon CR %s", o.GetName(), cr.GetName()))
 				name := client.ObjectKey{
 					Namespace: cr.GetNamespace(),
 					Name:      cr.GetName(),
@@ -411,7 +411,7 @@ func (r *HorizonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *HorizonReconciler) findObjectsForSrc(ctx context.Context, src client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 
-	l := log.FromContext(ctx).WithName("Controllers").WithName("Horizon")
+	Log := r.GetLogger(ctx)
 
 	for _, field := range allWatchFields {
 		crList := &horizonv1beta1.HorizonList{}
@@ -421,12 +421,12 @@ func (r *HorizonReconciler) findObjectsForSrc(ctx context.Context, src client.Ob
 		}
 		err := r.Client.List(ctx, crList, listOps)
 		if err != nil {
-			l.Error(err, fmt.Sprintf("listing %s for field: %s - %s", crList.GroupVersionKind().Kind, field, src.GetNamespace()))
+			Log.Error(err, fmt.Sprintf("listing %s for field: %s - %s", crList.GroupVersionKind().Kind, field, src.GetNamespace()))
 			return requests
 		}
 
 		for _, item := range crList.Items {
-			l.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
+			Log.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
 
 			requests = append(requests,
 				reconcile.Request{
@@ -445,7 +445,7 @@ func (r *HorizonReconciler) findObjectsForSrc(ctx context.Context, src client.Ob
 func (r *HorizonReconciler) findObjectForSrc(ctx context.Context, src client.Object) []reconcile.Request {
 	requests := []reconcile.Request{}
 
-	l := log.FromContext(ctx).WithName("Controllers").WithName("Horizon")
+	Log := r.GetLogger(ctx)
 
 	crList := &horizonv1beta1.HorizonList{}
 	listOps := &client.ListOptions{
@@ -453,12 +453,12 @@ func (r *HorizonReconciler) findObjectForSrc(ctx context.Context, src client.Obj
 	}
 	err := r.Client.List(ctx, crList, listOps)
 	if err != nil {
-		l.Error(err, fmt.Sprintf("listing %s for namespace: %s", crList.GroupVersionKind().Kind, src.GetNamespace()))
+		Log.Error(err, fmt.Sprintf("listing %s for namespace: %s", crList.GroupVersionKind().Kind, src.GetNamespace()))
 		return requests
 	}
 
 	for _, item := range crList.Items {
-		l.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
+		Log.Info(fmt.Sprintf("input source %s changed, reconcile: %s - %s", src.GetName(), item.GetName(), item.GetNamespace()))
 
 		requests = append(requests,
 			reconcile.Request{
@@ -1138,6 +1138,7 @@ func (r *HorizonReconciler) createHashOfInputHashes(
 	instance *horizonv1beta1.Horizon,
 	envVars map[string]env.Setter,
 ) (string, bool, error) {
+	Log := r.GetLogger(ctx)
 	var hashMap map[string]string
 	changed := false
 	mergedMapVars := env.MergeEnvs([]corev1.EnvVar{}, envVars)
@@ -1147,7 +1148,7 @@ func (r *HorizonReconciler) createHashOfInputHashes(
 	}
 	if hashMap, changed = util.SetHash(instance.Status.Hash, common.InputHashName, hash); changed {
 		instance.Status.Hash = hashMap
-		r.GetLogger(ctx).Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
+		Log.Info(fmt.Sprintf("Input maps hash %s - %s", common.InputHashName, hash))
 	}
 	return hash, changed, nil
 }
@@ -1159,6 +1160,7 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 	h *helper.Helper,
 	envVars *map[string]env.Setter,
 ) error {
+	Log := r.GetLogger(ctx)
 	Labels := labels.GetLabels(instance, labels.GetGroupLabel(horizon.ServiceName), map[string]string{})
 	//
 	// check if secret already exist
@@ -1168,7 +1170,7 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 		return err
 	}
 	if k8s_errors.IsNotFound(err) || !validateHorizonSecret(scrt) {
-		r.GetLogger(ctx).Info("Creating Horizon Secret")
+		Log.Info("Creating Horizon Secret")
 		// Create k8s secret to store Horizon Secret
 		tmpl := []util.Template{
 			{
