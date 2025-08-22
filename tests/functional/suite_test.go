@@ -77,9 +77,9 @@ const (
 
 	interval = time.Millisecond * 200
 
-	InternalCertSecretName = "horizon-tls-certs"
+	InternalCertSecretName = "horizon-tls-certs" // #nosec G101
 
-	CABundleSecretName = "combined-ca-bundle"
+	CABundleSecretName = "combined-ca-bundle" // #nosec G101
 )
 
 func TestAPIs(t *testing.T) {
