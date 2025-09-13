@@ -79,6 +79,11 @@
             "recurse": true
         },
         {
+            "path": "/etc/httpd/conf",
+            "owner": "apache:apache",
+            "recurse": true
+        },
+        {
             "path": "/etc/httpd/logs",
             "owner": "apache:apache",
             "recurse": true
