@@ -20,7 +20,7 @@ type testCase struct {
 
 func TestFormatTLSOptions(t *testing.T) {
 
-	var tlsSecretName = "generic-tls-secret"
+	var tlsSecretName = "generic-tls-secret" // #nosec G101
 	var defaultMode int32 = 256
 	testCases := []testCase{
 		{
