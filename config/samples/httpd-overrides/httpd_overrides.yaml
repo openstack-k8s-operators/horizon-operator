@@ -1,0 +1,27 @@
+# The following CR assumes that a configMap is created starting from
+# a local tarball containing the theme
+#
+# oc create cm horizon-theme --from-file=_11_custom_theme.py --from-file=$HOME/custom.tar.gz
+#
+# Sample using Ceph as a glance backend
+# Requires a running Ceph cluster and its `/etc/ceph` files in secret `ceph-conf-files`
+# This can be achieved with the `ceph` target of `install_yamls`
+apiVersion: core.openstack.org/v1beta1
+kind: OpenStackControlPlane
+metadata:
+  name: openstack
+spec:
+  horizon:
+    enabled: true
+    template:
+      extraMounts:
+        - extraVol:
+          - extraVolType: httpd-overrides
+            mounts:
+            - mountPath: /etc/httpd/conf_custom
+              name: httpd-overrides
+              readOnly: true
+            volumes:
+            - configMap:
+                name: httpd-overrides
+              name: httpd-overrides
