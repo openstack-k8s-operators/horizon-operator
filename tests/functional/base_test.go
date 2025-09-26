@@ -29,12 +29,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func CreateHorizon(name types.NamespacedName, spec map[string]interface{}) client.Object {
+func CreateHorizon(name types.NamespacedName, spec map[string]any) client.Object {
 
-	raw := map[string]interface{}{
+	raw := map[string]any{
 		"apiVersion": "horizon.openstack.org/v1beta1",
 		"kind":       "Horizon",
-		"metadata": map[string]interface{}{
+		"metadata": map[string]any{
 			"name":      name.Name,
 			"namespace": name.Namespace,
 		},
@@ -43,16 +43,16 @@ func CreateHorizon(name types.NamespacedName, spec map[string]interface{}) clien
 	return th.CreateUnstructured(raw)
 }
 
-func GetDefaultHorizonSpec() map[string]interface{} {
-	return map[string]interface{}{
+func GetDefaultHorizonSpec() map[string]any {
+	return map[string]any{
 		"secret":            SecretName,
 		"memcachedInstance": "memcached",
 	}
 }
 
-func GetTLSHorizonSpec() map[string]interface{} {
+func GetTLSHorizonSpec() map[string]any {
 	spec := GetDefaultHorizonSpec()
-	spec["tls"] = map[string]interface{}{
+	spec["tls"] = map[string]any{
 		"caBundleSecretName": CABundleSecretName,
 		"secretName":         InternalCertSecretName,
 	}
@@ -88,16 +88,16 @@ func HorizonConditionGetter(name types.NamespacedName) condition.Conditions {
 // want to avoid by default
 // 2. Usually a topologySpreadConstraints is used to take care about
 // multi AZ, which is not applicable in this context
-func GetSampleTopologySpec(label string) (map[string]interface{}, []corev1.TopologySpreadConstraint) {
+func GetSampleTopologySpec(label string) (map[string]any, []corev1.TopologySpreadConstraint) {
 	// Build the topology Spec
-	topologySpec := map[string]interface{}{
-		"topologySpreadConstraints": []map[string]interface{}{
+	topologySpec := map[string]any{
+		"topologySpreadConstraints": []map[string]any{
 			{
 				"maxSkew":           1,
 				"topologyKey":       corev1.LabelHostname,
 				"whenUnsatisfiable": "ScheduleAnyway",
-				"labelSelector": map[string]interface{}{
-					"matchLabels": map[string]interface{}{
+				"labelSelector": map[string]any{
+					"matchLabels": map[string]any{
 						"service":   horizon.ServiceName,
 						"component": label,
 					},
@@ -124,26 +124,26 @@ func GetSampleTopologySpec(label string) (map[string]interface{}, []corev1.Topol
 
 // GetExtraMounts - Utility function that simulates extraMounts pointing
 // to a  secret
-func GetExtraMounts(hemName string, hemPath string) []map[string]interface{} {
-	return []map[string]interface{}{
+func GetExtraMounts(hemName string, hemPath string) []map[string]any {
+	return []map[string]any{
 		{
 			"name":   hemName,
 			"region": "az0",
-			"extraVol": []map[string]interface{}{
+			"extraVol": []map[string]any{
 				{
 					"extraVolType": hemName,
 					"propagation": []string{
 						"Horizon",
 					},
-					"volumes": []map[string]interface{}{
+					"volumes": []map[string]any{
 						{
 							"name": hemName,
-							"secret": map[string]interface{}{
+							"secret": map[string]any{
 								"secretName": hemName,
 							},
 						},
 					},
-					"mounts": []map[string]interface{}{
+					"mounts": []map[string]any{
 						{
 							"name":      hemName,
 							"mountPath": hemPath,
