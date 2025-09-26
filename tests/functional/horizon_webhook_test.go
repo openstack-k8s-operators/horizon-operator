@@ -74,14 +74,14 @@ var _ = Describe("Horizon Webhook", func() {
 	It("rejects a wrong TopologyRef on a different namespace", func() {
 		horizonSpec := GetDefaultHorizonSpec()
 		// Inject a topologyRef that points to a different namespace
-		horizonSpec["topologyRef"] = map[string]interface{}{
+		horizonSpec["topologyRef"] = map[string]any{
 			"name":      "foo",
 			"namespace": "bar",
 		}
-		raw := map[string]interface{}{
+		raw := map[string]any{
 			"apiVersion": "horizon.openstack.org/v1beta1",
 			"kind":       "Horizon",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "horizon",
 				"namespace": namespace,
 			},

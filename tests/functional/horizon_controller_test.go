@@ -428,7 +428,7 @@ var _ = Describe("Horizon controller", func() {
 			})
 			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
 			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
-			watcherServiceSpec := map[string]interface{}{
+			watcherServiceSpec := map[string]any{
 				"enabled":            true,
 				"passwordSelector":   "WatcherPassword",
 				"secret":             "osp-secret",
@@ -437,10 +437,10 @@ var _ = Describe("Horizon controller", func() {
 				"serviceType":        "infra-optim",
 				"serviceUser":        "watcher",
 			}
-			watcherServiceraw := map[string]interface{}{
+			watcherServiceraw := map[string]any{
 				"apiVersion": "keystone.openstack.org/v1beta1",
 				"kind":       "KeystoneService",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "watcher",
 					"namespace": namespace,
 				},
@@ -499,7 +499,7 @@ var _ = Describe("Horizon controller", func() {
 				infra.CreateTopology(t, topologySpec)
 			}
 			spec := GetDefaultHorizonSpec()
-			spec["topologyRef"] = map[string]interface{}{
+			spec["topologyRef"] = map[string]any{
 				"name": topologyRef.Name,
 			}
 			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, spec))
@@ -640,7 +640,7 @@ var _ = Describe("Horizon controller", func() {
 	When("nodeSelector is set", func() {
 		BeforeEach(func() {
 			spec := GetDefaultHorizonSpec()
-			spec["nodeSelector"] = map[string]interface{}{
+			spec["nodeSelector"] = map[string]any{
 				"foo": "bar",
 			}
 			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, spec))
@@ -877,7 +877,7 @@ var _ = Describe("Horizon controller", func() {
 				Name:      "storage",
 			})
 			DeferCleanup(th.DeleteInstance, nadDef)
-			rawSpec := map[string]interface{}{
+			rawSpec := map[string]any{
 				"secret":             SecretName,
 				"networkAttachments": []string{"storage"},
 				"memcachedInstance":  "memcached",

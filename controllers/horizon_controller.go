@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"slices"
 	"time"
@@ -1066,9 +1067,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	// all other files get placed into /etc/<service> to allow overwrite of e.g. logging.conf or policy.json
 	// TODO: make sure custom.conf can not be overwritten
 	customData := map[string]string{"9999_custom_settings.py": instance.Spec.CustomServiceConfig}
-	for key, data := range instance.Spec.DefaultConfigOverwrite {
-		customData[key] = data
-	}
+	maps.Copy(customData, instance.Spec.DefaultConfigOverwrite)
 
 	keystoneAPI, err := keystonev1.GetKeystoneAPI(ctx, h, instance.Namespace, map[string]string{})
 	if err != nil {
@@ -1085,7 +1084,7 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return err
 	}
 
-	templateParameters := map[string]interface{}{
+	templateParameters := map[string]any{
 		"keystoneURL":         authURL,
 		"horizonEndpoint":     instance.Status.Endpoint,
 		"horizonEndpointHost": url.Host,
