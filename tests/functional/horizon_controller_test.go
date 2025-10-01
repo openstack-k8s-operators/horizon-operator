@@ -739,7 +739,7 @@ var _ = Describe("Horizon controller", func() {
 				ConditionGetterFunc(HorizonConditionGetter),
 				condition.TLSInputReadyCondition,
 				corev1.ConditionFalse,
-				condition.RequestedReason,
+				condition.ErrorReason,
 				fmt.Sprintf("TLSInput is missing: %s", CABundleSecretName),
 			)
 			th.ExpectCondition(
