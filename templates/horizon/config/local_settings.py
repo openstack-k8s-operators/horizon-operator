@@ -37,7 +37,6 @@ HORIZON_CONFIG["password_validator"] = {
 }
 HORIZON_CONFIG["enforce_password_check"] = True
 POLICY_FILES_PATH = '/etc/openstack-dashboard'
-HORIZON_IMAGES_UPLOAD_MODE = 'direct'
 
 DEBUG = False
 # This setting controls whether or not compression is enabled. Disabling
