@@ -11,11 +11,11 @@ require (
 	github.com/onsi/ginkgo/v2 v2.27.1
 	github.com/onsi/gomega v1.38.2
 	github.com/openstack-k8s-operators/horizon-operator/api v0.3.1-0.20240214134444-c675e5f69043
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20251020143452-7086a5eea166
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20251021163720-bb51cea0d967
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20251021145236-2b84ec9fd9bb
-	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20251021145236-2b84ec9fd9bb
-	github.com/openstack-k8s-operators/lib-common/modules/test v0.6.1-0.20251021145236-2b84ec9fd9bb
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20251030184102-82d2cbaafd35
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20251027074845-ed8154b20ad1
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20251027074416-ab5c045dbe00
+	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20251027074416-ab5c045dbe00
+	github.com/openstack-k8s-operators/lib-common/modules/test v0.6.1-0.20251027074416-ab5c045dbe00
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.31.13
 	k8s.io/apimachinery v0.31.13
