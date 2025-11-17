@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
-	"github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
+	"github.com/openstack-k8s-operators/horizon-operator/internal/horizon"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"

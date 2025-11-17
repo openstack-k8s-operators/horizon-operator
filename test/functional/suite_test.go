@@ -45,7 +45,8 @@ import (
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
 
-	"github.com/openstack-k8s-operators/horizon-operator/controllers"
+	controllers "github.com/openstack-k8s-operators/horizon-operator/internal/controller"
+	webhookv1 "github.com/openstack-k8s-operators/horizon-operator/internal/webhook/v1beta1"
 	infra_test "github.com/openstack-k8s-operators/infra-operator/apis/test/helpers"
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	keystone_test "github.com/openstack-k8s-operators/keystone-operator/api/test/helpers"
@@ -174,7 +175,7 @@ var _ = BeforeSuite(func() {
 	kclient, err := kubernetes.NewForConfig(cfg)
 	Expect(err).ToNot(HaveOccurred(), "failed to create kclient")
 
-	err = (&horizonv1.Horizon{}).SetupWebhookWithManager(k8sManager)
+	err = webhookv1.SetupHorizonWebhookWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
 
 	horizonv1.SetupDefaults()
