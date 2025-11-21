@@ -12,7 +12,7 @@ webhooks:
       namespace: system
       path: /mutate-horizon-openstack-org-v1beta1-horizon
   failurePolicy: Fail
-  name: mhorizon.kb.io
+  name: mhorizon-v1beta1.kb.io
   rules:
   - apiGroups:
     - horizon.openstack.org
@@ -38,7 +38,7 @@ webhooks:
       namespace: system
       path: /validate-horizon-openstack-org-v1beta1-horizon
   failurePolicy: Fail
-  name: vhorizon.kb.io
+  name: vhorizon-v1beta1.kb.io
   rules:
   - apiGroups:
     - horizon.openstack.org

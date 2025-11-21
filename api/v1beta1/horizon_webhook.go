@@ -23,14 +23,13 @@ limitations under the License.
 package v1beta1
 
 import (
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 // HorizonDefaults -
@@ -49,15 +48,6 @@ func SetupHorizonDefaults(defaults HorizonDefaults) {
 	horizonlog.Info("Horizon defaults initialized", "defaults", defaults)
 }
 
-// SetupWebhookWithManager sets up the webhook with the Manager
-func (r *Horizon) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
-		Complete()
-}
-
-//+kubebuilder:webhook:path=/mutate-horizon-openstack-org-v1beta1-horizon,mutating=true,failurePolicy=fail,sideEffects=None,groups=horizon.openstack.org,resources=horizons,verbs=create;update,versions=v1beta1,name=mhorizon.kb.io,admissionReviewVersions=v1
-
 var _ webhook.Defaulter = &Horizon{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
@@ -69,7 +59,7 @@ func (r *Horizon) Default() {
 
 // Default - set defaults for this Horizon spec
 func (spec *HorizonSpec) Default() {
-    // NOTE: only containerImage validations go here
+	// NOTE: only containerImage validations go here
 	if spec.ContainerImage == "" {
 		spec.ContainerImage = horizonDefaults.ContainerImageURL
 	}
@@ -80,9 +70,6 @@ func (spec *HorizonSpec) Default() {
 func (spec *HorizonSpecCore) Default() {
 	// nothing here yet
 }
-
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-//+kubebuilder:webhook:path=/validate-horizon-openstack-org-v1beta1-horizon,mutating=false,failurePolicy=fail,sideEffects=None,groups=horizon.openstack.org,resources=horizons,verbs=create;update,versions=v1beta1,name=vhorizon.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Horizon{}
 

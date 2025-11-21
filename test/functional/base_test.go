@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	horizonv1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
-	horizon "github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
+	horizon "github.com/openstack-k8s-operators/horizon-operator/internal/horizon"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
