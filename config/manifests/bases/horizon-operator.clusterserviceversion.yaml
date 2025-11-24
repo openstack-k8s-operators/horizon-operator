@@ -6,11 +6,11 @@ metadata:
     capabilities: Basic Install
     features.operators.openshift.io/disconnected: "true"
     features.operators.openshift.io/fips-compliant: "true"
-    features.operators.openshift.io/token-auth-gcp: "false"
-    features.operators.openshift.io/token-auth-azure: "false"
-    features.operators.openshift.io/token-auth-aws: "false"
     features.operators.openshift.io/proxy-aware: "false"
     features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
     operators.operatorframework.io/operator-type: non-standalone
   name: horizon-operator.v0.0.0
   namespace: placeholder
@@ -50,6 +50,7 @@ spec:
   - name: Horizon Operator
     url: https://github.com/openstack-k8s-operators/horizon-operator
   maturity: beta
+  minKubeVersion: 0.0.0
   provider:
     name: Red Hat Inc.
     url: https://redhat.com/

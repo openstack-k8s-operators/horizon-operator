@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package controllers implements the horizon-operator Kubernetes controllers.
-package controllers
+// Package controller implements the horizon-operator Kubernetes controllers.
+package controller
 
 import (
 	"context"
@@ -29,7 +29,7 @@ import (
 	"github.com/go-logr/logr"
 	networkv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	horizonv1beta1 "github.com/openstack-k8s-operators/horizon-operator/api/v1beta1"
-	horizon "github.com/openstack-k8s-operators/horizon-operator/pkg/horizon"
+	horizon "github.com/openstack-k8s-operators/horizon-operator/internal/horizon"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
 	keystonev1 "github.com/openstack-k8s-operators/keystone-operator/api/v1beta1"
