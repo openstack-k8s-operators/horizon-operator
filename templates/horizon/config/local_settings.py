@@ -64,7 +64,10 @@ DEBUG = False
 # retrieve the IP address, which we will then in turn add to the ALLOWED_HOSTS list.
 def get_pod_ip():
     import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    ipstacks = [socket.AF_INET, socket.AF_INET6]
+    last_error = None
+
     hostport = (
         "{{ .horizonEndpointHost }}",
         {{- if .isPublicHTTPS }}
@@ -73,16 +76,21 @@ def get_pod_ip():
         80
         {{- end }}
     )
-    try:
-        s.connect(hostport)
-        return s.getsockname()[0]
-    except socket.gaierror:
-        s.close()
-        s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        s.connect(hostport)
-        return "[{}]".format(s.getsockname()[0])
-    finally:
-        s.close()
+
+    for ipstack in ipstacks:
+        try:
+            with socket.socket(ipstack, socket.SOCK_DGRAM) as s:
+                s.settimeout(2)
+                s.connect((hostport))
+                ip = s.getsockname()[0]
+                s.close()
+                return ip if ipstack == socket.AF_INET else f"[{ip}]"
+        # Broad exception handling here since we will collect and return
+        # any exceptions after checking each ipstack.
+        except Exception as e:
+            last_error = e
+
+    raise RuntimeError(f"Could not determine pod IP: {last_error}")
 
 ALLOWED_HOSTS = [get_pod_ip(), "{{ .horizonEndpointHost }}"]
 
