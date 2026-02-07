@@ -191,6 +191,7 @@ func getEnvVars(configHash string, enabledServices map[string]string) map[string
 	envVars["ENABLE_WATCHER"] = env.SetValue(enabledServices["watcher"])
 	envVars["CONFIG_HASH"] = env.SetValue(configHash)
 	envVars["UNPACK_THEME"] = env.SetValue("true")
+	envVars["POD_IP"] = env.DownwardAPI("status.podIP")
 
 	return envVars
 }
