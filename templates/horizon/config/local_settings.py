@@ -56,35 +56,14 @@ DEBUG = False
 # For more information see:
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
 
-# get_pod_ip retrieves the pod's primary interface IP address. This is necessary
-# due to the dynamic IP addressing of pods. The HealthCheck needs to be able to
-# check the specific pod. We can't simply check via the route, since such a check
-# could land on any of the replicas. Instead, we need to explicity check the pod
-# we're currently running on. Therefore, we need to execute this function to
-# retrieve the IP address, which we will then in turn add to the ALLOWED_HOSTS list.
-def get_pod_ip():
-    import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    hostport = (
-        "{{ .horizonEndpointHost }}",
-        {{- if .isPublicHTTPS }}
-        443
-        {{- else }}
-        80
-        {{- end }}
-    )
-    try:
-        s.connect(hostport)
-        return s.getsockname()[0]
-    except socket.gaierror:
-        s.close()
-        s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        s.connect(hostport)
-        return "[{}]".format(s.getsockname()[0])
-    finally:
-        s.close()
 
-ALLOWED_HOSTS = [get_pod_ip(), "{{ .horizonEndpointHost }}"]
+# Use the environment variable to set pod_ip. We can then use this for
+# ALLOWED_HOSTS to enable liveness and readiness probes.
+pod_ip = os.environ.get('POD_IP', '')
+if pod_ip and ':' in pod_ip:
+    pod_ip = f"[{pod_ip}]"
+
+ALLOWED_HOSTS = [pod_ip, "{{ .horizonEndpointHost }}"] if pod_ip else ["{{ .horizonEndpointHost }}"]
 
 USE_X_FORWARDED_HOST = True
 
