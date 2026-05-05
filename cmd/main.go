@@ -124,6 +124,12 @@ func main() {
 		tlsOpts = append(tlsOpts, disableHTTP2)
 	}
 
+	// PQC: Enforce TLS 1.3 minimum for quantum-safe key exchange (X25519MLKEM768).
+	// Go 1.24+ enables hybrid ML-KEM by default, but only when TLS 1.3 is negotiated.
+	tlsOpts = append(tlsOpts, func(c *tls.Config) {
+		c.MinVersion = tls.VersionTLS13
+	})
+
 	// Create watchers for metrics and webhooks certificates
 	var metricsCertWatcher, webhookCertWatcher *certwatcher.CertWatcher
 
