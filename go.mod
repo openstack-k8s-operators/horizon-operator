@@ -9,13 +9,13 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/ginkgo/v2 v2.28.2
-	github.com/onsi/gomega v1.39.1
+	github.com/onsi/gomega v1.40.0
 	github.com/openstack-k8s-operators/horizon-operator/api v0.3.1-0.20240214134444-c675e5f69043
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260429072348-e2e8eaa49a92
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260425213537-3fb7aab1c5a4
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260430090237-a4265c18a162
-	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20260430090237-a4265c18a162
-	github.com/openstack-k8s-operators/lib-common/modules/test v0.6.1-0.20260430090237-a4265c18a162
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260508091801-73f228e6af31
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260507114237-f0b612d6c21f
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260506154724-30a976ba8ef0
+	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20260506154724-30a976ba8ef0
+	github.com/openstack-k8s-operators/lib-common/modules/test v0.6.1-0.20260506154724-30a976ba8ef0
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.31.14
 	k8s.io/apimachinery v0.31.14
@@ -63,7 +63,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift/api v3.9.0+incompatible // indirect
-	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20260417092244-81c71b39e981 // indirect
+	github.com/openstack-k8s-operators/lib-common/modules/openstack v0.6.1-0.20260430090237-a4265c18a162 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect
@@ -84,7 +84,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.1 // indirect
+	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
