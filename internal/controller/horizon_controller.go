@@ -1125,13 +1125,14 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 	cms := []util.Template{
 		// ConfigMap
 		{
-			Name:          fmt.Sprintf("%s-config-data", instance.Name),
-			Namespace:     instance.Namespace,
-			Type:          util.TemplateTypeConfig,
-			InstanceType:  instance.Kind,
-			CustomData:    customData,
-			ConfigOptions: templateParameters,
-			Labels:        cmLabels,
+			Name:            fmt.Sprintf("%s-config-data", instance.Name),
+			Namespace:       instance.Namespace,
+			Type:            util.TemplateTypeConfig,
+			InstanceType:    instance.Kind,
+			CustomData:      customData,
+			ConfigOptions:   templateParameters,
+			Labels:          cmLabels,
+			CommonTemplates: []string{"ssl.conf"},
 		},
 	}
 	// Append scripts
