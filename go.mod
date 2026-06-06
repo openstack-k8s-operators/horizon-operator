@@ -11,11 +11,11 @@ require (
 	github.com/onsi/ginkgo/v2 v2.28.2
 	github.com/onsi/gomega v1.41.0
 	github.com/openstack-k8s-operators/horizon-operator/api v0.3.1-0.20240214134444-c675e5f69043
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260513130700-78e1a15a8289
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260513130126-175a0958de92
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260518125357-72bdd580c587
-	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20260515134210-2e2a0d06648c
-	github.com/openstack-k8s-operators/lib-common/modules/test v0.6.1-0.20260515134210-2e2a0d06648c
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260604063818-4bfc0b32deb7
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260601073225-ef24e232bc67
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260526114926-7ebfadd589db
+	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20260526114926-7ebfadd589db
+	github.com/openstack-k8s-operators/lib-common/modules/test v0.6.1-0.20260526114926-7ebfadd589db
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.31.14
 	k8s.io/apimachinery v0.31.14
@@ -71,7 +71,7 @@ require (
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
-	github.com/spf13/pflag v1.0.7 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
@@ -92,9 +92,9 @@ require (
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/term v0.39.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/term v0.40.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.41.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
