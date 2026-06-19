@@ -318,8 +318,9 @@ var _ = Describe("Horizon controller", func() {
 			}, timeout, interval).Should(Equal(int32(1)))
 		})
 		It("should set default environment in deployment", func() {
-			// Assert that the watcher deployment is created
 			deployment := th.GetDeployment(deploymentName)
+			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
+				To(ContainElement(corev1.EnvVar{Name: "ENABLE_CLOUDKITTY", Value: "no", ValueFrom: nil}))
 			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_WATCHER", Value: "no", ValueFrom: nil}))
 			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
@@ -470,10 +471,71 @@ var _ = Describe("Horizon controller", func() {
 			}, timeout, interval).Should(Equal(int32(1)))
 		})
 		It("should set ENABLE_WATCHER to yes in deployment environment", func() {
-			// Assert that the watcher deployment is created
 			deployment := th.GetDeployment(deploymentName)
 			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_WATCHER", Value: "yes", ValueFrom: nil}))
+			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
+				To(ContainElement(corev1.EnvVar{Name: "ENABLE_OCTAVIA", Value: "yes", ValueFrom: nil}))
+		})
+	})
+
+	When("cloudkitty keystone service exists", func() {
+		BeforeEach(func() {
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, GetDefaultHorizonSpec()))
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
+			DeferCleanup(infra.DeleteMemcached, infra.CreateMemcached(namespace, "memcached", memcachedSpec))
+			infra.SimulateMemcachedReady(types.NamespacedName{
+				Name:      "memcached",
+				Namespace: namespace,
+			})
+			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
+			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
+			cloudkittyServiceSpec := map[string]any{
+				"enabled":            true,
+				"passwordSelector":   "CloudkittyPassword",
+				"secret":             "osp-secret",
+				"serviceDescription": "CloudKitty Service",
+				"serviceName":        "cloudkitty",
+				"serviceType":        "rating",
+				"serviceUser":        "cloudkitty",
+			}
+			cloudkittyServiceraw := map[string]any{
+				"apiVersion": "keystone.openstack.org/v1beta1",
+				"kind":       "KeystoneService",
+				"metadata": map[string]any{
+					"name":      "cloudkitty",
+					"namespace": namespace,
+				},
+				"spec": cloudkittyServiceSpec,
+			}
+			th.CreateUnstructured(cloudkittyServiceraw)
+			th.SimulateDeploymentReplicaReady(deploymentName)
+		})
+
+		It("should have deployment ready", func() {
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.ReadyCondition,
+				corev1.ConditionTrue,
+			)
+			th.ExpectCondition(
+				horizonName,
+				ConditionGetterFunc(HorizonConditionGetter),
+				condition.DeploymentReadyCondition,
+				corev1.ConditionTrue,
+			)
+		})
+		It("should have ReadyCount set", func() {
+			Eventually(func() int32 {
+				return GetHorizon(horizonName).Status.ReadyCount
+			}, timeout, interval).Should(Equal(int32(1)))
+		})
+		It("should set ENABLE_CLOUDKITTY to yes in deployment environment", func() {
+			deployment := th.GetDeployment(deploymentName)
+			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
+				To(ContainElement(corev1.EnvVar{Name: "ENABLE_CLOUDKITTY", Value: "yes", ValueFrom: nil}))
 			Expect(deployment.Spec.Template.Spec.Containers[1].Env).
 				To(ContainElement(corev1.EnvVar{Name: "ENABLE_OCTAVIA", Value: "yes", ValueFrom: nil}))
 		})
