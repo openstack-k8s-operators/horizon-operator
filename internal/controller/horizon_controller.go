@@ -55,7 +55,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -1188,18 +1187,24 @@ func (r *HorizonReconciler) ensureHorizonSecret(
 	}
 	if k8s_errors.IsNotFound(err) || !validateHorizonSecret(scrt) {
 		Log.Info("Creating Horizon Secret")
+
+		secretKey, err := util.GeneratePassword(50)
+		if err != nil {
+			return fmt.Errorf("generating Horizon SECRET_KEY: %w", err)
+		}
+
 		// Create k8s secret to store Horizon Secret
 		tmpl := []util.Template{
 			{
 				Name:       horizon.ServiceName,
 				Namespace:  instance.Namespace,
 				Type:       util.TemplateTypeNone,
-				CustomData: map[string]string{"horizon-secret": rand.String(10)},
+				CustomData: map[string]string{"horizon-secret": secretKey},
 				Labels:     Labels,
 			},
 		}
 
-		err := oko_secret.EnsureSecrets(ctx, h, instance, tmpl, envVars)
+		err = oko_secret.EnsureSecrets(ctx, h, instance, tmpl, envVars)
 		if err != nil {
 			return err
 		}
