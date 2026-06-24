@@ -68,7 +68,7 @@ func Deployment(
 
 	livenessProbe := formatProbes()
 	readinessProbe := formatProbes()
-	startupProbe := formatProbes()
+	startupProbe := formatStartupProbe()
 
 	envVars := getEnvVars(configHash, enabledServices)
 
@@ -201,6 +201,21 @@ func formatProbes() *corev1.Probe {
 		TimeoutSeconds:      5,
 		PeriodSeconds:       10,
 		InitialDelaySeconds: 10,
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: horizonDashboardURL,
+				Port: intstr.FromString(horizonContainerPortName),
+			},
+		},
+	}
+}
+
+func formatStartupProbe() *corev1.Probe {
+
+	return &corev1.Probe{
+		TimeoutSeconds:   5,
+		PeriodSeconds:    10,
+		FailureThreshold: 12,
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: horizonDashboardURL,
