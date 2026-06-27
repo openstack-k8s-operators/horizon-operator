@@ -11,8 +11,8 @@ require (
 	github.com/onsi/ginkgo/v2 v2.28.2
 	github.com/onsi/gomega v1.42.0
 	github.com/openstack-k8s-operators/horizon-operator/api v0.3.1-0.20240214134444-c675e5f69043
-	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260618172644-5a4764bdaa36
-	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260618171050-eb14893f440c
+	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260622185213-8602ead20c77
+	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260622185221-4e2611f74cd5
 	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260618132757-fe8e60d1d8a6
 	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20260618132757-fe8e60d1d8a6
 	github.com/openstack-k8s-operators/lib-common/modules/test v0.6.1-0.20260618132757-fe8e60d1d8a6
