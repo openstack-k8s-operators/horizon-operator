@@ -244,6 +244,7 @@ var allWatchFields = []string{
 }
 
 var keystoneServicesWatch = []string{
+	"cloudkitty",
 	"watcher",
 }
 
