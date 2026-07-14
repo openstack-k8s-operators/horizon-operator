@@ -40,7 +40,7 @@ func TestFormatTLSOptions(t *testing.T) {
 				{
 					Name: "horizon-tls-certs",
 					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
+						Secret: &corev1.SecretVolumeSource{ //nolint:gosec
 							SecretName:  "generic-tls-secret",
 							DefaultMode: &defaultMode,
 						},
@@ -48,7 +48,7 @@ func TestFormatTLSOptions(t *testing.T) {
 				},
 				{Name: "combined-ca-bundle",
 					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
+						Secret: &corev1.SecretVolumeSource{ //nolint:gosec
 							SecretName:  "combined-ca-bundle",
 							DefaultMode: &defaultMode,
 						},

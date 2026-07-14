@@ -48,7 +48,7 @@ endif
 
 # Set the Operator SDK version to use. By default, what is installed on the system is used.
 # This is useful for CI or a project to utilize a specific version of the operator-sdk toolkit.
-OPERATOR_SDK_VERSION ?= v1.41.1
+OPERATOR_SDK_VERSION ?= v1.42.3
 
 # Image URL to use all building/pushing image targets
 DEFAULT_IMG ?= quay.io/openstack-k8s-operators/horizon-operator:latest
@@ -59,7 +59,7 @@ ENVTEST_K8S_VERSION = 1.31
 SETUP_ENVTEST_VERSION ?= release-0.22
 
 # Set minimum Go version
-GOTOOLCHAIN_VERSION ?= go1.24.0
+GOTOOLCHAIN_VERSION ?= go1.26.0
 
 PROCS ?=$(shell expr $(shell nproc --ignore 2) / 4)
 # PROC_CMD = --procs ${PROCS}
