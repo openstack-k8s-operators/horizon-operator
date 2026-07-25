@@ -119,7 +119,6 @@ type HorizonReconciler struct {
 // service account permissions that are needed to grant permission to the above
 // +kubebuilder:rbac:groups="security.openshift.io",resourceNames=anyuid,resources=securitycontextconstraints,verbs=use
 // +kubebuilder:rbac:groups="security.openshift.io",resourceNames=hostmount-anyuid,resources=securitycontextconstraints,verbs=use
-// +kubebuilder:rbac:groups="",resources=pods,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=k8s.cni.cncf.io,resources=network-attachment-definitions,verbs=get;list;watch
 // service account, role, rolebinding
 // +kubebuilder:rbac:groups=topology.openstack.org,resources=topologies,verbs=get;list;watch;update
@@ -1225,11 +1224,6 @@ func configureHorizonRbac(ctx context.Context, helper *helper.Helper, instance *
 			ResourceNames: []string{"anyuid", "hostmount-anyuid"},
 			Resources:     []string{"securitycontextconstraints"},
 			Verbs:         []string{"use"},
-		},
-		{
-			APIGroups: []string{""},
-			Resources: []string{"pods"},
-			Verbs:     []string{"create", "get", "list", "watch", "update", "patch", "delete"},
 		},
 	}
 	return common_rbac.ReconcileRbac(ctx, helper, instance, rbacRules)
