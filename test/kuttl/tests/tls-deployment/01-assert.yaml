@@ -90,6 +90,7 @@ spec:
           name: horizon-tls-certs
           readOnly: true
           subPath: tls.key
+      automountServiceAccountToken: false
       securityContext: {}
       serviceAccount: horizon-horizon
       serviceAccountName: horizon-horizon

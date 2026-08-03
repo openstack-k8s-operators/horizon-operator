@@ -8,6 +8,14 @@ you can load custom themes using the
 [ExtraMounts](https://github.com/openstack-k8s-operators/dev-docs/blob/main/extra_mounts.md)
 feature.
 
+## ExtraMounts volume support
+
+To load custom themes, use a ConfigMap or a PVC.
+
+Inline NFS volumes (`volumes[].nfs`) and hostPath mounts are **not** supported.
+The Horizon ServiceAccount does not use the `hostmount-anyuid` SCC that
+OpenShift requires for these mount types.
+
 ## Theme configuration
 
 To provide additional themes, you must specify them in the `AVAILABLE_THEMES`
