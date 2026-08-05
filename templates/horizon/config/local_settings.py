@@ -38,6 +38,13 @@ HORIZON_CONFIG["password_validator"] = {
 HORIZON_CONFIG["enforce_password_check"] = True
 POLICY_FILES_PATH = '/etc/openstack-dashboard'
 HORIZON_IMAGES_UPLOAD_MODE = 'direct'
+# Must match httpd.conf's "Alias /dashboard/static" target and
+# internal/horizon/volumes.go's DashboardStaticPath -- without this,
+# openstack_dashboard's own default (package-relative, under
+# site-packages) is used instead, silently diverging from the path
+# httpd actually serves and the EmptyDir dashboard-setup's
+# "manage.py collectstatic" output is meant to land in.
+STATIC_ROOT = '/usr/share/openstack-dashboard/static'
 
 DEBUG = False
 # This setting controls whether or not compression is enabled. Disabling

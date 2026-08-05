@@ -50,13 +50,6 @@ const (
 	// by the horizon-operator
 	Horizon storage.PropagationType = "Horizon"
 
-	// ApacheUID - apache uid inside the horizon container
-	ApacheUID int64 = 48
-
-	// KollaUID - assigned as additional group, is required by the bootstrap process
-	// https://github.com/openstack/kolla/blob/master/kolla/common/users.py
-	KollaUID int64 = 42400
-
 	//LogFile -
 	LogFile = "/var/log/horizon/horizon.log"
 
