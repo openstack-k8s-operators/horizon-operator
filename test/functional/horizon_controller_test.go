@@ -685,13 +685,13 @@ var _ = Describe("Horizon controller", func() {
 			// Get Horizon Deployment
 			dp := th.GetDeployment(deploymentName)
 			// Check the resulting deployment fields
-			Expect(dp.Spec.Template.Spec.Volumes).To(HaveLen(5))
+			Expect(dp.Spec.Template.Spec.Volumes).To(HaveLen(12))
 			Expect(dp.Spec.Template.Spec.Containers).To(HaveLen(2))
 			// Get the horizon container
 			container := dp.Spec.Template.Spec.Containers[1]
 			// Fail if horizon doesn't have the right number of VolumeMounts
 			// entries
-			Expect(container.VolumeMounts).To(HaveLen(7))
+			Expect(container.VolumeMounts).To(HaveLen(12))
 			// Inspect VolumeMounts and make sure we have the Foo MountPath
 			// provided through extraMounts
 			th.AssertVolumeMountPathExists(horizonExtraMountsSecretName,

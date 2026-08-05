@@ -79,7 +79,7 @@ func TestFormatTLSOptions(t *testing.T) {
 			expectedMounts: []corev1.VolumeMount{
 				{
 					Name:             "horizon-tls-certs",
-					MountPath:        "/var/lib/config-data/tls/certs/horizon.crt",
+					MountPath:        "/etc/pki/tls/certs/horizon.crt",
 					ReadOnly:         true,
 					SubPath:          "tls.crt",
 					MountPropagation: nil,
@@ -97,7 +97,7 @@ func TestFormatTLSOptions(t *testing.T) {
 					Name:             "horizon-tls-certs",
 					ReadOnly:         true,
 					SubPath:          "tls.key",
-					MountPath:        "/var/lib/config-data/tls/private/horizon.key",
+					MountPath:        "/etc/pki/tls/private/horizon.key",
 					MountPropagation: nil,
 					SubPathExpr:      "",
 				},
