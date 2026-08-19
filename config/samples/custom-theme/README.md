@@ -8,6 +8,14 @@ you can load custom themes using the
 [ExtraMounts](https://github.com/openstack-k8s-operators/dev-docs/blob/main/extra_mounts.md)
 feature.
 
+## ExtraMounts volume support
+
+To load custom themes, use a ConfigMap or a PVC.
+
+Inline NFS volumes (`volumes[].nfs`) and hostPath mounts are **not** supported.
+The Horizon ServiceAccount does not use the `hostmount-anyuid` SCC that
+OpenShift requires for these mount types.
+
 ## Theme configuration
 
 To provide additional themes, you must specify them in the `AVAILABLE_THEMES`
@@ -53,14 +61,16 @@ toggle functionality will not be available in the dashboard UI.
 
 
 The configuration file must be mounted in
-`/etc/openstack-dashboard/local_settings.d` within the Pod. The horizon
-bootstrap process uses this file to resolve the theme path during the `python
-manage.py collectstatic` operation.
+`/etc/openstack-dashboard/local_settings.d` within the Pod. The
+`dashboard-setup` init container reads this file to resolve the theme path
+during its `python manage.py collectstatic` step.
 
 After creating the `_11_custom_theme.py` file, you must provide the theme assets
-as a **tar.gz** tarball. A script in the Horizon operator will unpack this
-tarball in `/usr/share/openstack-dashboard/openstack_dashboard/themes`, which
-is currently the only supported path.
+as a **tar.gz** tarball. The `theme-setup` init container unpacks this tarball
+into `/usr/share/openstack-dashboard/openstack_dashboard/themes`, which is
+currently the only supported path. It runs before `dashboard-setup`, so the
+unpacked theme is in place by the time `collectstatic` regenerates the static
+assets.
 
 > **Note:** Only tar.gz format is currently supported.
 

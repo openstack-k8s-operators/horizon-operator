@@ -1,0 +1,140 @@
+#!/bin/bash
+
+set -o errexit
+
+# Adapted from tcib's kolla_extend_start
+# (container-images/kolla/horizon/extend_start.sh), brought in-repo rather
+# than continuing to invoke the image-baked
+# /usr/local/bin/kolla_extend_start directly, so this operator doesn't
+# depend on tcib continuing to ship that file once kolla_start itself is
+# gone from every operator's images.
+#
+# Trimmed compared to the original: dropped the custom_local_settings
+# symlink step (that file is never created by this operator), the
+# KOLLA_BOOTSTRAP early-exit branch (this operator never sets that env
+# var), the .secret_key_store chown (a different, unused file from this
+# operator's own .horizon-secret), and the final httpd hand-off (now the
+# main container's own direct responsibility -- an init container must run
+# to completion and exit, not become the long-running httpd process).
+
+FORCE_GENERATE="${FORCE_GENERATE}"
+HASH_PATH=/var/lib/openstack/settings-hash/settings.md5sum.txt
+MANAGE_PY="/usr/bin/python3 /usr/bin/manage.py"
+# Kept hardcoded, matching internal/horizon/volumes.go's SitePackagesPath --
+# a Kubernetes VolumeMount path must be a fixed string decided at
+# pod-spec-build time, so if this ever needs to change, both places need
+# updating together.
+SITE_PACKAGES="/usr/lib/python3.9/site-packages"
+# There may not be an ENABLE_WATCHER variable. Defaulting it to no.
+ENABLE_WATCHER="${ENABLE_WATCHER:-no}"
+# There may not be an ENABLE_CLOUDKITTY variable. Defaulting it to no.
+ENABLE_CLOUDKITTY="${ENABLE_CLOUDKITTY:-no}"
+
+function config_dashboard {
+    ENABLE=$1
+    SRC=$2
+    DEST=$3
+    if [[ ! -f ${SRC} ]]; then
+        echo "WARNING: ${SRC} is required"
+    elif [[ "${ENABLE}" == "yes" ]] && [[ ! -f "${DEST}" ]]; then
+        cp -r "${SRC}" "${DEST}"
+        FORCE_GENERATE="yes"
+    elif [[ "${ENABLE}" != "yes" ]] && [[ -f "${DEST}" ]]; then
+        # remove pyc pyo files too
+        rm -f "${DEST}" "${DEST}c" "${DEST}o"
+        FORCE_GENERATE="yes"
+    fi
+}
+
+function config_designate_dashboard {
+    for file in ${SITE_PACKAGES}/designatedashboard/enabled/_*[^__].py; do
+        config_dashboard "${ENABLE_DESIGNATE}" \
+            "${SITE_PACKAGES}/designatedashboard/enabled/${file##*/}" \
+            "${SITE_PACKAGES}/openstack_dashboard/local/enabled/${file##*/}"
+    done
+}
+
+function config_heat_dashboard {
+    for file in ${SITE_PACKAGES}/heat_dashboard/enabled/_*[^__].py; do
+        config_dashboard "${ENABLE_HEAT}" \
+            "${SITE_PACKAGES}/heat_dashboard/enabled/${file##*/}" \
+            "${SITE_PACKAGES}/openstack_dashboard/local/enabled/${file##*/}"
+    done
+}
+
+function config_ironic_dashboard {
+    for file in ${SITE_PACKAGES}/ironic_ui/enabled/_*[^__].py; do
+        config_dashboard "${ENABLE_IRONIC}" \
+            "${SITE_PACKAGES}/ironic_ui/enabled/${file##*/}" \
+            "${SITE_PACKAGES}/openstack_dashboard/local/enabled/${file##*/}"
+    done
+}
+
+function config_manila_ui {
+    for file in ${SITE_PACKAGES}/manila_ui/local/enabled/_*[^__].py; do
+        config_dashboard "${ENABLE_MANILA}" \
+            "${SITE_PACKAGES}/manila_ui/local/enabled/${file##*/}" \
+            "${SITE_PACKAGES}/openstack_dashboard/local/enabled/${file##*/}"
+    done
+}
+
+function config_octavia_dashboard {
+    config_dashboard "${ENABLE_OCTAVIA}" \
+        "${SITE_PACKAGES}/octavia_dashboard/enabled/_1482_project_load_balancer_panel.py" \
+        "${SITE_PACKAGES}/openstack_dashboard/local/enabled/_1482_project_load_balancer_panel.py"
+}
+
+function config_watcher_dashboard {
+    # Do nothing if the watcher-dashboard is not installed
+    if [ -d ${SITE_PACKAGES}/watcher_dashboard ] ; then
+        for file in ${SITE_PACKAGES}/watcher_dashboard/local/enabled/_*[^__].py; do
+            config_dashboard "${ENABLE_WATCHER}" \
+                "${SITE_PACKAGES}/watcher_dashboard/local/enabled/${file##*/}" \
+                "${SITE_PACKAGES}/openstack_dashboard/local/enabled/${file##*/}"
+        done
+    fi
+}
+
+function config_cloudkitty_dashboard {
+    # Do nothing if the cloudkitty-dashboard is not installed
+    if [ -d ${SITE_PACKAGES}/cloudkittydashboard ] ; then
+        for file in ${SITE_PACKAGES}/cloudkittydashboard/enabled/_*[^__].py; do
+            config_dashboard "${ENABLE_CLOUDKITTY}" \
+                "${SITE_PACKAGES}/cloudkittydashboard/enabled/${file##*/}" \
+                "${SITE_PACKAGES}/openstack_dashboard/local/enabled/${file##*/}"
+        done
+    fi
+}
+
+# Regenerate the compressed javascript and css if any configuration files
+# have changed. Use a static modification date when generating the tarball
+# so that we only trigger on content changes.
+function settings_bundle {
+    tar -cf- --mtime=1970-01-01 \
+        /etc/openstack-dashboard/local_settings \
+        /etc/openstack-dashboard/local_settings.d 2> /dev/null
+}
+
+function settings_changed {
+    changed=1
+
+    if [[ ! -f $HASH_PATH ]] || ! settings_bundle | md5sum -c --status $HASH_PATH || [[ $FORCE_GENERATE == yes ]]; then
+        changed=0
+    fi
+
+    return ${changed}
+}
+
+config_designate_dashboard
+config_heat_dashboard
+config_ironic_dashboard
+config_manila_ui
+config_octavia_dashboard
+config_watcher_dashboard
+config_cloudkitty_dashboard
+
+if settings_changed; then
+    ${MANAGE_PY} collectstatic --noinput --clear
+    ${MANAGE_PY} compress --force
+    settings_bundle | md5sum > $HASH_PATH
+fi

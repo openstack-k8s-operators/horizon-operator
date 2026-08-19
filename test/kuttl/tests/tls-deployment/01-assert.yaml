@@ -60,55 +60,175 @@ spec:
             port: horizon
             scheme: HTTPS
         volumeMounts:
-        - mountPath: /var/lib/config-data/default/
-          name: config-data
-        - mountPath: /var/lib/kolla/config_files/config.json
+        - mountPath: /etc/httpd/conf/httpd.conf
           name: config-data
           readOnly: true
-          subPath: horizon.json
-        - mountPath: /run/openstack-dashboard/.secrets
-          name: horizon-secret-key
+          subPath: httpd.conf
+        - mountPath: /etc/httpd/conf.d/ssl.conf
+          name: config-data
           readOnly: true
-        - mountPath: /usr/local/bin/container-scripts
-          name: scripts
+          subPath: ssl.conf
+        - mountPath: /etc/openstack-dashboard/local_settings
+          name: config-data
           readOnly: true
-        - mountPath: /usr/local/bin/kolla_theme_setup
-          name: scripts
+          subPath: local_settings.py
+        - mountPath: /etc/openstack-dashboard/local_settings.d/9999_custom_settings.py
+          name: config-data
           readOnly: true
-          subPath: kolla_theme_setup
+          subPath: 9999_custom_settings.py
+        - mountPath: /etc/openstack-dashboard/.horizon-secret
+          name: horizon-secret
+          readOnly: true
+          subPath: horizon-secret
         - mountPath: /var/log/horizon
           name: logs
+        - mountPath: /run/httpd
+          name: run-httpd
+        - mountPath: /var/log/httpd
+          name: var-log-httpd
+        - mountPath: /usr/share/openstack-dashboard/openstack_dashboard/themes
+          name: themes
+        - mountPath: /usr/lib/python3.9/site-packages/openstack_dashboard/local/enabled
+          name: dashboard-enabled
+        - mountPath: /usr/share/openstack-dashboard/static
+          name: dashboard-static
         - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
           name: combined-ca-bundle
           readOnly: true
           subPath: tls-ca-bundle.pem
-        - mountPath: /var/lib/config-data/tls/certs/horizon.crt
+        - mountPath: /etc/pki/tls/certs/horizon.crt
           name: horizon-tls-certs
           readOnly: true
           subPath: tls.crt
-        - mountPath: /var/lib/config-data/tls/private/horizon.key
+        - mountPath: /etc/pki/tls/private/horizon.key
           name: horizon-tls-certs
           readOnly: true
           subPath: tls.key
-      securityContext: {}
+      initContainers:
+      - args:
+        - -c
+        - cp -r /usr/share/openstack-dashboard/openstack_dashboard/themes/. /var/lib/openstack/themes-seed/
+          && /usr/local/bin/theme_setup /etc/openstack-dashboard/theme /var/lib/openstack/themes-seed
+        command:
+        - /bin/bash
+        name: theme-setup
+        volumeMounts:
+        - mountPath: /usr/local/bin/container-scripts
+          name: scripts
+          readOnly: true
+        - mountPath: /usr/local/bin/theme_setup
+          name: scripts
+          readOnly: true
+          subPath: theme_setup
+        - mountPath: /var/lib/openstack/themes-seed
+          name: themes
+      - args:
+        - -c
+        - cat /var/lib/openstack/secret-src/horizon-secret > /var/lib/openstack/secret-seed/horizon-secret
+          && chmod 0600 /var/lib/openstack/secret-seed/horizon-secret
+        command:
+        - /bin/bash
+        name: secret-setup
+        volumeMounts:
+        - mountPath: /var/lib/openstack/secret-src/horizon-secret
+          name: horizon-secret-key
+          readOnly: true
+          subPath: horizon-secret
+        - mountPath: /var/lib/openstack/secret-seed
+          name: horizon-secret
+      - args:
+        - -c
+        - /usr/local/bin/container-scripts/dashboard_setup
+        command:
+        - /bin/bash
+        name: dashboard-setup
+        volumeMounts:
+        - mountPath: /etc/httpd/conf/httpd.conf
+          name: config-data
+          readOnly: true
+          subPath: httpd.conf
+        - mountPath: /etc/httpd/conf.d/ssl.conf
+          name: config-data
+          readOnly: true
+          subPath: ssl.conf
+        - mountPath: /etc/openstack-dashboard/local_settings
+          name: config-data
+          readOnly: true
+          subPath: local_settings.py
+        - mountPath: /etc/openstack-dashboard/local_settings.d/9999_custom_settings.py
+          name: config-data
+          readOnly: true
+          subPath: 9999_custom_settings.py
+        - mountPath: /etc/openstack-dashboard/.horizon-secret
+          name: horizon-secret
+          readOnly: true
+          subPath: horizon-secret
+        - mountPath: /var/log/horizon
+          name: logs
+        - mountPath: /run/httpd
+          name: run-httpd
+        - mountPath: /var/log/httpd
+          name: var-log-httpd
+        - mountPath: /usr/share/openstack-dashboard/openstack_dashboard/themes
+          name: themes
+        - mountPath: /usr/lib/python3.9/site-packages/openstack_dashboard/local/enabled
+          name: dashboard-enabled
+        - mountPath: /usr/share/openstack-dashboard/static
+          name: dashboard-static
+        - mountPath: /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
+          name: combined-ca-bundle
+          readOnly: true
+          subPath: tls-ca-bundle.pem
+        - mountPath: /etc/pki/tls/certs/horizon.crt
+          name: horizon-tls-certs
+          readOnly: true
+          subPath: tls.crt
+        - mountPath: /etc/pki/tls/private/horizon.key
+          name: horizon-tls-certs
+          readOnly: true
+          subPath: tls.key
+        - mountPath: /usr/local/bin/container-scripts
+          name: scripts
+          readOnly: true
+        - mountPath: /var/lib/openstack/settings-hash
+          name: settings-hash
+      securityContext:
+        runAsUser: 48
+        runAsGroup: 42420
+        runAsNonRoot: true
+        fsGroup: 42420
+        seccompProfile:
+          type: RuntimeDefault
       serviceAccount: horizon-horizon
       serviceAccountName: horizon-horizon
       terminationGracePeriodSeconds: 30
       volumes:
       - configMap:
-          defaultMode: 416
+          defaultMode: 288
           name: horizon-config-data
         name: config-data
       - name: horizon-secret-key
         secret:
           defaultMode: 384
           secretName: horizon
+      - emptyDir: {}
+        name: horizon-secret
       - configMap:
           defaultMode: 493
           name: horizon-scripts
         name: scripts
       - emptyDir: {}
         name: logs
+      - emptyDir: {}
+        name: run-httpd
+      - emptyDir: {}
+        name: var-log-httpd
+      - emptyDir: {}
+        name: themes
+      - emptyDir: {}
+        name: dashboard-enabled
+      - emptyDir: {}
+        name: dashboard-static
       - name: combined-ca-bundle
         secret:
           defaultMode: 292
@@ -117,3 +237,5 @@ spec:
         secret:
           defaultMode: 256
           secretName: cert-horizon-svc
+      - emptyDir: {}
+        name: settings-hash
