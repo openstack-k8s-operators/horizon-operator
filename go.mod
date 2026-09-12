@@ -9,13 +9,13 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.7.7
 	github.com/onsi/ginkgo/v2 v2.32.1
-	github.com/onsi/gomega v1.42.1
+	github.com/onsi/gomega v1.43.0
 	github.com/openstack-k8s-operators/horizon-operator/api v0.3.1-0.20240214134444-c675e5f69043
 	github.com/openstack-k8s-operators/infra-operator/apis v0.6.1-0.20260831095224-2f23472f5f39
 	github.com/openstack-k8s-operators/keystone-operator/api v0.6.1-0.20260901090745-572918f38abd
-	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260815072020-5930e2a9258e
-	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20260815072020-5930e2a9258e
-	github.com/openstack-k8s-operators/lib-common/modules/test v0.6.1-0.20260815072020-5930e2a9258e
+	github.com/openstack-k8s-operators/lib-common/modules/common v0.6.1-0.20260906094540-d1f379df10ce
+	github.com/openstack-k8s-operators/lib-common/modules/storage v0.6.1-0.20260906094540-d1f379df10ce
+	github.com/openstack-k8s-operators/lib-common/modules/test v0.6.1-0.20260906094540-d1f379df10ce
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.33.13
 	k8s.io/apimachinery v0.33.13
