@@ -34,7 +34,7 @@ import (
 
 const (
 	// ContainerImage - default fall-back container image for Horizon if associated env var not provided
-	ContainerImage = "quay.io/podified-antelope-centos9/openstack-horizon:current-podified"
+	ContainerImage = "quay.io/openstack-s2i-containers/openstack-horizon:master-latest"
 	// HorizonCustomThemeMountPath -
 	HorizonCustomThemeMountPath = "/etc/openstack-dashboard/theme"
 	// HorizonCustomThemeSetting -
