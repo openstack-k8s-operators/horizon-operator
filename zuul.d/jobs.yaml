@@ -18,3 +18,46 @@
     vars:
       cifmw_kuttl_tests_operator_list:
         - horizon
+
+- job:
+    name: horizon-s2i-content-provider
+    parent: s2i-openstack-container-content-provider
+    description: |
+      Build s2i horizon and horizontest images for horizon-s2i-test.
+    required-projects:
+      - name: openstack-k8s-operators/s2i-openstack-containers
+        override-checkout: main
+    vars:
+      s2i_ci_images:
+        - horizon/horizon
+        - horizontest/horizontest
+
+- job:
+    name: horizon-s2i-test
+    parent: s2i-test-base-ceph
+    description: |
+      Validate speculatively-built s2i horizon and horizontest images
+      against a live HCI OpenStack deployment. s2i-built images from the
+      content provider are applied to OpenStackVersion during
+      edpm_prepare via ci-framework set_containers before the control
+      plane is deployed. The s2i horizontest image is pinned via
+      cifmw_test_operator_* vars (test workload, not OpenStackVersion).
+    vars:
+      cifmw_extras:
+        - '@scenarios/centos-9/multinode-ci.yml'
+        - '@scenarios/centos-9/hci_ceph_backends.yml'
+        - '@scenarios/centos-9/horizon.yml'
+      cifmw_run_tests: true
+      cifmw_test_operator_stages:
+        - name: horizontest
+          type: horizontest
+      cifmw_test_operator_horizontest_auth_url: "https://keystone-public-openstack.apps-crc.testing"
+      cifmw_test_operator_horizontest_dashboard_url: "https://horizon-openstack.apps-crc.testing/"
+      cifmw_test_operator_horizontest_extra_flag: "not pagination and not test_regions"
+      cifmw_test_operator_horizontest_registry: >-
+        {{ s2i_content_provider_registry_ip }}:5001
+      cifmw_test_operator_horizontest_namespace: "{{ s2i_ci_content.namespace }}"
+      cifmw_test_operator_horizontest_container: openstack-horizontest
+      cifmw_test_operator_horizontest_image_tag: "{{ s2i_ci_content.tag }}"
+      cifmw_edpm_prepare_cindervolumes: []
+      cifmw_edpm_prepare_manilashares: []
