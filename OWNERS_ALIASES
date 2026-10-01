@@ -2,10 +2,11 @@
 
 aliases:
   horizon-approvers:
-  - ashu-011
   - deshipu
   - mcgonago
   - fmount
+  - HanzJas
+  - xtmprsqzntwlfb
   openstack-approvers:
   - abays
   - dprince
