@@ -44,9 +44,10 @@
       cifmw_test_operator_* vars (test workload, not OpenStackVersion).
     vars:
       cifmw_extras:
-        - '@scenarios/centos-9/multinode-ci.yml'
-        - '@scenarios/centos-9/hci_ceph_backends.yml'
-        - '@scenarios/centos-9/horizon.yml'
+        - '@scenarios/centos-10/base.yml'
+        - '@scenarios/centos-10/multinode-ci.yml'
+        - '@scenarios/centos-10/hci_ceph_backends.yml'
+        - '@scenarios/centos-10/horizon.yml'
       cifmw_run_tests: true
       cifmw_test_operator_stages:
         - name: horizontest
