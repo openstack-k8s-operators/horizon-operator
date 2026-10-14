@@ -96,4 +96,83 @@ var _ = Describe("Horizon Webhook", func() {
 				"spec.topologyRef.namespace: Invalid value: \"namespace\": Customizing namespace field is not supported"),
 		)
 	})
+
+	It("accepts public port name and rejects wrong names on create and update", func() {
+		horizonWithPortName := func(name, portName string) *unstructured.Unstructured {
+			spec := GetDefaultHorizonSpec()
+			spec["override"] = map[string]any{
+				"service": map[string]any{
+					"spec": map[string]any{
+						"ports": []any{map[string]any{"name": portName, "port": int64(13778)}},
+					},
+				},
+			}
+			return &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "horizon.openstack.org/v1beta1",
+				"kind":       "Horizon",
+				"metadata": map[string]any{
+					"name":      name,
+					"namespace": namespace,
+				},
+				"spec": spec,
+			}}
+		}
+
+		accepted := horizonWithPortName(horizonName.Name, "public")
+		_, err := controllerutil.CreateOrPatch(
+			th.Ctx, th.K8sClient, accepted, func() error { return nil })
+		Expect(err).NotTo(HaveOccurred())
+		DeferCleanup(th.DeleteInstance, accepted)
+
+		invalidCreate := horizonWithPortName(horizonName.Name+"-invalid", "wrong")
+		_, err = controllerutil.CreateOrPatch(
+			th.Ctx, th.K8sClient, invalidCreate, func() error { return nil })
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring(`must be "public"`))
+
+		current := &horizonv1.Horizon{}
+		current.Name = horizonName.Name
+		current.Namespace = horizonName.Namespace
+		_, err = controllerutil.CreateOrPatch(th.Ctx, th.K8sClient, current, func() error {
+			current.Spec.Override.Service.Spec.Ports[0].Name = "wrong"
+			return nil
+		})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring(`must be "public"`))
+	})
+
+	It("validates the endpointURL of the service override", func() {
+		horizonWithOverride := func(name string, svc map[string]any) *unstructured.Unstructured {
+			spec := GetDefaultHorizonSpec()
+			spec["override"] = map[string]any{"service": svc}
+			return &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "horizon.openstack.org/v1beta1",
+				"kind":       "Horizon",
+				"metadata":   map[string]any{"name": name, "namespace": namespace},
+				"spec":       spec,
+			}}
+		}
+		create := func(name string, svc map[string]any) error {
+			_, err := controllerutil.CreateOrPatch(th.Ctx, th.K8sClient,
+				horizonWithOverride(name, svc), func() error { return nil })
+			return err
+		}
+
+		Expect(create(horizonName.Name+"-ok", map[string]any{
+			"endpointURL": "https://dashboard.example.com:8443",
+			"spec":        map[string]any{"ports": []any{map[string]any{"name": "public", "port": int64(8443)}}},
+		})).To(Succeed())
+		DeferCleanup(th.DeleteInstance, horizonWithOverride(horizonName.Name+"-ok", nil))
+
+		Expect(create(horizonName.Name+"-short", map[string]any{
+			"endpointURL": "https://horizon"})).To(MatchError(ContainSubstring("endpointURL")))
+		Expect(create(horizonName.Name+"-scheme", map[string]any{
+			"endpointURL": "dashboard.example.com"})).To(MatchError(ContainSubstring("must be a valid URL with a scheme and host")))
+		Expect(create(horizonName.Name+"-ip", map[string]any{
+			"endpointURL": "https://192.168.1.1"})).To(MatchError(ContainSubstring("host must not be an IP literal")))
+		Expect(create(horizonName.Name+"-port", map[string]any{
+			"endpointURL": "https://dashboard.example.com:8443",
+			"spec":        map[string]any{"ports": []any{map[string]any{"name": "public", "port": int64(9443)}}},
+		})).To(MatchError(ContainSubstring("must match the port in endpointURL")))
+	})
 })
