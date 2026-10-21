@@ -88,7 +88,7 @@ spec:
           name: var-log-httpd
         - mountPath: /usr/share/openstack-dashboard/openstack_dashboard/themes
           name: themes
-        - mountPath: /usr/lib/python3.9/site-packages/openstack_dashboard/local/enabled
+        - mountPath: /usr/lib/python3.12/site-packages/openstack_dashboard/local/enabled
           name: dashboard-enabled
         - mountPath: /usr/share/openstack-dashboard/static
           name: dashboard-static
@@ -171,7 +171,7 @@ spec:
           name: var-log-httpd
         - mountPath: /usr/share/openstack-dashboard/openstack_dashboard/themes
           name: themes
-        - mountPath: /usr/lib/python3.9/site-packages/openstack_dashboard/local/enabled
+        - mountPath: /usr/lib/python3.12/site-packages/openstack_dashboard/local/enabled
           name: dashboard-enabled
         - mountPath: /usr/share/openstack-dashboard/static
           name: dashboard-static
