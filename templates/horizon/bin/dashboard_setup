@@ -24,7 +24,7 @@ MANAGE_PY="/usr/bin/python3 /usr/bin/manage.py"
 # a Kubernetes VolumeMount path must be a fixed string decided at
 # pod-spec-build time, so if this ever needs to change, both places need
 # updating together.
-SITE_PACKAGES="/usr/lib/python3.9/site-packages"
+SITE_PACKAGES="/usr/lib/python3.12/site-packages"
 # There may not be an ENABLE_WATCHER variable. Defaulting it to no.
 ENABLE_WATCHER="${ENABLE_WATCHER:-no}"
 # There may not be an ENABLE_CLOUDKITTY variable. Defaulting it to no.

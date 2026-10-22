@@ -309,8 +309,8 @@ func GetVarLogHttpdVolumeMount() corev1.VolumeMount {
 // Python version ever changes, this constant needs updating to match, or the
 // dashboard-setup init container will fail loudly (permission denied writing
 // to the real, unshadowed site-packages path) rather than silently
-// misbehave. Confirmed via a real WSGI traceback: Python 3.9.
-const SitePackagesPath = "/usr/lib/python3.9/site-packages"
+// misbehave. Confirmed via a real WSGI traceback: Python 3.12.
+const SitePackagesPath = "/usr/lib/python3.12/site-packages"
 
 // DashboardEnabledFinalPath is where dashboard_setup's config_dashboard
 // function copies/removes per-service dashboard panel files
