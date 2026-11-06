@@ -525,7 +525,7 @@ func (r *HorizonReconciler) reconcileInit(
 	}
 
 	servicePort := corev1.ServicePort{
-		Name:       endpointName,
+		Name:       string(service.EndpointPublic),
 		Port:       horizon.HorizonSvcPort,
 		TargetPort: intstr.FromInt32(horizon.HorizonPort),
 		Protocol:   corev1.ProtocolTCP,
@@ -571,11 +571,9 @@ func (r *HorizonReconciler) reconcileInit(
 		svc.AddAnnotation(map[string]string{
 			service.AnnotationIngressCreateKey: "false",
 		})
-		if svc.GetServiceType() == corev1.ServiceTypeLoadBalancer {
-			svc.AddAnnotation(map[string]string{
-				service.AnnotationHostnameKey: svc.GetServiceHostname(), // add annotation to register service name in dnsmasq
-			})
-		}
+		// The public endpoint's DNS is user-managed (its hostname is the
+		// endpointURL host, not the in-cluster Service name), so do not
+		// register it in dnsmasq even when it is a LoadBalancer.
 	}
 
 	ctrlResult, err := svc.CreateOrPatch(ctx, helper)
@@ -1092,13 +1090,25 @@ func (r *HorizonReconciler) generateServiceConfigMaps(
 		return err
 	}
 
+	defaultServerName := fmt.Sprintf("%s.%s.svc", horizon.ServiceName, instance.Namespace)
+	var serviceOverride service.RoutedOverrideSpec
+	if instance.Spec.Override.Service != nil {
+		serviceOverride = *instance.Spec.Override.Service
+	}
+	vhostServerName, serverAliases, err := service.GetVHostServerName(serviceOverride, defaultServerName)
+	if err != nil {
+		return err
+	}
+
 	templateParameters := map[string]any{
 		"keystoneURL":         authURL,
 		"horizonEndpoint":     instance.Status.Endpoint,
-		"horizonEndpointHost": url.Host,
+		"horizonEndpointHost": url.Hostname(),
 		"memcachedServers":    mc.GetMemcachedServerListQuotedString(),
 		"memcachedTLS":        mc.GetMemcachedTLSSupport(),
-		"ServerName":          fmt.Sprintf("%s.%s.svc", horizon.ServiceName, instance.Namespace),
+		"ServerName":          defaultServerName,
+		"VHostServerName":     vhostServerName,
+		"ServerAliases":       serverAliases,
 		"Port":                horizon.HorizonPort,
 		"TLS":                 false,
 		"isPublicHTTPS":       url.Scheme == "https",
