@@ -17,7 +17,9 @@ import (
 	"github.com/openstack-k8s-operators/horizon-operator/internal/horizon"
 	memcachedv1 "github.com/openstack-k8s-operators/infra-operator/apis/memcached/v1beta1"
 	topologyv1 "github.com/openstack-k8s-operators/infra-operator/apis/topology/v1beta1"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/clusterdns"
 	condition "github.com/openstack-k8s-operators/lib-common/modules/common/condition"
+	"github.com/openstack-k8s-operators/lib-common/modules/common/service"
 )
 
 var _ = Describe("Horizon controller", func() {
@@ -279,6 +281,194 @@ var _ = Describe("Horizon controller", func() {
 				conf := string(cm.Data["local_settings.py"])
 				g.Expect(string(conf)).Should(
 					ContainSubstring("OPENSTACK_KEYSTONE_URL = \"%s/v3\"", newInternalEndpoint))
+			}, timeout, interval).Should(Succeed())
+		})
+	})
+
+	When("a LoadBalancer Service is exposed", func() {
+		BeforeEach(func() {
+			DeferCleanup(
+				k8sClient.Delete, ctx, CreateHorizonSecret(namespace, SecretName))
+			DeferCleanup(infra.DeleteMemcached, infra.CreateMemcached(namespace, "memcached", memcachedSpec))
+			infra.SimulateMemcachedReady(types.NamespacedName{
+				Name:      "memcached",
+				Namespace: namespace,
+			})
+			keystoneAPI := keystone.CreateKeystoneAPI(namespace)
+			DeferCleanup(keystone.DeleteKeystoneAPI, keystoneAPI)
+		})
+
+		vhostConf := func(g Gomega) string {
+			cm := &corev1.ConfigMap{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Namespace: horizonName.Namespace,
+				Name:      horizonName.Name + "-config-data",
+			}, cm)).To(Succeed())
+			return cm.Data["httpd.conf"]
+		}
+
+		It("uses endpointURL as ServerName with the service names as aliases and no dnsmasq hostname", func() {
+			horizonSpec := GetDefaultHorizonSpec()
+			horizonSpec["override"] = map[string]any{
+				"service": map[string]any{
+					"endpointURL": "http://dashboard.example.com",
+					"spec":        map[string]any{"type": "LoadBalancer"},
+				},
+			}
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, horizonSpec))
+
+			hostname := fmt.Sprintf("%s.%s.svc", horizon.ServiceName, horizonName.Namespace)
+			Eventually(func(g Gomega) {
+				svc := &corev1.Service{}
+				g.Expect(k8sClient.Get(ctx, horizonName, svc)).To(Succeed())
+				g.Expect(svc.Name).To(Equal(horizon.ServiceName))
+				g.Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
+				g.Expect(svc.Spec.Ports).To(HaveLen(1))
+				g.Expect(svc.Spec.Ports[0].Name).To(Equal("public"))
+				g.Expect(svc.Annotations).NotTo(HaveKey(service.AnnotationHostnameKey))
+
+				conf := vhostConf(g)
+				g.Expect(conf).To(ContainSubstring(fmt.Sprintf(
+					"<VirtualHost *:%d>\n  ServerName dashboard.example.com\n  ServerAlias %s",
+					horizon.HorizonPort, hostname)))
+				g.Expect(conf).To(ContainSubstring("ServerAlias " + hostname + "." + clusterdns.GetDNSClusterDomain()))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("removes a stale dnsmasq hostname annotation from the Service", func() {
+			horizonSpec := GetDefaultHorizonSpec()
+			horizonSpec["override"] = map[string]any{
+				"service": map[string]any{
+					"spec": map[string]any{"type": "LoadBalancer"},
+				},
+			}
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, horizonSpec))
+
+			Eventually(func(g Gomega) {
+				svc := &corev1.Service{}
+				g.Expect(k8sClient.Get(ctx, horizonName, svc)).To(Succeed())
+				if svc.Annotations == nil {
+					svc.Annotations = map[string]string{}
+				}
+				svc.Annotations[service.AnnotationHostnameKey] = "stale.example.com"
+				g.Expect(k8sClient.Update(ctx, svc)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				svc := &corev1.Service{}
+				g.Expect(k8sClient.Get(ctx, horizonName, svc)).To(Succeed())
+				g.Expect(svc.Annotations).NotTo(HaveKey(service.AnnotationHostnameKey))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("removes a stale dnsmasq hostname annotation when the Service becomes ClusterIP", func() {
+			horizonSpec := GetDefaultHorizonSpec()
+			horizonSpec["override"] = map[string]any{
+				"service": map[string]any{
+					"spec": map[string]any{"type": "LoadBalancer"},
+				},
+			}
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, horizonSpec))
+
+			Eventually(func(g Gomega) {
+				svc := &corev1.Service{}
+				g.Expect(k8sClient.Get(ctx, horizonName, svc)).To(Succeed())
+				g.Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				instance := GetHorizon(horizonName)
+				instance.Spec.Override.Service.Spec = nil
+				g.Expect(k8sClient.Update(ctx, instance)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			// the LoadBalancer reconcile already strips it, so inject on the ClusterIP Service
+			Eventually(func(g Gomega) {
+				svc := &corev1.Service{}
+				g.Expect(k8sClient.Get(ctx, horizonName, svc)).To(Succeed())
+				g.Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
+				svc.Annotations[service.AnnotationHostnameKey] = "stale.example.com"
+				g.Expect(k8sClient.Update(ctx, svc)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				svc := &corev1.Service{}
+				g.Expect(k8sClient.Get(ctx, horizonName, svc)).To(Succeed())
+				g.Expect(svc.Spec.Type).To(Equal(corev1.ServiceTypeClusterIP))
+				g.Expect(svc.Annotations).NotTo(HaveKey(service.AnnotationHostnameKey))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("keeps the endpointURL port out of ALLOWED_HOSTS", func() {
+			horizonSpec := GetDefaultHorizonSpec()
+			horizonSpec["override"] = map[string]any{
+				"service": map[string]any{
+					"endpointURL": "https://horizon.foo.bar:8443",
+					"spec":        map[string]any{"type": "LoadBalancer"},
+				},
+			}
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, horizonSpec))
+
+			// envtest has no LB controller; give the Service an IP so Status.Endpoint gets set
+			Eventually(func(g Gomega) {
+				svc := &corev1.Service{}
+				g.Expect(k8sClient.Get(ctx, horizonName, svc)).To(Succeed())
+				svc.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{{IP: "192.0.2.10"}}
+				g.Expect(k8sClient.Status().Update(ctx, svc)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				cm := th.GetConfigMap(types.NamespacedName{
+					Namespace: horizonName.Namespace,
+					Name:      horizonName.Name + "-config-data",
+				})
+				conf := cm.Data["local_settings.py"]
+				g.Expect(conf).To(ContainSubstring(`"horizon.foo.bar"]`))
+				g.Expect(conf).NotTo(ContainSubstring("horizon.foo.bar:8443"))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("uses the in-cluster name as ServerName without endpointURL and no dnsmasq hostname", func() {
+			horizonSpec := GetDefaultHorizonSpec()
+			horizonSpec["override"] = map[string]any{
+				"service": map[string]any{
+					"spec": map[string]any{"type": "LoadBalancer"},
+				},
+			}
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, horizonSpec))
+
+			hostname := fmt.Sprintf("%s.%s.svc", horizon.ServiceName, horizonName.Namespace)
+			Eventually(func(g Gomega) {
+				svc := &corev1.Service{}
+				g.Expect(k8sClient.Get(ctx, horizonName, svc)).To(Succeed())
+				g.Expect(svc.Name).To(Equal(horizon.ServiceName))
+				g.Expect(svc.Spec.Ports).To(HaveLen(1))
+				g.Expect(svc.Spec.Ports[0].Name).To(Equal("public"))
+				g.Expect(svc.Annotations).NotTo(HaveKey(service.AnnotationHostnameKey))
+
+				conf := vhostConf(g)
+				g.Expect(conf).To(ContainSubstring(fmt.Sprintf(
+					"<VirtualHost *:%d>\n  ServerName %s\n", horizon.HorizonPort, hostname)))
+				g.Expect(conf).To(ContainSubstring("ServerAlias " + hostname + "." + clusterdns.GetDNSClusterDomain()))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("keeps the default vhost ServerName when endpointURL is set without a LoadBalancer (Route)", func() {
+			horizonSpec := GetDefaultHorizonSpec()
+			horizonSpec["override"] = map[string]any{
+				"service": map[string]any{
+					"endpointURL": "http://route.example.com",
+				},
+			}
+			DeferCleanup(th.DeleteInstance, CreateHorizon(horizonName, horizonSpec))
+
+			hostname := fmt.Sprintf("%s.%s.svc", horizon.ServiceName, horizonName.Namespace)
+			Eventually(func(g Gomega) {
+				conf := vhostConf(g)
+				// the router sends no SNI, so the route host must not be a ServerName
+				g.Expect(conf).NotTo(ContainSubstring("ServerName route.example.com"))
+				g.Expect(conf).To(ContainSubstring(fmt.Sprintf(
+					"<VirtualHost *:%d>\n  ServerName %s\n", horizon.HorizonPort, hostname)))
 			}, timeout, interval).Should(Succeed())
 		})
 	})
